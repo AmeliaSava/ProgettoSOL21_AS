@@ -1,0 +1,7 @@
+# Formato file config.txt
+# Commentare con '#'
+# Nome variabile = valore;
+#
+Number of thread workers = 13;
+Max Memory available in Mb = 123;
+Socket file name = socketfile.sk;
