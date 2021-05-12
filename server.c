@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-#include <utils.h>
+#include <utils.h> //provvisorio
 //altri include
 
 #define CONFIG_FL "./config.txt"
@@ -52,7 +53,8 @@ int main (int argc, char* argv[]) {
 		char* semic;
 		
 		if ((semic = strchr(buffer, ';')) == NULL) { 
-			fprintf(stderr, "wrong newline config.txt file format\n");
+			fprintf(stderr, "wrong config.txt file format: need ';' before newline\n");
+			free(buffer);
 			exit(EXIT_FAILURE);
 		}
 		
@@ -61,24 +63,28 @@ int main (int argc, char* argv[]) {
 		char* eq;
 
 		if((eq = strchr(buffer, '=')) == NULL) {
-			fprintf(stderr, "wrong equal config.txt file format\n");
+			fprintf(stderr, "wrong config.txt file format, usage: <name> = <value>;\n");
+			free(buffer);
 			exit(EXIT_FAILURE);	
 		}
-		
-		*eq++;
-		
+
+		++eq;
+
 		switch (count) {
 			case 0:
 				if(isNumber(eq, &NUM_THREAD_WORKERS) != 0) {
-					fprintf(stderr, "wrong format number of thread workers\n");
+					fprintf(stderr, "wrong config.txt file format: first line must be number of thread workers\n");
+					free(buffer);
 					exit(EXIT_FAILURE);
 				}
 			case 1:
 				if(isNumber(eq, &MAX_MEMORY_MB) != 0) {
-					fprintf(stderr, "wrong format max memory allocated\n");
+					fprintf(stderr, "wrong config.txt file format: second line must be maximum memory allocable\n");
+					free(buffer);
 					exit(EXIT_FAILURE);
 				}
 			case 2:
+				while((*eq) != '\0' && isspace(*eq)) ++eq;
 				strncpy(SOCKET_NAME, eq, MAX_BUF);
 		}
 
