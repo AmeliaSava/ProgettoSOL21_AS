@@ -41,7 +41,7 @@ void swapNode (nodo** a, nodo** b) {
 	long tmpFD = (*a)->tmpfd;
 	int tmpF = (*a)->freq;
 	char tmpN[2048];
-	strcpy(tmpN, );
+	strcpy(tmpN, (*a)->nome);
 	int stato;
 }
 
