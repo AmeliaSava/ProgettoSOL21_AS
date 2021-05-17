@@ -3,6 +3,7 @@
 # Nome variabile = valore;
 # Non lasciare righe vuote
 # Commenti solo su nuova riga
+# 
 Number of thread workers = 13;
-Max Memory available in Mb = 123;
-Socket file name = socketfile;
+Max Memory available in Mb = 342;
+Socket file name = socktfile ;

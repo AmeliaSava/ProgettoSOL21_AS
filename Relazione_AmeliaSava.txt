@@ -1,0 +1,7 @@
+Relazione Amelia Sava
+
+Server
+
+Nel main si fa il parsing del file config.txt, il formato del file config.txt prevede (la possibilità di commentare con #) di scrivere gli argomenti uno per riga e si suppone che l'ordine viene rispettato, le righe devono essere terminate da ; e il nome della variabile separato dall'uguale, possono esserci spazi.
+
+Si è deciso di utilizzare una struttura dati
