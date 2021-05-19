@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <ops.h>
+
 #define INT_MAX 2147483647
 #define MAX_SIZE 2048
 
@@ -18,7 +20,7 @@ typedef struct _nodo{
 void print (nodo* n){
 
 	if(n==NULL) {
-		fprintf(stdout, "fine");
+		fprintf(stdout, "fine\n");
 		return;
 	}
 	
@@ -86,7 +88,7 @@ void swapNode (nodo* a, nodo* b) {
 	strcpy(a->testo, b->testo);
 	a->stato = b->stato;
 
-	b->freq = tmp->freq; //chiave primaria
+	b->freq = tmp->freq;
 	strcpy(b->nome, tmp->nome);
 	strcpy(b->testo, tmp->testo);
 	b->stato = tmp->stato;
@@ -110,25 +112,56 @@ void minNode (nodo* t, nodo** min, int* minV) {
 	return;
 }
 
+//FUNZIONA
+nodo* pluckLeaf (nodo* root) {
 
-//FUNZIONA, MA NON SO SE DEVO RIMUOVERE QUESTO
-nodo* lastonleft (nodo* root) {
+	if(root == NULL)
+		return NULL;
+	
+	nodo* leaf = NULL;
 
-	if(root->left == NULL) {
-		return root;
+	//nodo con due figli
+	if(root->left != NULL && root->right != NULL){
+		leaf = pluckLeaf(root->left);
 	} 
-	nodo* lleft = NULL;
-	lleft = lastonleft(root->left);
-	return lleft;
+	//nodo con solo il figlio dx
+	if(root->left == NULL && root->right != NULL){
+		//a dx c'è una foglia
+		if(root->right->left == NULL && root->right->right == NULL) {
+			nodo* temp = (nodo*) malloc(sizeof(nodo));
+			swapNode(temp, root->right);
+		    	root->right = NULL;
+			return temp;
+		}
+	 	leaf = pluckLeaf(root->right);
+	}
+	//nodo con solo il figlio sx
+	if(root->left != NULL && root->right == NULL){
+		//a sx c'è una foglia
+		if(root->left->left == NULL && root->left->right == NULL) {
+			nodo* temp = (nodo*) malloc(sizeof(nodo));
+			swapNode(temp, root->left);
+		    	root->left = NULL;
+			return temp;
+		}
+ 		leaf = pluckLeaf(root->left);
+	}
+	return leaf;
 }
 
-//NON RIMUOVE IL NODO
-void LFU_Remove(nodo* root)  
-{  
-	nodo* LastLeft = lastonleft(root);
-	swapNode(root, LastLeft);
-	free(LastLeft);
-	//heapify(root);
+//FUNZIONA
+void LFU_Remove(nodo* root) {
+	
+	int minValue = root->freq;
+	nodo* min = NULL;
+	minNode(root, &min, &minValue);
+
+	nodo* leaf = NULL;
+	CHECK_EQ_EXIT(leaf = pluckLeaf(root), NULL, "ERROR: deleting leaf");
+
+	swapNode(min, leaf);
+
+	free(leaf);
 }
 
 //FUNZIONA
@@ -156,7 +189,7 @@ int main(){
 	root = insTree(root, 4, "abcd", "radice", 0);
     	insTree(root, 2, "ema", "stringa1", 0);
     	insTree(root, 3, "amel", "stringa2", 0);
-   	insTree(root, 4, "lorenzo", "stringa3", 0);
+   	insTree(root, 0, "lorenzo", "stringa3", 0);
     	insTree(root, 5, "federico", "stringa4", 0);
     	insTree(root, 6, "alessa", "stringa5", 0);
 	/*printf("\n");
@@ -174,17 +207,23 @@ int main(){
     	printf("Trovato '%s': %d\n", find->nome, find->freq);
 
     	printf("---------\n");
-	nodo* left = NULL;
-	left = lastonleft(root);
-	printf("Last SX '%s': %d\n", left->nome, left->freq);
+	//nodo* left = NULL;
+	//left = pluckLeaf(root);
+	//printf("Last SX '%s': %d\n", left->nome, left->freq);
 	printf("\n");
 	int minValue = root->freq;
 	nodo* min = NULL;
 	minNode(root, &min, &minValue);
 	printf("Min '%s': %d\n", min->nome, min->freq);
-	//printf("Rimuvi min:\n");
-	//LFU_Remove(root);
-	//print(root);
+	printf("---------\n");
+	printf("stampa albero:\n");
+	printf("%s\n", root->nome);
+	printf("%s\n", root->right->nome);
+	print(root);
+	printf("---------\n");
+	printf("Rimuvi min:\n");
+	LFU_Remove(root);
+	print(root);
 	
  return 0;
 }
