@@ -11,16 +11,59 @@
 #include <stdio.h>
 #include <errno.h>
 
+#if !defined(EXTRA_LEN_PRINT_ERROR)
+#define EXTRA_LEN_PRINT_ERROR   512
+#endif
+
 #define CHECK_EQ_EXIT(X, val, str)	\
-  if ((X)==val) {			\
-    perror(#str);			\
-    exit(EXIT_FAILURE);			\
+  if ((X)==val) {                     \
+    perror(#str);                   \
+    free(X);                        \
+    exit(EXIT_FAILURE);             \
   }
+
 #define CHECK_NEQ_EXIT(X, val, str)	\
   if ((X)!=val) {			\
     perror(#str);			\
+    free(X);                        \
     exit(EXIT_FAILURE);			\
   }
+
+#define SYSCALL_EXIT(name, r, sc, str, ...) \
+    if ((r=sc) == -1) {       \
+  perror(#name);        \
+  int errno_copy = errno;     \
+  print_error(str, __VA_ARGS__);    \
+  exit(errno_copy);     \
+    }
+
+#define SYSCALL_PRINT(name, r, sc, str, ...)  \
+    if ((r=sc) == -1) {       \
+  perror(#name);        \
+  int errno_copy = errno;     \
+  print_error(str, __VA_ARGS__);    \
+  errno = errno_copy;     \
+    }
+/**
+ * \brief Procedura di utilita' per la stampa degli errori
+ *
+ */
+static inline void print_error(const char * str, ...) {
+    const char err[]="ERROR: ";
+    va_list argp;
+    char * p=(char *)malloc(strlen(str)+strlen(err)+EXTRA_LEN_PRINT_ERROR);
+    if (!p) {
+	perror("malloc");
+        fprintf(stderr,"FATAL ERROR nella funzione 'print_error'\n");
+        return;
+    }
+    strcpy(p,err);
+    strcpy(p+strlen(err), str);
+    va_start(argp, str);
+    vfprintf(stderr, p, argp);
+    va_end(argp);
+    free(p);
+}
 
 static inline int isNumber(const char* s, long* n) {
   if (s==NULL) return 1;

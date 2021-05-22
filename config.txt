@@ -5,5 +5,5 @@
 # Commenti solo su nuova riga
 # 
 Number of thread workers = 13;
-Max Memory available in Mb = 342;
-Socket file name = socktfile ;
+Max Memory available in Mb = 122;
+Socket file name = storage_sock;
