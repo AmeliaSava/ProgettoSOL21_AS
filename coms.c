@@ -1,34 +1,47 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <assert.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <sys/uio.h>
+#include <sys/un.h>
 
-#include <util.h>
-#include <comm.h>
+#include <ops.h>
+#include <coms.h>
 
-/**
- * @file comm.c
- * @brief File di implementazione dell'interfaccia per la comunicazione client/server
- */
-
-
-/* ------------------- funzioni di utilita' -------------------- */
-
-
-
-/* ------------------- interfaccia della coda ------------------ */
+struct sockaddr_un serv_addr;
+int sockfd;
 
 /*
  * Apre una connesione AF_UNIX al socket file sockname. Se il server non accetta immediatamente la richiesta di connessione,
  * la connessione da parte del client ripetur dopo 'msec' millisecondi e fino allo scadere del tempo assoluto 'abstime' specificato
  * come terzo argomento. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
  */
-int openConnection(const char* sockname, int msec, const struct timespace abstime);
+int openConnection(const char* sockname/*, int msec, const struct timespace abstime*/) {
+	
+	SYSCALL_EXIT("socket", sockfd, socket(AF_UNIX, SOCK_STREAM, 0), "socket", "");
+	 
+	memset(&serv_addr, '0', sizeof(serv_addr));
+
+	serv_addr.sun_family = AF_UNIX;    
+	strncpy(serv_addr.sun_path, sockname, strlen(sockname)+1);
+	int result;
+	SYSCALL_EXIT("connect", result, connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)), "connect", "");
+
+	return result;
+}
 
 /*
  * chiude la connessione AF_UNIX associata al socket file sockname. Ritorna 0 in caso di successo, -1 in caso di fallimento, 
  * errno viene settato opportunamente.
  */
-int closeConnection(const char* sockname);
+int closeConnection(const char* sockname) {
+	close(sockfd);
+	return 0;
+}
 
 /*
  * Richiede di apertura o di creazione di un file. 
@@ -41,14 +54,7 @@ int openFile(const char* pathname, int flags);
  * mentre 'size' conterrà la dimensione del buffer dati (ossia la dimensione in bytes del file letto). In caso di errore, 'buf' e 
  * 'size' non sono validi. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene viene settato opportunamente.
  */
-int readFile(const char* pathname, void** buf, size_t* size) {
-	errno = 0;
-	if(*pathname == NULL) {
-		errno = ;
-		return -1;	
-	}
-	read(socketfile, buf, N);
-}
+int readFile(const char* pathname, void** buf, size_t* size);
 
 /*
  * Richiede al server la lettura di ‘N’ files qualsiasi da memorizzare nella directory ‘dirname’ lato client.
@@ -84,8 +90,5 @@ int closeFile(const char* pathname);
  * Rimuove il file cancellandolo dal file storage server.
  */
 int removeFile(const char* pathname);
-
-
-#endif
 
 

@@ -1,14 +1,20 @@
 #if !defined(COMM_H)
+
 #define COMM_H
 
-#include
+#include <stdlib.h>
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <assert.h>
 
 /*
  * Apre una connesione AF_UNIX al socket file sockname. Se il server non accetta immediatamente la richiesta di connessione,
  * la connessione da parte del client ripetur dopo 'msec' millisecondi e fino allo scadere del tempo assoluto 'abstime' specificato
  * come terzo argomento. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
  */
-int openConnection(const char* sockname, int msec, const struct timespace abstime);
+int openConnection(const char* sockname/*, int msec, const struct timespace abstime*/);
 
 /*
  * chiude la connessione AF_UNIX associata al socket file sockname. Ritorna 0 in caso di successo, -1 in caso di fallimento, 

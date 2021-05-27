@@ -3,54 +3,51 @@
 #include <string.h>
 #include <assert.h>
 
-#include <util.h>
+#include <ops.h>
+#include <coms.h>
 #include <conn.h>
 
 
 int main(int argc, char *argv[]) {
-  if (argc == 1) {
-		fprintf(stderr, "usa: %s stringa [stringa]\n", argv[0]);
-		exit(EXIT_FAILURE);
-  }
-  struct sockaddr_un serv_addr;
-  int sockfd;
-	
-  SYSCALL_EXIT("socket", sockfd, socket(AF_UNIX, SOCK_STREAM, 0), "socket", "");
+	//openConnection(SOCKNAME);
+	struct sockaddr_un serv_addr;
+	int sockfd;
+
+	SYSCALL_EXIT("socket", sockfd, socket(AF_UNIX, SOCK_STREAM, 0), "socket", "");
 	 
 	memset(&serv_addr, '0', sizeof(serv_addr));
 
-  serv_addr.sun_family = AF_UNIX;    
-	strncpy(serv_addr.sun_path,SOCKNAME, strlen(SOCKNAME)+1);
-	int notused;
+	serv_addr.sun_family = AF_UNIX;    
+	strncpy(serv_addr.sun_path, SOCKNAME, strlen(SOCKNAME)+1);
+	int result;
+	SYSCALL_EXIT("connect", result, connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)), "connect", "");
+	//end openConnection
+	char *buffer = NULL;
+	buffer = malloc(1024*sizeof(char));
+	char* nome;
+	char* testo;
+
 	
-	SYSCALL_EXIT("connect", notused, connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)), "connect", "");
-    
-  char *buffer=NULL;
-  for(int i=1; i<argc;++i) {
 
-	int n=strlen(argv[i])+1;
-	/*
-	 *  NOTA: provare ad utilizzare writev (man 2 writev) per fare un'unica SC
-	 */
-	SYSCALL_EXIT("writen", notused, writen(sockfd, &n, sizeof(int)), "write", "");
-	SYSCALL_EXIT("writen", notused, writen(sockfd, argv[i], n*sizeof(char)), "write", "");
+		nome = malloc(1024*sizeof(char));
+		strcpy(nome, "nomefile");
+		int n = strlen(nome)+1;
+		testo = malloc(1024*sizeof(char));
+		strcpy(testo, "01010101010");
+		op ops0 = 0;
 
-	buffer = realloc(buffer, n*sizeof(char));
-	if (!buffer) {
-   perror("realloc");
-   fprintf(stderr, "Memoria esaurita....\n");
-   break;
-	}
-	/*
-	 *  NOTA: provare ad utilizzare readv (man 2 readv) per fare un'unica SC
-	 */
-////////da problemi la read n
-	SYSCALL_EXIT("readn", notused, readn(sockfd, &n, sizeof(int)), "read","");
-	SYSCALL_EXIT("readn", notused, readn(sockfd, buffer, n*sizeof(char)), "read","");
-	buffer[n] = '\0';
-	printf("result: %s\n", buffer);
-    }
-  close(sockfd);
-  if (buffer) free(buffer);
+		SYSCALL_EXIT("writen", result, writen(sockfd, &n, sizeof(int)), "write", "");
+		SYSCALL_EXIT("writen", result, writen(sockfd, nome, n*sizeof(char)), "write", "");
+		SYSCALL_EXIT("writen", result, writen(sockfd, testo, n*sizeof(char)), "write", "");
+		SYSCALL_EXIT("writen", result, writen(sockfd, &ops0, sizeof(op)), "write", "");
+
+		SYSCALL_EXIT("readn", result, readn(sockfd, buffer, n*sizeof(char)), "read","");
+		buffer[n] = '\0';
+		printf("result: %s\n", buffer);
+
+
+	if (buffer) free(buffer);
+	close(sockfd);
+	//closeConnection(SOCKNAME);
 return 0;
 }

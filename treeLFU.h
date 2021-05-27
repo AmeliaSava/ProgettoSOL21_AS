@@ -5,6 +5,7 @@
 #include <ops.h>
 
 #define MAX_SIZE 2048
+#define MAX_INT 2147483647
 
 typedef struct FILE_NODE {
 	int frequency;
