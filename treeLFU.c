@@ -11,15 +11,15 @@
 //returns:
 //success: a newly allocated node
 //failure: stops if malloc fails
-NodeFile* createNode(int frq, char* fName, char* fText, int fStat) {
+NodeFile* createNode(int frq, char* fName, char* fText, int fStat, long fSize) {
 	
 	NodeFile* newNode = (NodeFile*) malloc(sizeof(NodeFile));
 	CHECK_EQ_EXIT(newNode, NULL, ERROR: malloc)
 	newNode->frequency = frq;
 	newNode->status = fStat;
+	newNode->FileSize = fSize;
 	strncpy(newNode->nameFile, fName, MAX_SIZE);
 	strncpy(newNode->textFile, fText, MAX_SIZE);
-	//newNode->FileSize = malloc();
 	newNode->left = NULL;
 	newNode->right = NULL;
 	return newNode;
@@ -29,22 +29,26 @@ NodeFile* createNode(int frq, char* fName, char* fText, int fStat) {
 //returns:
 //success: the tree updated with the new node
 //failure: stops if malloc fails in createNode
-NodeFile* PushNode(NodeFile *root, int frq, char* fName, char* fText, int fStat) {
+NodeFile* PushNode(NodeFile *root, int frq, char* fName, char* fText, int fStat, long fSize) {
 
 	if (root == NULL) {
-		return createNode(frq, fName, fText, fStat);
+		return createNode(frq, fName, fText, fStat, fSize);
 	}
 
 	if (strlen(root->nameFile) >= strlen(fName))
-		root->left = PushNode(root->left, frq, fName, fText, fStat);
-		else root->right = PushNode(root->right, frq, fName, fText, fStat);
+		root->left = PushNode(root->left, frq, fName, fText, fStat, fSize);
+		else root->right = PushNode(root->right, frq, fName, fText, fStat, fSize);
 
 	return root;
 }
 
-//returns:
-//success: the files node
-//failure: NULL if the file is not present or there's an error
+void UpdateNode(NodeFile* newNode, int frq, char* fName, char* fText, long fSize) {
+	newNode->frequency = frq;
+	strncpy(newNode->nameFile, fName, MAX_SIZE);
+	strncpy(newNode->textFile, fText, fSize);
+	newNode->FileSize = fSize;
+}
+
 NodeFile* searchNode(NodeFile* root, char* filename) {
 	
 	if(root == NULL) return NULL;
@@ -64,17 +68,19 @@ NodeFile* searchNode(NodeFile* root, char* filename) {
 //effect: the contents of the nodes are swapped
 void swapNode (NodeFile* file1, NodeFile* file2) {
 	//NULL CONTROL!!
-	NodeFile* tmp = createNode (file1->frequency, file1->nameFile, file1->textFile, file1->status);
+	NodeFile* tmp = createNode (file1->frequency, file1->nameFile, file1->textFile, file1->status, file1->FileSize);
 	
 	file1->frequency = file2->frequency;
 	strcpy(file1->nameFile, file2->nameFile);
 	strcpy(file1->textFile, file2->textFile);
 	file1->status = file2->status;
+	file1->FileSize = file2->FileSize;
 
 	file2->frequency = tmp->frequency;
 	strcpy(file2->nameFile, tmp->nameFile);
 	strcpy(file2->textFile, tmp->textFile);
 	file2->status = tmp->status;
+	file2->FileSize = tmp->FileSize;
 
 	free(tmp);
 

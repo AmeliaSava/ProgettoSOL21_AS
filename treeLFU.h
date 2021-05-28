@@ -12,7 +12,7 @@ typedef struct FILE_NODE {
 	char textFile[MAX_SIZE];
 	char nameFile[MAX_SIZE];
 	int status;
-	//size_t FileSize;
+	long FileSize;
 	struct FILE_NODE *left;
 	struct FILE_NODE *right;
 } NodeFile;
@@ -20,12 +20,13 @@ typedef struct FILE_NODE {
 //returns:
 //success: a newly allocated node
 //failure: stops if malloc fails
-NodeFile* createNode(int frq, char* fName, char* fText, int fStat);
+NodeFile* createNode(int frq, char* fName, char* fText, int fStat, long fSize);
 //returns:
 //success: the tree updated with the new node
 //failure: stops if malloc fails in createNode
-NodeFile* PushNode(NodeFile *root, int frq, char* fName, char* fText, int fStat);
+NodeFile* PushNode(NodeFile *root, int frq, char* fName, char* fText, int fStat, long fSize);
 
+void UpdateNode(NodeFile *newNode, int frq, char* fName, char* fText, long fSize);
 //returns:
 //success: the files node
 //failure: NULL if the file is not present or there's an error

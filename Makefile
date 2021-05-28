@@ -6,7 +6,7 @@ OPTFLAGS 	=
 LIBS		=	-lpthread
 
 TARGETS 	=	server		\
-			client_prova	\
+			client		\
 			treeLFU		\
 			testingtree
 
@@ -33,6 +33,12 @@ testingtree: testingtree.o treeLFU.o
 testingtree.o: testingtree.c treeLFU.h
 
 treeLFU.o: treeLFU.c treeLFU.h
+
+client: client.o coms.o
+	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
+client.o: client.c coms.h
+
+coms.o: coms.c coms.h
 
 clean		: 
 	rm -f $(TARGETS)
