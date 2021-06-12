@@ -4,26 +4,28 @@
 
 #include <ops.h>
 #include <treeLFU.h>
-#define MAX_SIZE 2048
-
 
 
 //returns:
 //success: a newly allocated node
 //failure: stops if malloc fails
 NodeFile* createNode(int frq, char* fName, char* fText, int fStat, long fSize) {
-	
+
 	NodeFile* newNode = (NodeFile*) malloc(sizeof(NodeFile));
-	CHECK_EQ_EXIT(newNode, NULL, ERROR: malloc)
+	CHECK_EQ_EXIT(newNode, NULL, ERROR: malloc);
+
 	newNode->frequency = frq;
 	newNode->status = fStat;
 	newNode->FileSize = fSize;
-	strncpy(newNode->nameFile, fName, MAX_SIZE);
-	strncpy(newNode->textFile, fText, MAX_SIZE);
+
+	if ((newNode->textFile = malloc(strlen(fText)*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(fName); exit(EXIT_FAILURE);}
+	strncpy(newNode->textFile, fText, strlen(fText));
+	if ((newNode->nameFile = malloc(strlen(fName)*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(fName); exit(EXIT_FAILURE);}
+	strncpy(newNode->nameFile, fName, strlen(fName));	
+
 	newNode->left = NULL;
 	newNode->right = NULL;
 	return newNode;
-
 }
 
 //returns:
@@ -69,7 +71,7 @@ NodeFile* searchNode(NodeFile* root, char* filename) {
 void swapNode (NodeFile* file1, NodeFile* file2) {
 	//NULL CONTROL!!
 	NodeFile* tmp = createNode (file1->frequency, file1->nameFile, file1->textFile, file1->status, file1->FileSize);
-	
+		fprintf(stderr, "dentro swap");
 	file1->frequency = file2->frequency;
 	strcpy(file1->nameFile, file2->nameFile);
 	strcpy(file1->textFile, file2->textFile);
@@ -110,17 +112,21 @@ void minNode (NodeFile* t, NodeFile** min, int* minV) {
 //			 leaf in a new node unrelated to the tree and returns it, if the node
 //			is not a leaf 
 NodeFile* isLeaf(NodeFile* parent) {
-	NodeFile* temp = (NodeFile*) malloc(sizeof(NodeFile));
+		fprintf(stderr, "dentro isleaf\n");
 	if(parent->left == NULL && parent->right == NULL) {
-			swapNode(temp, parent);
+		fprintf(stderr, "èfoglia\n");
+			NodeFile* temp = NULL;
+			temp = PushNode(temp, parent->frequency, parent->nameFile, parent->textFile, parent->status, parent->FileSize);
+			free(parent);
 		    return temp;
 	}
-	free(temp);
+
 	return NULL; 
 }
 
 //FUNZIONA
 NodeFile* pluckLeaf (NodeFile* root) {
+	fprintf(stderr, "dentro pluck\n");
 
 	if(root == NULL)
 		return NULL;
@@ -168,8 +174,8 @@ NodeFile* pluckLeaf (NodeFile* root) {
 
 //RIMUOVE UN FILE CHE NON SIA MINIMO
 //FUNZIONA
-void LFU_Remove(NodeFile* root) {
-	
+void LFU_Remove(NodeFile* root, long* rem) {
+	fprintf(stderr, "dentro lfu\n");
 	if(root == NULL) return;
 	if(root->left == NULL && root->right == NULL) {
 		free(root);
@@ -179,26 +185,24 @@ void LFU_Remove(NodeFile* root) {
 	int minValue = root->frequency;
 	NodeFile* min = root;
 	minNode(root, &min, &minValue);
-
+	fprintf(stderr, "%d\n", minValue);
+	fprintf(stderr, "%ld\n", min->FileSize);
+	*rem = min->FileSize;
 	NodeFile* leaf = NULL;
 	CHECK_EQ_EXIT(leaf = pluckLeaf(root), NULL, "ERROR: deleting leaf");
 	swapNode(min, leaf);
 	free(leaf);
 }
 
-void RemoveFile(NodeFile* root, char* Vfile) {
-
-	if(root == NULL) return;
-	if(root->left == NULL && root->right == NULL) free(root);
+void RemoveFile(NodeFile* toDel, NodeFile* tree, char* Vfile) {
+	fprintf(stderr, "dentro remove nodo\n");
+	if(toDel == NULL) return;
 	
-	NodeFile* toDel = NULL;
-	CHECK_EQ_EXIT(toDel = searchNode(root, Vfile), NULL, "ERROR: file not found");
-
 	NodeFile* leaf = NULL;
-	CHECK_EQ_EXIT(leaf = pluckLeaf(root), NULL, "ERROR: deleting leaf");
+	CHECK_EQ_EXIT(leaf = pluckLeaf(tree), NULL, "ERROR: deleting leaf");
+
 	swapNode(toDel, leaf);
 	free(leaf);
-
 }
 
 //FUNZIONA

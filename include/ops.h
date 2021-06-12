@@ -20,6 +20,8 @@
 #define EXTRA_LEN_PRINT_ERROR   512
 #endif
 
+#define MAX_SIZE 2048
+
 #define SYSCALL_EXIT(name, r, sc, str, ...) \
     if ((r=sc) == -1) {                     \
       perror(#name);                        \

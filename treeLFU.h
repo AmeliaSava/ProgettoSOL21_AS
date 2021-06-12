@@ -4,13 +4,12 @@
 
 #include <ops.h>
 
-#define MAX_SIZE 2048
 #define MAX_INT 2147483647
 
 typedef struct FILE_NODE {
 	int frequency;
-	char textFile[MAX_SIZE];
-	char nameFile[MAX_SIZE];
+	char* textFile;
+	char* nameFile;
 	int status;
 	long FileSize;
 	struct FILE_NODE *left;
@@ -53,8 +52,8 @@ NodeFile* pluckLeaf (NodeFile* root);
 
 //RIMUOVE UN FILE CHE NON SIA MINIMO
 //FUNZIONA
-void LFU_Remove(NodeFile* root) ;
-void RemoveFile(NodeFile* root, char* Vfile);
+void LFU_Remove(NodeFile* root, long* rem);
+void RemoveFile(NodeFile* toDel, NodeFile* tree, char* Vfile);
 
 //FUNZIONA
 void increaseF (NodeFile* file);

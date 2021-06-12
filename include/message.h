@@ -4,9 +4,12 @@
 /** 
  * tipo del messaggio
  */
-typedef struct msg {
-    int len;
-    char *str;
-} msg_t;
+typedef struct MSG {
+	int lenN;
+	long size;
+	op op_type; 
+	char* filename;
+	char* filecontents;
+} msg;
 
 #endif 

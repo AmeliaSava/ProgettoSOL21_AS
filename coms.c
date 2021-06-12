@@ -12,6 +12,7 @@
 #include <ops.h>
 #include <coms.h>
 #include <conn.h>
+#include <message.h>
 
 struct sockaddr_un serv_addr;
 int sockfd;
@@ -96,8 +97,8 @@ int openFile(const char* pathname, int flags) {
 		errno = -1;
 		return -1;
 	}
-
-	if(writen(sockfd, &open_file, sizeof(open_file)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write1");
+	
+	if(writen(sockfd, &open_file, sizeof(open_file)) <= 0) {free(namebuf); free(filebuf); perror("ERROR: write1");
 		errno = -1;
 		return -1;
 	}  //sending operation type
@@ -153,64 +154,51 @@ int readFile(const char* pathname, void** buf, size_t* size) {
 
 	int nameL = strlen(pathname)+1;
 	char* namebuf = NULL;
-	if((namebuf = malloc(nameL * sizeof(char))) == NULL) { free(namebuf); perror("ERROR: malloc"); errno = ENOMEM;
+	if((namebuf = malloc(nameL * sizeof(char))) == NULL) { perror("ERROR: malloc"); free(namebuf); errno = ENOMEM;
 		return -1;
 	} 
 	strncpy(namebuf, pathname, nameL);
 
-	if(writen(sockfd, &read_file, sizeof(read_file)) <= 0) {free(namebuf); perror("ERROR: write1");
-		errno = -1;
-		return -1;
-	}  //sending operation type
-	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {free(namebuf); perror("ERROR: write2");
-		errno = -1;
-		return -1;
-	} //sending name len
-	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {free(namebuf); perror("ERROR: write3");
-		errno = -1;
-		return -1;
-	}  //sending name
+	//sending operation type
+	if(writen(sockfd, &read_file, sizeof(read_file)) <= 0) {perror("ERROR: write1"); free(namebuf);	errno = -1;	return -1;}
+	//sending name len
+	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {perror("ERROR: write2"); free(namebuf); errno = -1; return -1;} 
+	//sending name
+	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {perror("ERROR: write3"); free(namebuf); errno = -1; return -1;}
 
-	long fileL;
-
-	if(readn(sockfd, &fileL, sizeof(long)) <= 0) {free(namebuf); perror("ERROR: read1");
-		errno = -1;
-		return -1;
-	}  //reciveing file len
-	*size = fileL;
-	char* filebuf = NULL;
-	if((filebuf = malloc(fileL*sizeof(char))) == NULL) { free(namebuf); free(filebuf);	perror("ERROR: malloc");
-		errno = -1;
-		return -1;
-	}
-	if(readn(sockfd, filebuf, 2048*sizeof(char)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: read2");
-		errno = -1;
-		return -1;
-	}  //reciveing byte file
-	//putting the file in the buf
-	strncpy(*buf, filebuf, fileL);
-	//size = fileL;
 	//recivieng outcome of operation
 	int buflen;
-	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write");
-		errno = -1;
-		return -1;
-	}
+	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); perror("ERROR: readb"); errno = -1; return -1;}
 	char* rbuf = NULL;
-	if((rbuf = malloc((buflen)*sizeof(char))) == NULL) {free(namebuf); free(filebuf); free(buf); perror("ERROR: malloc");
-		errno = ENOMEM;
-		return -1;
-	} 
-	if (readn(sockfd, rbuf, (buflen)*sizeof(char)) <= 0) {free(namebuf); free(filebuf); free(buf); perror("ERROR: read");
-		errno = -1;
-		return -1;
-	} 
+	if((rbuf = malloc((buflen)*sizeof(char))) == NULL) {free(namebuf); free(buf); perror("ERROR: malloc"); errno = ENOMEM; return -1;} 
+	if (readn(sockfd, rbuf, (buflen)*sizeof(char)) <= 0) {free(namebuf); free(buf); perror("ERROR: read"); errno = -1; return -1;} 
 	rbuf[buflen] = '\0';
+
 	printf("result: %s\n", rbuf);
-	//da problemi, perchè????
-	/*if(namebuf) free(namebuf);
-	if(filebuf) free(filebuf);
-	if(buf) free(buf);*/
+
+	if(strncmp(rbuf, "Operation completed successfully", buflen) == 0) {
+		//recivieng data
+		long fileL;
+
+		if(readn(sockfd, &fileL, sizeof(long)) <= 0) { perror("ERROR: read1"); free(namebuf); errno = -1; return -1;
+		}  //reciveing file len
+		*size = fileL;
+		char* filebuf = malloc(fileL*sizeof(char));
+		
+		if(readn(sockfd, filebuf, fileL*sizeof(char)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: read2");
+			errno = -1;
+			return -1;
+		}  //reciveing byte file
+		//putting the file in the buf
+		*buf = filebuf;
+		*size = fileL;
+		printf("File Name: %s\nFile Pointer:%p\n", namebuf, filebuf);
+		if(filebuf) free(filebuf);
+	}
+
+	if(namebuf) free(namebuf);
+
+
 	return 0;
 }
 
@@ -247,6 +235,66 @@ int closeFile(const char* pathname);
 /*
  * Rimuove il file cancellandolo dal file storage server.
  */
-int removeFile(const char* pathname);
+int removeFile(const char* pathname) {
+
+	op open_file = 0;
+	fprintf(stderr, "dentro removeFile\n");
+	int nameL = strlen(pathname)+1;
+	char* namebuf = NULL;
+	if((namebuf = malloc(nameL * sizeof(char))) == NULL) { free(namebuf); perror("ERROR: malloc"); errno = ENOMEM;
+		return -1;
+	} 
+	strncpy(namebuf, pathname, nameL);
+	long fileL;
+	char* filebuf = NULL;
+	if((filebuf = readFileBytes(pathname, &fileL)) == NULL) { free(namebuf); free(filebuf);	perror("ERROR: readFileBytes");
+		errno = -1;
+		return -1;
+	}
+
+	if(writen(sockfd, &open_file, sizeof(open_file)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write1");
+		errno = -1;
+		return -1;
+	}  //sending operation type
+
+	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write2");
+		errno = -1;
+		return -1;
+	} //sending name len
+	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write3");
+		errno = -1;
+		return -1;
+	}  //sending name
+	if(writen(sockfd, &fileL, sizeof(long)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write4");
+		errno = -1;
+		return -1;
+	}  //sending name len
+	if(writen(sockfd, filebuf, fileL*sizeof(char)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: write5");
+		errno = -1;
+		return -1;
+	}  //sending byte file
+
+	//recivieng outcome of operation
+	int buflen;
+	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); free(filebuf);	perror("ERROR: read1");
+		errno = -1;
+		return -1;
+	}
+	char* buf = NULL;
+	if((buf = malloc((buflen)*sizeof(char))) == NULL) {free(namebuf); free(filebuf); free(buf); perror("ERROR: malloc");
+		errno = ENOMEM;
+		return -1;
+	} 
+	if (readn(sockfd, buf, (buflen)*sizeof(char)) <= 0) {free(namebuf); free(filebuf); free(buf); perror("ERROR: read2");
+		errno = -1;
+		return -1;
+	} 
+	buf[buflen] = '\0';
+	printf("result: %s\n", buf);
+	if(namebuf) free(namebuf);
+	if(filebuf) free(filebuf);
+	if(buf) free(buf);
+	return 0;
+}
 
 

@@ -13,29 +13,23 @@
 #include <ops.h> //provvisorio
 #include <conn.h>
 #include <coms.h>
+#include <message.h>
 #include <treeLFU.h>
 //altri include
 
 #define CONFIG_FL "./config.txt"
 #define MAX_BUF 2048
 
-//funzioni
-//provvisorio test server
-typedef struct msg {
-		int lenN;
-		long size;
-		op op_type; 
-		char* nome;
-		char* testo;
-} msg;
-
 // Global Variables
 long NUM_THREAD_WORKERS;
 long MAX_MEMORY_MB;
+long MAX_NUM_FILES;
 char* SOCKET_NAME = NULL;
+int DEBUG = 1;
 
-//global root of tree
+// Global root of tree
 NodeFile cacheMemory = {MAX_INT, "median", "fixed_tree_root", 0, 0, NULL, NULL};
+//VARIABILE GLOBALE CON LA MEMORIA ALLOCATA
 
 //makes sure the socket name is unlinked
 void unlinksock() {
@@ -50,107 +44,118 @@ int reportOps(long connfd, op op_type) {
 
 	switch(op_type) {
 		case SRV_OK: {
-			int l = strlen("Operation completed successfully") + 1;
-			buf = malloc(l*sizeof(char));
-			strncpy(buf, "Operation completed successfully", l);
-			if (writen(connfd, &l, sizeof(int))<=0) { perror("ERROR: writeok"); free(buf); return -1;}
-			if (writen(connfd, buf, l*sizeof(char))<=0) { perror("ERROR: writeok"); free(buf); return -1;}
+					fprintf(stderr, "sending ok\n");
+
+			int l = 33;
+			if (writen(connfd, &l, sizeof(int))<=0) { perror("ERROR: writeok"); return -1;}
+			if (writen(connfd, "Operation completed successfully", l*sizeof(char))<=0) { perror("ERROR: writeok"); return -1;}
 			break;
 		}
 		case SRV_NOK: {
-			int l = strlen("Error while executing operation") + 1;
-			buf = malloc(l*sizeof(char));
-			strncpy(buf, "Error while executing operation", l);
-			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
-			if (writen(connfd, buf, MAX_BUF*sizeof(char))<=0) { free(buf); return -1;}
-			free(buf);
+			int l = 32;
+			if (writen(connfd, &l, sizeof(int))<=0) { perror("ERROR: writeok"); return -1;}
+			if (writen(connfd, "Error while executing operation", l*sizeof(char))<=0) { perror("ERROR: writeok"); return -1;}
 			return -1;
 		}
 		case SRV_FILE_NOT_FOUND: {
-			strncpy(buf, "File not found\0", MAX_BUF);
-			if (writen(connfd, buf, MAX_BUF*sizeof(char))<=0) { free(buf); return -1;}
-			free(buf);
+			int l = 15;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File not found", l*sizeof(char))<=0) { free(buf); return -1;}
 			return -1;
 		}
 		case SRV_FILE_ALREADY_PRESENT: {
-			strncpy(buf, "File already present\0", MAX_BUF);
-			if (writen(connfd, buf, MAX_BUF*sizeof(char))<=0) { free(buf); return -1;}
-			free(buf);
+			int l = 21;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File already present", l*sizeof(char))<=0) { free(buf); return -1;}
+
 			return -1;
 		}
 		case SRV_MEM_FULL: {
-			strncpy(buf, "Memory Full\0", MAX_BUF);
-			if (writen(connfd, buf, MAX_BUF*sizeof(char))<=0) { free(buf); return -1;}
-			free(buf);
+			int l = 12;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "Memory Full", l*sizeof(char))<=0) { free(buf); return -1;}
 			return -1;
 		}
 		default: {
 			fprintf(stderr, "command not found\n");
-			free(buf);
 			return -1;
 		}
 	}
-	free(buf);
-	return 0;
-}
-
-int open_file_svr(long connfd, int len, char* name, char* file){
-	fprintf(stderr, "dentro open\n");
-	NodeFile* current = NULL;
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
-		if(current->status == 1) UpdateStat(current); // open file
-		else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // file already exists and its open
-	}
-	fprintf(stderr, "primadipush\n");
-	PushNode(&cacheMemory, 0, name, file, 0, len); //creating empty file
-	fprintf(stderr, "dopodipush\n");
-	return reportOps(connfd, SRV_OK);
-}
-
-int close_file_svr(long connfd, int len, char* name, char* file){
-	NodeFile* current = NULL;
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
-		if(current->status == 0) {
-			increaseF (current);
-			UpdateStat(current); // close file
-		}	
-		else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // file already closed
-	} 
-	return reportOps(connfd, SRV_OK);
-}
-
-int read_file_svr(long connfd, int len, char* name){
-	NodeFile* current = NULL;
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file found
-		if(current->status == 1) {perror("ERROR: file closed"); return -1; } // file is closed, cannot read
-		else { // file already exists and its open
-			 increaseF (current);
-			 if(writen(connfd, &current->FileSize, sizeof(long)) <= 0) { perror("ERROR: write");
-				errno = -1;
-				return -1;
-			} //sending name len
-			if(writen(connfd, current->textFile, 2048*sizeof(char)) <= 0) { perror("ERROR: write2");
-				errno = -1;
-				return -1;
-			}  //sending name
-			return reportOps(connfd, SRV_OK);
-		} 
-	} 
-	perror("ERROR: file not found"); return -1; //file not found
-}
-
-int read_n_file_svr(long connfd, int len, char* name, char* file) {
 	return 0;
 }
 
 int write_file_svr(long connfd, int len, char* name, char* file){
 	fprintf(stderr, "dentro write\n");
+	if(strcmp(name, "median") == 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // cannot modify root
 	NodeFile* current = NULL;
+	fprintf(stderr, "%s\n", name);
 	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
 		if(current->status == 1) return reportOps(connfd, SRV_NOK); // file is closed
-		else  UpdateNode(current, current->frequency + 1, name, file, len); //writing on the node
-	} 
+		else  { //writing on the node
+				UpdateNode(current, current->frequency + 1, name, file, len);
+		}
+	} else	{
+		if(MAX_MEMORY_MB < len) { //not enough space for new node
+			long removed;
+			LFU_Remove(&cacheMemory, &removed);
+			MAX_MEMORY_MB += len;
+			if(DEBUG) fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+			return write_file_svr(connfd, len, name, file);
+		} else { 
+			MAX_MEMORY_MB -= len;
+			if(DEBUG) fprintf(stdout, "Bytes added: %d\nMemory left:%ld\nInserting file...\n", len, MAX_MEMORY_MB);
+			PushNode(&cacheMemory, 0, name, file, 0, len);
+		} 
+	}
 	return reportOps(connfd, SRV_OK);
+}
+
+int open_file_svr(long connfd, int len, char* name, char* file) {
+	fprintf(stderr, "dentro open\n");
+	NodeFile* current = NULL;
+	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
+		if(current->status == 1) { // if the file is closed, open file
+			increaseF(current);
+			UpdateStat(current);
+		} else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // file already exists and its open
+	} else write_file_svr(connfd, len, name, file);
+	//creating file //DOVREBBE ESSERE VUOTO
+	return reportOps(connfd, SRV_OK);
+}
+
+int close_file_svr(long connfd, char* name) {
+	NodeFile* current = NULL;
+	if(strcmp(name, "median") == 0) 	return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // cannot modify root
+	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
+		if(current->status == 0) { // is open
+			increaseF (current);
+			UpdateStat(current); // close file
+		}	
+		else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // file already closed
+	} else return reportOps(connfd, SRV_FILE_NOT_FOUND);
+	return reportOps(connfd, SRV_OK);
+}
+
+op read_file_svr(long connfd, int len, char* name, long* size, char** ptr) {
+	NodeFile* current = NULL;
+	if(strcmp(name, "median") == 0) return 10; // cannot modify root
+	if((current = searchNode(&cacheMemory, name)) != NULL) { // file found
+		if(current->status == 1)  return 8; // file is closed, cannot read
+		else { // file already exists and its open
+			increaseF (current);
+			*size = current->FileSize;
+			*ptr = malloc(current->FileSize);
+			printf("Pointer Void: %p\n", (void*)&(current));
+			strncpy(*ptr, (char*)&current, current->FileSize);
+			printf("Pointer String: %s\n", *ptr);
+			return 0;
+		} 
+	} 
+	return 9; //file not found
+}
+
+int read_n_file_svr(long connfd, int len, char* name, char* file) {
+	return 0;
 }
 
 int append_file_svr(long connfd, int len, char* name, char* file) {
@@ -163,68 +168,91 @@ int append_file_svr(long connfd, int len, char* name, char* file) {
 	return reportOps(connfd, SRV_OK);
 }
 
-int remove_file_svr(long connfd, int len, char* name, char* file) {
+int remove_file_svr(long connfd, char* name) {
 	fprintf(stderr, "dentro remove\n");
 	NodeFile* current = NULL;
+	if(strcmp(name, "median") == 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // cannot modify root
 	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
 		if(current->status == 1) return reportOps(connfd, SRV_NOK); // file is closed
-		else  RemoveFile(current, name); //writing on the node
-	} 
+		else { //removing the node
+			MAX_MEMORY_MB += current->FileSize;
+			if(DEBUG) fprintf(stdout, "Bytes freed: %ld\nMemory left:%ld\n", current->FileSize, MAX_MEMORY_MB);
+			RemoveFile(current, &cacheMemory, name);
+		} 
+	} else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT);
 	return reportOps(connfd, SRV_OK);
 }
 
 //WIP
-int cmd(long connfd, op op_type, msg str) {
+int cmd(long connfd, op op_type, msg info) {
 	fprintf(stderr, "dentro cmd\n");
-	switch(op_type){
-		case OPEN_FILE:{
-			if (readn(connfd, &str.lenN, sizeof(int))<=0) return -1;
-    		str.nome = calloc((str.lenN), sizeof(char));
-    		if (readn(connfd, str.nome, str.lenN*sizeof(char))<=0){ free(str.nome); return -1;} 
-    		if (readn(connfd, &str.size, sizeof(long))<=0) return -1;
-    		str.testo = calloc((str.size), sizeof(char));
-    		if (readn(connfd, str.testo, str.size*sizeof(char))<=0) { free(str.nome);  free(str.testo); return -1;}
-    
-			fprintf(stderr,"nome:%s\ntesto:%s\n", str.nome, str.testo); //perchè non stampa il nome??
-			return open_file_svr(connfd, str.size, str.nome, str.testo);
+	switch(op_type) {
+		case OPEN_FILE: { // read: lenght of file, filename, file size, file contents
+			if (readn(connfd, &info.lenN, sizeof(int)) <= 0) return -1;
+    		if ((info.filename = malloc(info.lenN*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); return -1;}
+    		if (readn(connfd, info.filename, info.lenN*sizeof(char)) <= 0) { perror("ERROR:read in open"); free(info.filename); return -1;} 
+    		if (readn(connfd, &info.size, sizeof(long))<=0) { perror("ERROR:read in open"); free(info.filename); return -1;} 
+    		if ((info.filecontents = malloc(info.size*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); free(info.filecontents); return -1;}
+    		if (readn(connfd, info.filecontents, info.size*sizeof(char))<=0) { perror("ERROR:read in open"); free(info.filename); free(info.filecontents); return -1;}
+    		fprintf(stderr, "%s\n%s\n", info.filename, info.filecontents);
+			//free(info.filename);
+			//free(info.filecontents);
+			return open_file_svr(connfd, info.size, info.filename, info.filecontents);
 			break;
 		}
-		case CLOSE_FILE:
-			close_file_svr(connfd, str.size, str.nome, str.testo);
+		case CLOSE_FILE: {
+			if (readn(connfd, &info.lenN, sizeof(int)) <= 0) return -1;
+    		if ((info.filename = calloc((info.lenN), sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); return -1;}
+			if (readn(connfd, info.filename, info.lenN*sizeof(char)) <= 0) { perror("ERROR:read in open"); free(info.filename); return -1;}
+			return close_file_svr(connfd, info.filename);
 			break;
-		case READ_FILE:
-			if (readn(connfd, &str.lenN, sizeof(int))<=0) return -1;
-    		str.nome = calloc((str.lenN), sizeof(char));
-    		if (readn(connfd, str.nome, str.lenN*sizeof(char))<=0){ free(str.nome); return -1;} 
-			return read_file_svr(connfd, str.size, str.nome);
+		}
+		case READ_FILE:	{
+			fprintf(stderr, "dentro cmd read");
+			if (readn(connfd, &info.lenN, sizeof(int))<=0) return -1;
+    		if ((info.filename = calloc((info.lenN), sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); return -1;}
+			fprintf(stderr, "dopo calloc");
+			if (readn(connfd, info.filename, info.lenN*sizeof(char))<=0){ free(info.filename); return -1;}
+			long fileS;
+			char* ptr;
+			fprintf(stderr, "prima ret");
+			int ret = read_file_svr(connfd, info.size, info.filename, &fileS, &ptr);
+			fprintf(stderr, "%d\n", ret);
+			if(!ret) {
+				fprintf(stderr, "dentro ok read");
+			    if(reportOps(connfd, SRV_OK) == -1) return -1;
+			    if(writen(connfd, &fileS, sizeof(long)) <= 0) { perror("ERROR: write read file len"); errno = -1; return -1; }
+				if(writen(connfd, ptr, fileS*sizeof(char)) <= 0) { perror("ERROR: write read file"); errno = -1; return -1; }
+			} else return reportOps(connfd, ret);
 			break;
+		}
 		case READ_FILE_N:
-			read_n_file_svr(connfd, str.size, str.nome, str.testo);
+			read_n_file_svr(connfd, info.size, info.filename, info.filecontents);
 			break;
 		case WRITE_FILE:
-			write_file_svr(connfd, str.size, str.nome, str.testo);
+			write_file_svr(connfd, info.size, info.filename, info.filecontents);
 			break;
 		case APPEND_FILE:
-			append_file_svr(connfd, str.size, str.nome, str.testo);
+			append_file_svr(connfd, info.size, info.filename, info.filecontents);
 			break;
 		case REMOVE_FILE:
-			remove_file_svr(connfd, str.size, str.nome, str.testo);
+			
+			return remove_file_svr(connfd, info.filename);
 			break;
 		default: {
-			fprintf(stderr, "command not found\n");
+			fprintf(stderr, "Command not found\n");
 			return -1;
 		}
 	}
+
 	return 0;
 }
 
 int getMSG(long connfd){
 	fprintf(stderr, "dentro getmsg\n");
-	msg str;
-
-	if (readn(connfd, &str.op_type, sizeof(op))<=0) return -1;
-    
- 	return (cmd(connfd, str.op_type, str));
+	msg operation;
+	if (readn(connfd, &operation.op_type, sizeof(op))<=0) return -1;
+ 	return (cmd(connfd, operation.op_type, operation));
 }
 
 // returns the max index of fd
@@ -236,7 +264,7 @@ int updateMax(fd_set set, int fdmax) {
 }
 
 //PULISCI MEGLIO QUANDO QUALCOSA CHIUDE CHIUDE TUUTO
-void configParsing(long* Nthreads, long* MaxMem, char** sockN) {
+void configParsing(long* Nthreads, long* MaxMem, long* MaxFiles, char** sockN) {
 	FILE *config_input = NULL;
 	
 	char* buffer = NULL;
@@ -282,8 +310,14 @@ void configParsing(long* Nthreads, long* MaxMem, char** sockN) {
 					fprintf(stderr, "wrong config.txt file format: second line must be maximum memory allocable\n");
 					free(buffer);
 					exit(EXIT_FAILURE);
-				}
+				} else {*MaxMem = (*MaxMem)*(1048576);}
 			case 2:
+				if(isNumber(equals, MaxFiles) != 0) {
+					fprintf(stderr, "wrong config.txt file format: third line must be maximum of managable files\n");
+					free(buffer);
+					exit(EXIT_FAILURE);
+				}
+			case 3:
 				while((*equals) != '\0' && isspace(*equals)) ++equals;
 				if((*equals) == '\0') {
 					fprintf(stderr, "wrong config.txt file format: third line must be socket file name\n");
@@ -305,13 +339,12 @@ void configParsing(long* Nthreads, long* MaxMem, char** sockN) {
 int main (int argc, char* argv[]) {
 
 	atexit(unlinksock);  
-	//atexit(deallocall); funzione che con array/lista delle risorse correntemente in uso chiude in maniera appropiata
 	
 	//allocating the global socket name
 	CHECK_EQ_EXIT((SOCKET_NAME = malloc(MAX_BUF * sizeof(char))), NULL, "ERROR: malloc socket name");
 	// parsing the config file
-	configParsing(&NUM_THREAD_WORKERS, &MAX_MEMORY_MB, &SOCKET_NAME);
-
+	configParsing(&NUM_THREAD_WORKERS, &MAX_MEMORY_MB, &MAX_NUM_FILES, &SOCKET_NAME);
+	printf("%ld\n%ld\n%ld\n%s\n", NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_NUM_FILES, SOCKET_NAME);
 	//Accepting connections
 	
     unlinksock();    
@@ -386,7 +419,5 @@ int main (int argc, char* argv[]) {
     //sezione di deallocazione di tutte le risorse
 	close(fd_skt);
     free(SOCKET_NAME);
-
-
 	return EXIT_SUCCESS;
 }
