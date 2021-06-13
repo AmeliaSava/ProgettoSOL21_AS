@@ -25,7 +25,7 @@ NodeFile* createNode(int frq, char* fName, char* fText, int fStat, long fSize);
 //failure: stops if malloc fails in createNode
 NodeFile* PushNode(NodeFile *root, int frq, char* fName, char* fText, int fStat, long fSize);
 
-void UpdateNode(NodeFile *newNode, int frq, char* fName, char* fText, long fSize);
+void UpdateNode(NodeFile *newNode, int frq, char* fText, long fSize);
 //returns:
 //success: the files node
 //failure: NULL if the file is not present or there's an error
@@ -57,6 +57,5 @@ void RemoveFile(NodeFile* toDel, NodeFile* tree, char* Vfile);
 
 //FUNZIONA
 void increaseF (NodeFile* file);
-//FUNZIONA
-void UpdateStat (NodeFile* file);
+
 

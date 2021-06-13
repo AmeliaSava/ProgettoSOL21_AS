@@ -39,26 +39,32 @@ int main(int argc, char *argv[]) {
 	openConnection(SOCKNAME);
 
 	const char* nome = "./storage/imm1.jpg";
-	const char* nome1 = "./storage/es8.tgz";
-	const char* nome2 = "./storage/manuale-unix.pdf";
+	//const char* nome1 = "./storage/es8.tgz";
+	//const char* nome2 = "./storage/manuale-unix.pdf";
 	//const char* nome3 = "./storage/it is a mystery.mp3";
 	
 
 	if(atoi(argv[1])==0) {
-		openFile(nome, 0);
-		openFile(nome1, 0);
-		openFile(nome2, 0);
-	} 
-	else {
+		openFile(nome, 1);
+		
+		//openFile(nome1, 1);
+		//openFile(nome2, 1);
+		//openFile(nome3, 1);
+	}
+	if(atoi(argv[1])==1) {
+		writeFile(nome, NULL);
+	}
+	if(atoi(argv[1])==2) {
+		closeFile(nome);
+	}
+	if(atoi(argv[1])==3) {
+		removeFile(nome);
+	}
+	if(atoi(argv[1])==4) {
 		void* buf = NULL;
 		size_t sz;
 		readFile(nome, &buf, &sz);
-		printf("%p\n", buf); // qualcosa non va nel puntatore
-		void* buf2 = NULL;
-		size_t sz2;
-		readFile(nome1, &buf2, &sz2);
-		printf("%p\n", buf); // qualcosa non va nel puntatore*/
-		//openFile(nome3, 0);
+		printf("Buf: %p\nSize: %zu/n", buf, sz); // qualcosa non va nel puntatore
 	}
 
 	closeConnection(SOCKNAME);

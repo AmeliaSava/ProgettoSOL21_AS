@@ -47,8 +47,8 @@
   return r;                               \
     }
 
-#define CHECK_EQ_EXIT(X, val, str)	\
-  if ((X)==val) {                     \
+#define CHECK_EQ_EXIT(X, val, str)  \
+  if ((X)==val) {                  \
     perror(#str);                   \
     free(X);                        \
     exit(EXIT_FAILURE);             \
@@ -75,7 +75,9 @@ typedef enum {
   SRV_NOK = 8,
   SRV_FILE_NOT_FOUND = 9,
   SRV_FILE_ALREADY_PRESENT = 10,
-  SRV_MEM_FULL = 11
+  SRV_MEM_FULL = 11,
+  SRV_READY_FOR_WRITE = 12,
+  SRV_FILE_CLOSED = 13
 
 } op;
 /**

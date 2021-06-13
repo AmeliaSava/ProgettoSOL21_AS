@@ -9,6 +9,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <ops.h>
+
 /*
  * Apre una connesione AF_UNIX al socket file sockname. Se il server non accetta immediatamente la richiesta di connessione,
  * la connessione da parte del client ripetur dopo 'msec' millisecondi e fino allo scadere del tempo assoluto 'abstime' specificato

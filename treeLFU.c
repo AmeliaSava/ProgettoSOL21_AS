@@ -10,19 +10,18 @@
 //success: a newly allocated node
 //failure: stops if malloc fails
 NodeFile* createNode(int frq, char* fName, char* fText, int fStat, long fSize) {
-
+	fprintf(stderr, "creando il nodo" );
 	NodeFile* newNode = (NodeFile*) malloc(sizeof(NodeFile));
 	CHECK_EQ_EXIT(newNode, NULL, ERROR: malloc);
 
 	newNode->frequency = frq;
 	newNode->status = fStat;
 	newNode->FileSize = fSize;
-
-	if ((newNode->textFile = malloc(strlen(fText)*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(fName); exit(EXIT_FAILURE);}
-	strncpy(newNode->textFile, fText, strlen(fText));
-	if ((newNode->nameFile = malloc(strlen(fName)*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(fName); exit(EXIT_FAILURE);}
-	strncpy(newNode->nameFile, fName, strlen(fName));	
-
+	fprintf(stderr, "%s\n", fName);
+	if ((newNode->nameFile = malloc(strlen(fName)*sizeof(char))) == NULL) { perror("ERROR:malloc"); free(fName); exit(EXIT_FAILURE);}
+	strncpy(newNode->nameFile, fName, strlen(fName));
+	newNode->nameFile[strlen(fName)] = '\0';
+	fprintf(stderr, "%s\n", newNode->nameFile);
 	newNode->left = NULL;
 	newNode->right = NULL;
 	return newNode;
@@ -44,10 +43,10 @@ NodeFile* PushNode(NodeFile *root, int frq, char* fName, char* fText, int fStat,
 	return root;
 }
 
-void UpdateNode(NodeFile* newNode, int frq, char* fName, char* fText, long fSize) {
+void UpdateNode(NodeFile* newNode, int frq, char* fText, long fSize) {
 	newNode->frequency = frq;
-	strncpy(newNode->nameFile, fName, MAX_SIZE);
-	strncpy(newNode->textFile, fText, fSize);
+	if ((newNode->textFile = malloc(strlen(fText)*sizeof(char))) == NULL) { perror("ERROR: malloc UpdateNode"); free(fText); exit(EXIT_FAILURE);}
+	strncpy(newNode->textFile, fText, strlen(fText));
 	newNode->FileSize = fSize;
 }
 
@@ -117,6 +116,7 @@ NodeFile* isLeaf(NodeFile* parent) {
 		fprintf(stderr, "èfoglia\n");
 			NodeFile* temp = NULL;
 			temp = PushNode(temp, parent->frequency, parent->nameFile, parent->textFile, parent->status, parent->FileSize);
+			UpdateNode(temp, parent->frequency, parent->textFile, parent->FileSize);
 			free(parent);
 		    return temp;
 	}
@@ -210,9 +210,4 @@ void increaseF (NodeFile* file) {
 	file->frequency = file->frequency + 1;
 }
 
-//FUNZIONA
-void UpdateStat (NodeFile* file) {
-	if(file->status == 1) file->status = 0;
-	if(file->status == 0) file->status = 1;
-}
 
