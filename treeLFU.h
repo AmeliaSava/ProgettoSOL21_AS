@@ -54,7 +54,7 @@ NodeFile* pluckLeaf (NodeFile* root);
 //FUNZIONA
 void LFU_Remove(NodeFile* root, long* rem);
 void RemoveFile(NodeFile* toDel, NodeFile* tree, char* Vfile);
-
+void AppendNode(NodeFile* node, int freq, char* append, long newSize);
 //FUNZIONA
 void increaseF (NodeFile* file);
 

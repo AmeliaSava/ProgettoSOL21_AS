@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 
 	openConnection(SOCKNAME);
 
-	const char* nome = "./storage/imm1.jpg";
+	const char* nome = "./storage/test.txt";
 	//const char* nome1 = "./storage/es8.tgz";
 	//const char* nome2 = "./storage/manuale-unix.pdf";
 	//const char* nome3 = "./storage/it is a mystery.mp3";
@@ -63,8 +63,15 @@ int main(int argc, char *argv[]) {
 	if(atoi(argv[1])==4) {
 		void* buf = NULL;
 		size_t sz;
-		readFile(nome, &buf, &sz);
-		printf("Buf: %p\nSize: %zu/n", buf, sz); // qualcosa non va nel puntatore
+		int r = readFile(nome, &buf, &sz);
+		if(!r) printf("Buf: %p\nSize: %zu\n", buf, sz); // qualcosa non va nel puntatore
+	}
+	if(atoi(argv[1])==5) {
+		char* append = " append";
+		size_t size = sizeof(append);
+		void* buf = append;
+		appendToFile(nome, buf, size, NULL);
+		//parte una open a caso, perchè???
 	}
 
 	closeConnection(SOCKNAME);

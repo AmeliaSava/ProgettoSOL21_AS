@@ -111,7 +111,7 @@ void minNode (NodeFile* t, NodeFile** min, int* minV) {
 //			 leaf in a new node unrelated to the tree and returns it, if the node
 //			is not a leaf 
 NodeFile* isLeaf(NodeFile* parent) {
-		fprintf(stderr, "dentro isleaf\n");
+	fprintf(stderr, "dentro isleaf\n");
 	if(parent->left == NULL && parent->right == NULL) {
 		fprintf(stderr, "èfoglia\n");
 			NodeFile* temp = NULL;
@@ -205,6 +205,14 @@ void RemoveFile(NodeFile* toDel, NodeFile* tree, char* Vfile) {
 	free(leaf);
 }
 
+void AppendNode(NodeFile* node, int freq, char* append, long newSize) {
+	fprintf(stderr, "append node in tree" );
+
+	node->frequency = freq;
+	if ((node->textFile = (char*)realloc((node->textFile), ((node->FileSize)+newSize))) == NULL) { perror("ERROR: realloc AppendNode"); free(node->textFile); exit(EXIT_FAILURE);}
+	strncat(node->textFile, append, strlen(append));
+	node->FileSize += newSize;
+}
 //FUNZIONA
 void increaseF (NodeFile* file) {
 	file->frequency = file->frequency + 1;
