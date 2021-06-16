@@ -49,6 +49,16 @@ char* readFileBytes(const char *name, long* filelen) {
 	fclose(file);
 	return ret;
 }
+
+int WriteFilefromByte(char* pathname, char* text, long size) {
+	FILE *fp1;
+	if((fp1 = fopen(pathname, "w")) == NULL) return -1;
+
+	if((fwrite(text, sizeof(char), size, fp1)) != size) return -1;
+
+	fclose(fp1);
+	return 0;
+}
 //API
 /*
  * Apre una connesione AF_UNIX al socket file sockname. Se il server non accetta immediatamente la richiesta di connessione,
@@ -180,10 +190,16 @@ int readFile(const char* pathname, void** buf, size_t* size) {
 		if(readn(sockfd, filebuf, fileL*sizeof(char)) <= 0) { errno = -1; free(namebuf); free(filebuf);	perror("ERROR: read2");
 			return -1;
 		}  //reciveing byte file
+		char* p;
+		p = strrchr(namebuf, '/');
+		++p;
+		printf("name: %s\n", p);
+		if((WriteFilefromByte(p, filebuf, fileL)) == -1) { errno = -1; free(namebuf); free(filebuf); perror("ERROR: writefb");
+			return -1;
+		}
 		//putting the file in the buf
 		*buf = filebuf;
 		*size = fileL;
-		printf("File Name: %s\nFile Pointer:%s\n", namebuf, filebuf);
 		if(filebuf) free(filebuf);
 	} else return -1;
 
@@ -199,7 +215,7 @@ int readFile(const char* pathname, void** buf, size_t* size) {
  * successo (cioè ritorna il n. di file effettivamente letti), -1 in caso di fallimento, errno viene settato opportunamente.
  */
 int readNfiles(int N, const char* dirname) {
-	op readN_file = 3;
+/*	op readN_file = 3;
 	errno = 0;
 	fprintf(stderr, "dentro readNFile API\n");
 
@@ -235,7 +251,7 @@ int readNfiles(int N, const char* dirname) {
 		
 	
 	} else return -1;
-
+*/
 	return 0;
 }
 

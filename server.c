@@ -23,6 +23,7 @@
 // Global Variables
 long NUM_THREAD_WORKERS;
 long MAX_MEMORY_MB;
+long MAX_MEMORY_TOT;
 long MAX_NUM_FILES;
 char* SOCKET_NAME = NULL;
 int DEBUG = 1;
@@ -38,7 +39,7 @@ void unlinksock() {
 
 //WRITE NOT WORKING
 int reportOps(long connfd, op op_type) {
-		fprintf(stderr, "dentro return\n");
+	fprintf(stderr, "dentro return\n");
 
 	char* buf = NULL;
 
@@ -71,9 +72,9 @@ int reportOps(long connfd, op op_type) {
 			return -1;
 		}
 		case SRV_MEM_FULL: {
-			int l = 12;
+			int l = 24;
 			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
-			if (writen(connfd, "Memory Full", l*sizeof(char))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File too big for memory", l*sizeof(char))<=0) { free(buf); return -1;}
 			return -1;
 		}
 		case SRV_READY_FOR_WRITE: {
@@ -107,11 +108,12 @@ int write_file_svr(long connfd, int len, char* name, char* file, int flag){
 	else {
 		if(current->FileSize > 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); //node exists but has content inside, can't over write
 		if(current->status == 1) return reportOps(connfd, SRV_FILE_CLOSED); //node exists but is closed
-		if(MAX_NUM_FILES = 0 || MAX_MEMORY_MB < len) { //not enough space for new node
+		if(MAX_MEMORY_TOT < len) return reportOps(connfd, SRV_MEM_FULL); //the file is bigger than the whole available memory
+		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < len)) { //not enough space for new node
 			long removed;
 			LFU_Remove(&cacheMemory, &removed);
 			if(MAX_MEMORY_MB < len) MAX_MEMORY_MB += len;
-			if(MAX_NUM_FILES = 0) MAX_NUM_FILES++;
+			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
 			if(DEBUG) fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
 			return write_file_svr(connfd, len, name, file, flag);
 		} else {
@@ -161,24 +163,27 @@ int close_file_svr(long connfd, char* name) {
 	return reportOps(connfd, SRV_OK);
 }
 
-op read_file_svr(long connfd, char* name, long* size, char** ptr) {
+int read_file_svr(long connfd, msg info, char** tmp, long* size) {
+	fprintf(stderr, "%s\n", info.filename);
 	NodeFile* current = NULL;
-	if(strcmp(name, "median") == 0) return 10; // cannot modify root
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file found
-		if(current->status == 1)  return 13; // file is closed, cannot read
+	if(strcmp(info.filename, "median") == 0) return 10; // cannot modify root
+	if((current = searchNode(&cacheMemory, info.filename)) != NULL) { // file found
+		fprintf(stderr, "%s\n", current->nameFile);
+		if(current->status == 1) return 13; // file is closed, cannot read
 		else { // file already exists and its open
 			increaseF (current);
 			*size = current->FileSize;
-			*ptr = NULL;
-			if((*ptr = malloc((current->FileSize)*sizeof(char))) == NULL) { free(*ptr); return 8;}
-			strncpy(*ptr, current->textFile, current->FileSize);
+			if ((*tmp = malloc(*size*sizeof(char))) == NULL) return 8;
+			fprintf(stderr, "Testo nel nodo: %s\n", current->textFile);
+			strncpy(*tmp, current->textFile, *size);
+			fprintf(stderr, "Copyed node: %s\n", *tmp);
 			return 0;
 		} 
-	} 
+	}
 	return 9; //file not found
 }
 
-int read_n_file_svr(long connfd, int len, char* name, char* file) {
+int read_n_file_svr(long connfd, msg info, int n) {
 	return 0;
 }
 
@@ -250,29 +255,32 @@ int cmd(long connfd, op op_type, msg info) {
 			break;
 		}
 		case READ_FILE:	{
-			fprintf(stderr, "dentro cmd read");
+			fprintf(stderr, "dentro cmd read\n");
 			if (readn(connfd, &info.lenN, sizeof(int))<=0) return -1;
     		if ((info.filename = calloc((info.lenN), sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); return -1;}
-			fprintf(stderr, "dopo calloc");
+			fprintf(stderr, "dopo calloc\n");
 			if (readn(connfd, info.filename, info.lenN*sizeof(char))<=0){ free(info.filename); return -1;}
-			long fileS;
-			char* ptr;
-			fprintf(stderr, "prima ret");
-			int ret = read_file_svr(connfd, info.filename, &fileS, &ptr);
+			fprintf(stderr, "prima ret\n");
+			char* temp = NULL;
+			int ret = read_file_svr(connfd, info, &temp, &info.size);
+			fprintf(stderr, "dopo read");
+			fprintf(stderr, "%s\n", temp);
+			fprintf(stderr, "%ld\n", info.size);
 			fprintf(stderr, "Result Return: %d\n", ret);
-			if(!ret) {
+			if(ret == 0) {
 				fprintf(stderr, "dentro ok read");
 			    if(reportOps(connfd, SRV_OK) == -1) return -1;
-			    if(writen(connfd, &fileS, sizeof(long)) <= 0) { perror("ERROR: write read file len"); return -1; }
-				if(writen(connfd, ptr, fileS*sizeof(char)) <= 0) { perror("ERROR: write read file"); return -1; }
+			    if(writen(connfd, &info.size, sizeof(long)) <= 0) { perror("ERROR: write read file len"); return -1; }
+				if(writen(connfd, temp, info.size*sizeof(char)) <= 0) { perror("ERROR: write read file"); return -1; }
 			} else return reportOps(connfd, ret);
 			break;
 		}
-		case READ_FILE_N:
+		case READ_FILE_N: {
 			int n;
 			if (readn(connfd, &n, sizeof(int))<=0) return -1;
 			return	read_n_file_svr(connfd, info, n);
 			break;
+		}
 		case WRITE_FILE:
 			flag = 1; //in write the flag will be always set to create
 			if (readn(connfd, &info.lenN, sizeof(int)) <= 0) return -1;
@@ -326,7 +334,7 @@ int updateMax(fd_set set, int fdmax) {
 }
 
 //PULISCI MEGLIO QUANDO QUALCOSA CHIUDE CHIUDE TUUTO
-void configParsing(long* Nthreads, long* MaxMem, long* MaxFiles, char** sockN) {
+void configParsing() {
 	FILE *config_input = NULL;
 	
 	char* buffer = NULL;
@@ -362,19 +370,19 @@ void configParsing(long* Nthreads, long* MaxMem, long* MaxFiles, char** sockN) {
 		switch (count) {
 
 			case 0:
-				if(isNumber(equals,  Nthreads) != 0) {
+				if(isNumber(equals,  &NUM_THREAD_WORKERS) != 0) {
 					fprintf(stderr, "wrong config.txt file format: first line must be number of thread workers\n");
 					free(buffer);
 					exit(EXIT_FAILURE);
 				}			
 			case 1:
-				if(isNumber(equals, MaxMem) != 0) {
+				if(isNumber(equals, &MAX_MEMORY_MB) != 0) {
 					fprintf(stderr, "wrong config.txt file format: second line must be maximum memory allocable\n");
 					free(buffer);
 					exit(EXIT_FAILURE);
-				} else {*MaxMem = (*MaxMem)*(1048576);}
+				} else {MAX_MEMORY_MB = MAX_MEMORY_MB*(1048576); MAX_MEMORY_TOT = MAX_MEMORY_MB;}
 			case 2:
-				if(isNumber(equals, MaxFiles) != 0) {
+				if(isNumber(equals, &MAX_NUM_FILES) != 0) {
 					fprintf(stderr, "wrong config.txt file format: third line must be maximum of managable files\n");
 					free(buffer);
 					exit(EXIT_FAILURE);
@@ -386,7 +394,7 @@ void configParsing(long* Nthreads, long* MaxMem, long* MaxFiles, char** sockN) {
 					free(buffer);
 					exit(EXIT_FAILURE);
 				}
-				strncpy(*sockN, equals, MAX_BUF);
+				strncpy(SOCKET_NAME, equals, MAX_BUF);
 		}
 
 		count++;
@@ -405,8 +413,8 @@ int main (int argc, char* argv[]) {
 	//allocating the global socket name
 	CHECK_EQ_EXIT((SOCKET_NAME = malloc(MAX_BUF * sizeof(char))), NULL, "ERROR: malloc socket name");
 	// parsing the config file
-	configParsing(&NUM_THREAD_WORKERS, &MAX_MEMORY_MB, &MAX_NUM_FILES, &SOCKET_NAME);
-	printf("%ld\n%ld\n%ld\n%s\n", NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_NUM_FILES, SOCKET_NAME);
+	configParsing();
+	printf("%ld\n%ld\n%ld\n%ld\n%s\n", NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_MEMORY_TOT, MAX_NUM_FILES, SOCKET_NAME);
 	//Accepting connections
 	
     unlinksock();    
