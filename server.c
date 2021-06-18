@@ -276,9 +276,10 @@ int cmd(long connfd, op op_type, msg info) {
 			break;
 		}
 		case READ_FILE_N: {
-			int n;
+			/*int n;
 			if (readn(connfd, &n, sizeof(int))<=0) return -1;
-			return	read_n_file_svr(connfd, info, n);
+			if(n==0) return read_cache(connfd);
+			int ret = read_n_file_svr(connfd, info, n);*/
 			break;
 		}
 		case WRITE_FILE:

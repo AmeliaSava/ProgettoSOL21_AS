@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SOCKNAME     "./storage_sock"
 #define MAXBACKLOG   32
 
 /** Evita letture parziali

@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+#define _BSD_SOURCE
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
@@ -8,6 +10,7 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/un.h>
+#include <time.h>
 
 #include <ops.h>
 #include <coms.h>
@@ -65,16 +68,27 @@ int WriteFilefromByte(char* pathname, char* text, long size) {
  * la connessione da parte del client ripetur dopo 'msec' millisecondi e fino allo scadere del tempo assoluto 'abstime' specificato
  * come terzo argomento. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
  */
-int openConnection(const char* sockname/*, int msec, const struct timespace abstime*/) {
-	
-	SYSCALL_EXIT("socket", sockfd, socket(AF_UNIX, SOCK_STREAM, 0), "socket", "");
-	 
-	memset(&serv_addr, '0', sizeof(serv_addr));
+int openConnection(const char* sockname, int msec, const struct timespec abstime) {
 
+	errno = 0;
+	int result = 0;
+	if(sockname == NULL || msec < 0) { errno = EINVAL; return -1;}
+	if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) { errno = -1; return -1;}
+	
+	struct sockaddr_un serv_addr;
+	memset(&serv_addr, '0', sizeof(serv_addr));
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, sockname, strlen(sockname)+1);
-	int result;
-	SYSCALL_EXIT("connect", result, connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)), "connect", "");
+	
+	struct timespec current_time;
+	if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
+
+	while ((result = connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0 && abstime.tv_sec > current_time.tv_sec) {
+		if((result = usleep(msec*1000)) != 0) return result;
+		if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
+	}
+
+	if(result != -1) return 0;
 
 	return result;
 }
@@ -190,13 +204,7 @@ int readFile(const char* pathname, void** buf, size_t* size) {
 		if(readn(sockfd, filebuf, fileL*sizeof(char)) <= 0) { errno = -1; free(namebuf); free(filebuf);	perror("ERROR: read2");
 			return -1;
 		}  //reciveing byte file
-		char* p;
-		p = strrchr(namebuf, '/');
-		++p;
-		printf("name: %s\n", p);
-		if((WriteFilefromByte(p, filebuf, fileL)) == -1) { errno = -1; free(namebuf); free(filebuf); perror("ERROR: writefb");
-			return -1;
-		}
+
 		//putting the file in the buf
 		*buf = filebuf;
 		*size = fileL;
@@ -215,7 +223,7 @@ int readFile(const char* pathname, void** buf, size_t* size) {
  * successo (cioè ritorna il n. di file effettivamente letti), -1 in caso di fallimento, errno viene settato opportunamente.
  */
 int readNfiles(int N, const char* dirname) {
-/*	op readN_file = 3;
+	/*op readN_file = 3;
 	errno = 0;
 	fprintf(stderr, "dentro readNFile API\n");
 
@@ -243,15 +251,24 @@ int readNfiles(int N, const char* dirname) {
 			if(readn(sockfd, &nameL, sizeof(int)) <= 0) {errno = -1; perror("ERROR: read3"); free(namebuf); return -1;} 
 			//sending name
 			if(readn(sockfd, namebuf, nameL*sizeof(char)) <= 0) {errno = -1; perror("ERROR: read4"); free(namebuf); return -1;}
-			//WriteFilefromByte(fileL, filebuf, nameL, namebuf, dirname);
+
+		//questa parte funziona
+		char* p;
+		p = strrchr(namebuf, '/');
+		++p;
+		printf("name: %s\n", p);
+		if((WriteFilefromByte(p, filebuf, fileL)) == -1) { errno = -1; free(namebuf); free(filebuf); perror("ERROR: writefb");
+			return -1;
+		}
+		//fine parte che funziona
+
 			printf("File Name: %s\nFile Text:%s\n", namebuf, filebuf);
 			if(filebuf) free(filebuf);
 			if(namebuf) free(namebuf);		
 		}
 		
 	
-	} else return -1;
-*/
+	} else return -1; */
 	return 0;
 }
 
