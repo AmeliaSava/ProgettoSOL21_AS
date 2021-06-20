@@ -123,7 +123,7 @@ int write_from_dir_find (const char* dir, const char *infile, long n) {
 					if (buf == NULL) return -1;
 					// stampo il path, il nome del file e la sua data di modifica convertita da ctime
 					int ret;
-					if((ret = openFile(buf, 1)) == 1) if(writeFile(buf, NULL) == 0) n--;
+					if((ret = openFile(buf, 1)) == 1) { if(writeFile(buf, NULL) == 0) n--;}
 						else return ret;
 					free(buf);
 				}
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
             case 'W': { 
             	optind--;
             	for(; optind<argc && *argv[optind] != '-'; optind++) {
-            		write_from_dir_find(".", argv[optind]);
+            		write_from_dir_find(".", argv[optind], 0);
             		//openFile(argv[optind], 1);
                 	printf("filename: %s\n", argv[optind]); 
                 }
@@ -186,6 +186,7 @@ int main(int argc, char *argv[]) {
             	char* token;
             	token = strtok(optarg,",");
             	while(token != NULL) {
+            		openFile(token,1);
             		printf("filename: %s\n", token);
             		token = strtok(NULL, ",");
             	}

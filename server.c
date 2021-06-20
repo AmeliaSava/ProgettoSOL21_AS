@@ -9,6 +9,7 @@
 #include <sys/un.h> //ind AF_UNIX
 #include <sys/select.h>
 #include <assert.h>
+#include <pthread.h>
 
 #include <ops.h> //provvisorio
 #include <conn.h>
@@ -27,10 +28,12 @@ long MAX_MEMORY_TOT;
 long MAX_NUM_FILES;
 char* SOCKET_NAME = NULL;
 int DEBUG = 1;
-
+long fd_con; // I/O socket with a client
 // Global root of tree
 NodeFile cacheMemory = {MAX_INT, "median", "fixed_tree_root", 0, 0, NULL, NULL};
-//VARIABILE GLOBALE CON LA MEMORIA ALLOCATA
+
+pthread_t* thread_ids = NULL;
+int** pipe_w = NULL;
 
 //makes sure the socket name is unlinked
 void unlinksock() {
@@ -318,12 +321,13 @@ int cmd(long connfd, op op_type, msg info) {
 	return 0;
 }
 
-int getMSG(long connfd){
-	fprintf(stderr, "dentro getmsg\n");
+void* getMSG(void* arg){
+	fprintf(stderr, "dentro getmsg thread");
 	msg operation;
-	if (readn(connfd, &operation.op_type, sizeof(op))<=0) return -1;
-	fprintf(stderr, "%d\n", operation.op_type);
- 	return (cmd(connfd, operation.op_type, operation));
+	if (readn(fd_con, &operation.op_type, sizeof(op))<=0) return NULL;
+	fprintf(stderr, "op:%d\n", operation.op_type);
+	cmd(fd_con, operation.op_type, operation);
+	pthread_exit((void*)1);
 }
 
 // returns the max index of fd
@@ -423,10 +427,27 @@ int main (int argc, char* argv[]) {
 	int fd_skt; //connection socket
 	int fd_max; //max fd
 	int fd_sel; //index to verify select results
-	long fd_con; // I/O socket with a client
+
 
 	fd_set set; //active file descriptor set
 	fd_set rdset; //set of fd wating for reading
+
+	//creating threads and pipes
+	thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t));
+	pipe_w = (int**) calloc(NUM_THREAD_WORKERS, sizeof(int*));
+	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
+		pipe_w[i] = (int*)calloc(2, sizeof(int*));
+		if(pipe(pipe_w[i]) == -1) {errno = -1; perror("pipe"); return -1;}
+		if(pipe_w[i][0] > fd_max) fd_max = pipe_w[i][0];
+	}
+
+	int res;
+	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
+		if((res = pthread_create(&(thread_ids[i]), NULL, &getMSG, NULL) != 0)) { 
+			perror("ERROR: THREAD");
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
 
@@ -447,6 +468,10 @@ int main (int argc, char* argv[]) {
     FD_ZERO(&set);
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
+
+    //inserting workers in set
+    for(int i = 0; i < NUM_THREAD_WORKERS; i++)
+    	FD_SET(pipe_w[i][0], &set);
 
     //keeping max fd index updated
     //if(fd_skt > fd_max) fd_max = fd_skt;
@@ -470,18 +495,24 @@ int main (int argc, char* argv[]) {
 						fprintf(stderr, "max:%d\n", fd_max);
 						continue; //???
 					} 
- 
+					int client = 0;
+					for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
+						if(fd_sel == pipe_w[i][0]){
+							client = 1;
+							op result;
+							if(readn(pipe_w[i][0], &result, sizeof(op)) == -1){perror("readn select"); exit(EXIT_FAILURE);}
+							if(result == 7) {
+								FD_SET(fd_con, &set);
+								if(fd_con > fd_max) fd_max = fd_con;
+							}
+						}
+					}
+					if(client) continue;
 					fd_con = fd_sel;  // new request from already connected client
 					fprintf(stderr,"con:%ld\n", fd_con);
-					// read msg and executing if there's and error remove from
-					// ???
-					if (getMSG(fd_con) < 0) {
-						close(fd_con); 
-						FD_CLR(fd_con, &set); // remove from set
-						// if we are deleteting the max make new max
-						if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
-						fprintf(stderr,"ult:%ld\n", fd_con);
-					}
+					close(fd_con); 
+					FD_CLR(fd_con, &set); // remove from set
+					if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
 		   		}
 			}
 		}

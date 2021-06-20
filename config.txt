@@ -4,7 +4,7 @@
 # Non lasciare righe vuote
 # Commenti solo su nuova riga
 # 
-Number of thread workers = 13;
+Number of thread workers = 4;
 Max Memory available in Mb = 2;
 Max number of file server can handle = 1000;
 Socket file name = storage_sock;
