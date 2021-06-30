@@ -6,3 +6,5 @@ Nel main si fa il parsing del file config.txt, il formato del file config.txt pr
 
 Si è deciso di utilizzare una struttura dati di tipo albero per memorizzare i file
 I file con stato 1 sono chiusi, con stato 0 sono aperti
+
+Il file ops.h si basa sul file util.h fornito a lezione.

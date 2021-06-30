@@ -322,6 +322,8 @@ int cmd(long connfd, op op_type, msg info) {
 }
 
 void* getMSG(void* arg){
+	long* args = (long*)arg;
+	printf("%ld\n", args[0]);
 	fprintf(stderr, "dentro getmsg thread");
 	msg operation;
 	if (readn(fd_con, &operation.op_type, sizeof(op))<=0) return NULL;
