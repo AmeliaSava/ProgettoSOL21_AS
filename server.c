@@ -16,6 +16,7 @@
 #include <coms.h>
 #include <message.h>
 #include <treeLFU.h>
+#include <list.h>
 //altri include
 
 #define CONFIG_FL "./config.txt"
@@ -32,8 +33,10 @@ long fd_con; // I/O socket with a client
 // Global root of tree
 NodeFile cacheMemory = {MAX_INT, "median", "fixed_tree_root", 0, 0, NULL, NULL};
 
+node* client_requests = NULL;
+
 pthread_t* thread_ids = NULL;
-int** pipe_w = NULL;
+int* pipe_m = NULL;
 
 //makes sure the socket name is unlinked
 void unlinksock() {
@@ -434,50 +437,42 @@ int main (int argc, char* argv[]) {
 	fd_set set; //active file descriptor set
 	fd_set rdset; //set of fd wating for reading
 
-	//creating threads and pipes
+	//creating threads and pipe
 	thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t));
-	pipe_w = (int**) calloc(NUM_THREAD_WORKERS, sizeof(int*));
-	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
-		pipe_w[i] = (int*)calloc(2, sizeof(int*));
-		if(pipe(pipe_w[i]) == -1) {errno = -1; perror("pipe"); return -1;}
-		if(pipe_w[i][0] > fd_max) fd_max = pipe_w[i][0];
-	}
+	pipe_m = (int*) calloc(2,sizeof(int));
 
-	int res;
+	int res = 0;
 	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
-		if((res = pthread_create(&(thread_ids[i]), NULL, &getMSG, NULL) != 0)) { 
+		if((res = pthread_create(&(thread_ids[i]), NULL, getMSG, (void*)(&pipe_m[1])) != 0)) { 
 			perror("ERROR: THREAD");
 			exit(EXIT_FAILURE);
 		}
 	}
-
-	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
 
 	//server struct
 	struct sockaddr_un serv_addr;
 	memset(&serv_addr, '0', sizeof(serv_addr));
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, SOCKET_NAME, strlen(SOCKET_NAME)+1);
+
+	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
 	
  	//preparing socket
 	int result;
     SYSCALL_EXIT("bind", result, bind(fd_skt, (struct sockaddr*)&serv_addr,sizeof(serv_addr)), "ERROR: bind", "");
     SYSCALL_EXIT("listen", result, listen(fd_skt, MAXBACKLOG), "ERROR: listen", "");
     
-    //GESTIONE THREAD DA IMPLEMENTARE
+	//keeping max fd index updated
+	if(fd_skt > fd_max) fd_max = fd_skt;
 
     //setting the sets
     FD_ZERO(&set);
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
+    //adding the pipe to the master set
+	if(pipe_m[0] > fd_max) fd_max = pipe_m[0];
+	FD_SET(pipe_m[0], &set);
 
-    //inserting workers in set
-    for(int i = 0; i < NUM_THREAD_WORKERS; i++)
-    	FD_SET(pipe_w[i][0], &set);
-
-    //keeping max fd index updated
-    //if(fd_skt > fd_max) fd_max = fd_skt;
-    fd_max = fd_skt;
     //fprintf(stderr, "%d\n", fd_max);
 
     for(;;) {      
@@ -489,7 +484,7 @@ int main (int argc, char* argv[]) {
 		} else { //select ok
 			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++) {
 				//accepting new connections
-			    if (FD_ISSET(fd_sel, &rdset)) { //is it ready?
+			    if (FD_ISSET(fd_sel, &rdset)) { //is it ready? 
 					if (fd_sel == fd_skt) { // sock connect ready
 						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
 						FD_SET(fd_con, &set);  // adding fd to starting set
