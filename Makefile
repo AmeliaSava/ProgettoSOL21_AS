@@ -24,16 +24,16 @@ all		: $(TARGETS)
 
 
 
-server: server.o treeLFU.o list.o -lpthread
+server: server.o treeLFU.o -lpthread
 	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
-server.o: server.c treeLFU.h list.h 
+
+server.o: server.c treeLFU.h 
 
 treeLFU.o: treeLFU.c treeLFU.h 
 
-list.o: list.c list.h
-
 testingtree: testingtree.o treeLFU.o
 	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
+
 testingtree.o: testingtree.c treeLFU.h
 
 treeLFU.o: treeLFU.c treeLFU.h

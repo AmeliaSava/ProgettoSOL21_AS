@@ -15,7 +15,7 @@
 
 #define SOCK_NAME "./storage_sock"
 
-int print = 0;
+int print = 1;
 char* SOCKNAME = NULL;
 
 void print_h() {
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
 	struct timespec abstime;
 	int opt;
 
-	while((opt = getopt(argc, argv, "hf:w:W:r:R::d:t:c:p")) != -1) { 
+	while((opt = getopt(argc, argv, "hf:w:W:r:R::d::t:c:p")) != -1) { 
 		switch(opt) { 
             case 'h': {
             	print_h();
@@ -151,9 +151,10 @@ int main(int argc, char *argv[]) {
             case 'f': {
 				if(add_current_folder(&SOCKNAME, optarg) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
 				if(print) printf("Socket file pathname: %s\n", SOCKNAME);
-				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) return -1;
+				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
 				abstime.tv_sec += 2;
             	if((openConnection(SOCKNAME, 1000, abstime)) == -1){errno = ECONNREFUSED; perror("openConnection"); exit(EXIT_FAILURE);}
+            	else fprintf(stderr, "Connected\n");
             	break;
             }
             case 'w': {
@@ -176,8 +177,8 @@ int main(int argc, char *argv[]) {
             case 'W': { 
             	optind--;
             	for(; optind<argc && *argv[optind] != '-'; optind++) {
-            		write_from_dir_find(".", argv[optind], 0);
-            		//openFile(argv[optind], 1);
+            		//write_from_dir_find(".", argv[optind], 0);
+            		openFile(argv[optind], 1);
                 	printf("filename: %s\n", argv[optind]); 
                 }
                 break;
@@ -204,7 +205,9 @@ int main(int argc, char *argv[]) {
                 break;
             }
 			case 'd': {
-                printf("option: %s\n", optarg); 
+                printf("option: %s\n", optarg);
+                char* file = "./storage/test.txt";
+                openFile(file, 1);
                 break;
             }
 			case 't': {

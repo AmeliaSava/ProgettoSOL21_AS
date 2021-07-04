@@ -77,7 +77,9 @@ typedef enum {
   SRV_FILE_ALREADY_PRESENT = 10,
   SRV_MEM_FULL = 11,
   SRV_READY_FOR_WRITE = 12,
-  SRV_FILE_CLOSED = 13
+  SRV_FILE_CLOSED = 13,
+  //client messages
+  END_COMMUNICATION = 20
 
 } op;
 /**

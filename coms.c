@@ -17,7 +17,6 @@
 #include <conn.h>
 #include <message.h>
 
-struct sockaddr_un serv_addr;
 int sockfd;
 
 //EXTRA FUNCTIONS
@@ -73,13 +72,15 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 	errno = 0;
 	int result = 0;
 	if(sockname == NULL || msec < 0) { errno = EINVAL; return -1;}
-	if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) { errno = -1; return -1;}
 	
 	struct sockaddr_un serv_addr;
 	memset(&serv_addr, '0', sizeof(serv_addr));
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, sockname, strlen(sockname)+1);
 	
+
+	if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) { errno = -1; return -1;}
+
 	struct timespec current_time;
 	if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
 
@@ -119,21 +120,26 @@ int openFile(const char* pathname, int flags) {
 	namebuf[nameL] = '\0';
 	
 	// send: operation type, name lenght, name
+	fprintf(stderr, "prima write\n");
 	if(writen(sockfd, &open_file, sizeof(open_file)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write1");
 		return -1;
 	}  //sending operation type
+		fprintf(stderr, "seconda write\n");
 	if(writen(sockfd, &flags, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write openFile");
 		return -1;
 	}  //sending flag
+	fprintf(stderr, "3 write\n");
 	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write2");
 		return -1;
 	} //sending name len
+	fprintf(stderr, "4 write\n");
 	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write3");
 		return -1;
 	}  //sending name
 	
 	//recivieng outcome of operation
 	int buflen;
+	fprintf(stderr, "read\n");
 	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: read1");
 		return -1;
 	}
@@ -146,10 +152,10 @@ int openFile(const char* pathname, int flags) {
 	}
 	buf[buflen] = '\0';
 	if(strncmp(buf, "Ready for write...", buflen) == 0) {
-		fprintf(stderr, "%s\n", buf);
+		fprintf(stderr, "buf: %s\n", buf);
 		return 1;
 	}
-	fprintf(stderr, "%s\n", buf);
+	fprintf(stderr, "buf2: %s\n", buf);
 	if(namebuf) free(namebuf);
 	if(buf) free(buf);
 	return 0;

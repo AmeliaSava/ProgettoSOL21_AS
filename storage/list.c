@@ -8,10 +8,7 @@
 	node* tail;
 } linked_list;*/
 
-typedef struct NODE {
-	struct NODE* next;
-	long client_fd;
-} node;
+
 
 void push_head(node** head, long fd) {
 	node* newNode = (node*) malloc(sizeof(node));

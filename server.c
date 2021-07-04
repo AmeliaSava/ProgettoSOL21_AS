@@ -29,11 +29,14 @@ long MAX_MEMORY_TOT;
 long MAX_NUM_FILES;
 char* SOCKET_NAME = NULL;
 int DEBUG = 1;
-long fd_con; // I/O socket with a client
+
+
 // Global root of tree
 NodeFile cacheMemory = {MAX_INT, "median", "fixed_tree_root", 0, 0, NULL, NULL};
 
 node* client_requests = NULL;
+pthread_mutex_t cli_req = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t wait_list = PTHREAD_COND_INITIALIZER;
 
 pthread_t* thread_ids = NULL;
 int* pipe_m = NULL;
@@ -234,10 +237,10 @@ int remove_file_svr(long connfd, char* name) {
 }
 
 //WIP
-int cmd(long connfd, op op_type, msg info) {
+int cmd(long connfd, long pipe_fd, msg info) {
 	fprintf(stderr, "dentro cmd\n");
 	int flag;
-	switch(op_type) {
+	switch(info.op_type) {
 		case OPEN_FILE: { // read: flag, lenght of file, filename
 			fprintf(stderr, "openfile cmd");
 			if (readn(connfd, &flag, sizeof(int)) <= 0) return -1;
@@ -325,14 +328,26 @@ int cmd(long connfd, op op_type, msg info) {
 }
 
 void* getMSG(void* arg){
-	long* args = (long*)arg;
-	printf("%ld\n", args[0]);
-	fprintf(stderr, "dentro getmsg thread");
-	msg operation;
-	if (readn(fd_con, &operation.op_type, sizeof(op))<=0) return NULL;
-	fprintf(stderr, "op:%d\n", operation.op_type);
-	cmd(fd_con, operation.op_type, operation);
-	pthread_exit((void*)1);
+	long args = *((long*)arg);
+	long client_f;
+	op com_op;
+	fprintf(stderr, "dentro getmsg thread\n");
+	for(;;) {
+		msg operation;
+		pthread_mutex_lock(&cli_req);
+		pthread_cond_wait(&wait_list, &cli_req);
+		client_f = pop_tail(client_requests);
+		fprintf(stderr, "prelevo coda\n");
+		pthread_mutex_unlock(&cli_req);
+		if (readn(args, &operation.op_type, sizeof(op)) <= 0){
+			fprintf(stderr, "END_COMMUNICATION\n");
+			com_op = END_COMMUNICATION;
+			write(args, &client_f, sizeof(long));
+			write(args, &com_op, sizeof(int));
+		} else {cmd(client_f, args, operation);}
+	}
+	fflush(stdout);
+	return NULL;
 }
 
 // returns the max index of fd
@@ -427,10 +442,10 @@ int main (int argc, char* argv[]) {
 	printf("%ld\n%ld\n%ld\n%ld\n%s\n", NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_MEMORY_TOT, MAX_NUM_FILES, SOCKET_NAME);
 	//Accepting connections
 	
-    unlinksock();    
+	unlinksock();
 
 	int fd_skt; //connection socket
-	int fd_max; //max fd
+	int fd_max = 0; //max fd
 	int fd_sel; //index to verify select results
 
 
@@ -438,13 +453,15 @@ int main (int argc, char* argv[]) {
 	fd_set rdset; //set of fd wating for reading
 
 	//creating threads and pipe
-	thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t));
-	pipe_m = (int*) calloc(2,sizeof(int));
+	CHECK_EQ_EXIT((thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t))), NULL, "ERROR: calloc threads");
+	CHECK_EQ_EXIT((pipe_m = (int*) calloc(2,sizeof(int))), NULL, "ERROR: calloc pipe");
+	if(pipe(pipe_m) == -1) { errno = -1; perror("ERROR: pipe"); free(pipe_m); free(thread_ids); free(SOCKET_NAME);}
 
 	int res = 0;
 	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
 		if((res = pthread_create(&(thread_ids[i]), NULL, getMSG, (void*)(&pipe_m[1])) != 0)) { 
-			perror("ERROR: THREAD");
+			free(pipe_m); free(thread_ids); free(SOCKET_NAME);
+			perror("ERROR: threads init");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -454,9 +471,8 @@ int main (int argc, char* argv[]) {
 	memset(&serv_addr, '0', sizeof(serv_addr));
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, SOCKET_NAME, strlen(SOCKET_NAME)+1);
-
 	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
-	
+	fprintf(stderr, "Connected to %s\n", SOCKET_NAME);
  	//preparing socket
 	int result;
     SYSCALL_EXIT("bind", result, bind(fd_skt, (struct sockaddr*)&serv_addr,sizeof(serv_addr)), "ERROR: bind", "");
@@ -482,34 +498,49 @@ int main (int argc, char* argv[]) {
 		    perror("ERROR: select");
 			return EXIT_FAILURE;
 		} else { //select ok
+			fprintf(stderr, "select ok\n");
+			long fd_con; // I/O socket with a client
+			fprintf(stderr, "max bef for: %d\n", fd_max);
 			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++) {
 				//accepting new connections
-			    if (FD_ISSET(fd_sel, &rdset)) { //is it ready? 
+				fprintf(stderr, "accepting connections\n");
+			    if (FD_ISSET(fd_sel, &rdset)) { //is it ready?
+			    	fprintf(stderr, "ready?\n"); 
 					if (fd_sel == fd_skt) { // sock connect ready
+						fprintf(stderr, "sock ready\n");
 						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
 						FD_SET(fd_con, &set);  // adding fd to starting set
 						if(fd_con > fd_max) fd_max = fd_con;  // updating max
 						fprintf(stderr, "max:%d\n", fd_max);
-						continue; //???
-					} 
-					int client = 0;
-					for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
-						if(fd_sel == pipe_w[i][0]){
-							client = 1;
-							op result;
-							if(readn(pipe_w[i][0], &result, sizeof(op)) == -1){perror("readn select"); exit(EXIT_FAILURE);}
-							if(result == 7) {
-								FD_SET(fd_con, &set);
-								if(fd_con > fd_max) fd_max = fd_con;
-							}
+					} else {
+		   				fprintf(stderr, "else \n");
+		   				if (fd_sel == pipe_m[0]){
+		   					fprintf(stderr, "pipe\n");
+		   					long client;
+		   					op rep;
+							if (readn(pipe_m[0], &client, sizeof(long)) > 0) { //read something
+								if (readn(pipe_m[0], &rep, sizeof(op))<=0) { perror("reading pipe 2"); exit(EXIT_FAILURE);}
+								if (rep == END_COMMUNICATION) {
+									fprintf(stderr, "interrmpo com client: %ld\n", client);
+									FD_CLR(client, &set);
+									fprintf(stderr, "max prima agg:%d\n", fd_max);
+									if (client == fd_max) fd_max = updateMax(set, fd_max);
+									fprintf(stderr, "max dopo agg:%d\n", fd_max);
+									close(client);
+								} else {
+									FD_SET(client, &set);
+									if(client > fd_max) fd_max = client;
+								}
+							} else { perror("reading pipe"); exit(EXIT_FAILURE); }	
+			   			} else {
+							fprintf(stderr, "adding request to list\n");
+							pthread_mutex_lock(&cli_req);
+							push_head(&client_requests, fd_sel);
+							pthread_cond_signal(&wait_list);
+							pthread_mutex_unlock(&cli_req);
+							FD_CLR(fd_sel, &set);
 						}
-					}
-					if(client) continue;
-					fd_con = fd_sel;  // new request from already connected client
-					fprintf(stderr,"con:%ld\n", fd_con);
-					close(fd_con); 
-					FD_CLR(fd_con, &set); // remove from set
-					if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+		   			}
 		   		}
 			}
 		}
