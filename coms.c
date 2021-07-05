@@ -1,5 +1,3 @@
-#define _POSIX_C_SOURCE 199309L
-#define _BSD_SOURCE
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
@@ -85,6 +83,7 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 	if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
 
 	while ((result = connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0 && abstime.tv_sec > current_time.tv_sec) {
+		printf("sas\n");
 		if((result = usleep(msec*1000)) != 0) return result;
 		if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
 	}

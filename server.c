@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE  200112L
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +50,9 @@ int reportOps(long connfd, op op_type) {
 	fprintf(stderr, "dentro return\n");
 
 	char* buf = NULL;
+	char message[1024];
+
+	sprintf(message, "Operation completed successfully");
 
 	switch(op_type) {
 		case SRV_OK: {
@@ -337,14 +339,19 @@ void* getMSG(void* arg){
 		pthread_mutex_lock(&cli_req);
 		pthread_cond_wait(&wait_list, &cli_req);
 		client_f = pop_tail(client_requests);
+
 		fprintf(stderr, "prelevo coda\n");
 		pthread_mutex_unlock(&cli_req);
+
 		if (readn(args, &operation.op_type, sizeof(op)) <= 0){
 			fprintf(stderr, "END_COMMUNICATION\n");
 			com_op = END_COMMUNICATION;
 			write(args, &client_f, sizeof(long));
 			write(args, &com_op, sizeof(int));
-		} else {cmd(client_f, args, operation);}
+		} else {
+			
+			cmd(client_f, args, operation);
+		}
 	}
 	fflush(stdout);
 	return NULL;
@@ -490,27 +497,38 @@ int main (int argc, char* argv[]) {
 	FD_SET(pipe_m[0], &set);
 
     //fprintf(stderr, "%d\n", fd_max);
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1;
 
     for(;;) {      
 		rdset = set; //saving the set in the temporary one
 		//+1 because I need the number of active file descriptors, not the max index
-		if (select(fd_max + 1, &rdset, NULL, NULL, NULL) == -1) {
+		if (select(fd_max + 1, &rdset, NULL, NULL, &timeout) == -1) {
 		    perror("ERROR: select");
 			return EXIT_FAILURE;
-		} else { //select ok
+		} 
+		else { 
+			printf("QUI\n");
+			//select ok
 			fprintf(stderr, "select ok\n");
 			long fd_con; // I/O socket with a client
 			fprintf(stderr, "max bef for: %d\n", fd_max);
+
 			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++) {
 				//accepting new connections
 				fprintf(stderr, "accepting connections\n");
+
 			    if (FD_ISSET(fd_sel, &rdset)) { //is it ready?
-			    	fprintf(stderr, "ready?\n"); 
+			    	fprintf(stderr, "ready?\n");
+
 					if (fd_sel == fd_skt) { // sock connect ready
 						fprintf(stderr, "sock ready\n");
 						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
 						FD_SET(fd_con, &set);  // adding fd to starting set
-						if(fd_con > fd_max) fd_max = fd_con;  // updating max
+						
+						// updating max
+						if(fd_con > fd_max) fd_max = fd_con;  
 						fprintf(stderr, "max:%d\n", fd_max);
 					} else {
 		   				fprintf(stderr, "else \n");
@@ -545,6 +563,7 @@ int main (int argc, char* argv[]) {
 			}
 		}
     }
+
     //ogni volta che si chiude la comunicazione va aggiornato il massimo
     //sezione di deallocazione di tutte le risorse
 	close(fd_skt);

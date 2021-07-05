@@ -25,6 +25,7 @@ void print (NodeFile* n){
 	print(n->right);	
 }
 
+/*
 int main(){
 	
 	NodeFile* root = NULL;
@@ -66,3 +67,4 @@ int main(){
 }
 
 
+*/

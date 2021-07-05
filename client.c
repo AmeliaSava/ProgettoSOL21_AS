@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE 199309L
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,7 +39,7 @@ int add_current_folder(char** pathname, char* name) {
 	char* folder = NULL;
 	if((folder = malloc((strlen(name) + 2)*sizeof(char))) == NULL) return -1;
 	if((*pathname = malloc(2*sizeof(char))) == NULL) return -1;
-	strncpy(*pathname, "./", 2);
+	strncpy(*pathname, "./", 3);
 	strncpy(folder, name, strlen(name));
 	strncat(*pathname, folder, strlen(folder));
 	free(folder);
@@ -216,9 +215,11 @@ int main(int argc, char *argv[]) {
             }
 			case 'c': {
             	optind--;
+				/*
             	for(; optind<argc && *argv[optind] != '-'; optind++)
             		removeFile(argv[optind]);
                 	printf("filename: %s\n", argv[optind]); 
+					*/
                 break;
             }
 			case 'p': {

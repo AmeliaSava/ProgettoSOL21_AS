@@ -1,14 +1,12 @@
 CC		=	gcc
-CFLAGS		+=	-std=c99 -Wall -Werror -g -pedantic
+CFLAGS		+=	-std=gnu99 -Wall -Werror -g -pedantic
 INCLUDES	=	-I. -I ./include
 LDFLAGS		=	-L.
 OPTFLAGS 	=
 LIBS		=	-lpthread
 
 TARGETS 	=	server		\
-			client		\
-			treeLFU		\
-			testingtree
+			client		
 
 
 .PHONY: all clean cleanall
