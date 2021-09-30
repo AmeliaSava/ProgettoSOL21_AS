@@ -6,20 +6,27 @@
 
 #define MAX_INT 2147483647
 
+typedef struct HashLFU
+{
+	FileList* bucket;
+	int maxSize;
+
+} Table;
+
 typedef struct FILE_NODE {
 	int frequency;
 	char* textFile;
 	char* nameFile;
 	int status;
 	long FileSize;
-	struct FILE_NODE *left;
-	struct FILE_NODE *right;
-} NodeFile;
+	struct FILE_NODE *next;
+} FileList;
 
 //returns:
 //success: a newly allocated node
 //failure: stops if malloc fails
 NodeFile* createNode(int frq, char* fName, char* fText, int fStat, long fSize);
+
 //returns:
 //success: the tree updated with the new node
 //failure: stops if malloc fails in createNode

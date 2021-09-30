@@ -22,19 +22,19 @@ all		: $(TARGETS)
 
 
 
-server: server.o treeLFU.o -lpthread
+server: server.o HashLFU.o -lpthread
 	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
 
-server.o: server.c treeLFU.h 
+server.o: server.c HashLFU.h 
 
-treeLFU.o: treeLFU.c treeLFU.h 
+HashLFU.o: HashLFU.c HashLFU.h 
 
-testingtree: testingtree.o treeLFU.o
+testinghash: testinghash.o HashLFU.o
 	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
 
-testingtree.o: testingtree.c treeLFU.h
+testinghash.o: testinghash.o HashLFU.o
 
-treeLFU.o: treeLFU.c treeLFU.h
+HashLFU.o: HashLFU.c HashLFU.h
 
 client: client.o coms.o
 	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@

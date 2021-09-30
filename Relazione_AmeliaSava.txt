@@ -4,7 +4,7 @@ Server
 
 Nel main si fa il parsing del file config.txt, il formato del file config.txt prevede (la possibilità di commentare con #) di scrivere gli argomenti uno per riga e si suppone che l'ordine viene rispettato, le righe devono essere terminate da ; e il nome della variabile separato dall'uguale, possono esserci spazi.
 
-Si è deciso di utilizzare una struttura dati di tipo albero per memorizzare i file
+Si è deciso di utilizzare una struttura dati di tipo 
 I file con stato 1 sono chiusi, con stato 0 sono aperti
 
 Il file ops.h si basa sul file util.h fornito a lezione.

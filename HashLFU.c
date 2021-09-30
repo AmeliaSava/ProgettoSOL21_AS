@@ -3,9 +3,16 @@
 #include <string.h>
 
 #include <ops.h>
-#include <treeLFU.h>
+#include <HashLFU.h>
 
 
+void Hash_Init(Table* tab, int size)
+{
+	tab->bucket = malloc(sizeof(FileList)*size);
+	tab->maxSize = size;
+
+	for(int i = 0; i < )
+}
 //returns:
 //success: a newly allocated node
 //failure: stops if malloc fails
