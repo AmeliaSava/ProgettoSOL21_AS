@@ -3,10 +3,10 @@
 #include <string.h>
 
 #include <ops.h>
-#include <treeLFU.h>
+#include <HashLFU.h>
 #define INT_MAX 2147483647
 #define MAX_SIZE 2048
-
+/*
 //FUNZIONA
 void print (NodeFile* n){
 
@@ -25,7 +25,6 @@ void print (NodeFile* n){
 	print(n->right);	
 }
 
-/*
 int main(){
 	
 	NodeFile* root = NULL;

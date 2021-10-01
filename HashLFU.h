@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <ops.h>
+#include <filelist.h>
 
 #define MAX_INT 2147483647
 
@@ -13,15 +14,7 @@ typedef struct HashLFU
 
 } Table;
 
-typedef struct FILE_NODE {
-	int frequency;
-	char* textFile;
-	char* nameFile;
-	int status;
-	long FileSize;
-	struct FILE_NODE *next;
-} FileList;
-
+/*
 //returns:
 //success: a newly allocated node
 //failure: stops if malloc fails
@@ -65,4 +58,4 @@ void AppendNode(NodeFile* node, int freq, char* append, long newSize);
 //FUNZIONA
 void increaseF (NodeFile* file);
 
-
+*/

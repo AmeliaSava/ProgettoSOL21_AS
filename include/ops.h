@@ -82,6 +82,7 @@ typedef enum {
   END_COMMUNICATION = 20
 
 } op;
+
 /**
  * \brief Procedura di utilita' per la stampa degli errori
  *
@@ -115,6 +116,13 @@ static inline int isNumber(const char* s, long* n) {
     return 0;   // successo 
   }
   return 1;   // non e' un numero
+}
+
+static inline void* safe_malloc (size_t size)
+{
+  void* alloc = malloc(size);
+  CHECK_EQ_EXIT(alloc, NULL, ERROR: malloc);
+  return alloc;
 }
 
 #define LOCK(l)      if (pthread_mutex_lock(l)!=0)        { \
@@ -153,4 +161,5 @@ static inline int TRYLOCK(pthread_mutex_t* l) {
   }                   
   return r; 
 }
+
 #endif /*_CHECK_H*/

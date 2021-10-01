@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
+#if !defined(CLIENTLIST_H)
+#define CLIENTLIST_H
+
 #include <ops.h>
 
 typedef struct NODE {
@@ -9,8 +9,7 @@ typedef struct NODE {
 } node;
 
 void push_head(node** head, long fd) {
-	node* newNode = (node*) malloc(sizeof(node));
-	if(newNode==NULL){exit(EXIT_FAILURE);}
+	node* newNode = safe_malloc(sizeof(node));
 	newNode->client_fd = fd;
 	newNode->next = *head;
 	*head = newNode;
@@ -33,3 +32,5 @@ long pop_tail(node* head) {
 	ptr->next = NULL;
 	return return_fd;
 }
+
+#endif /* CLIENTLIST_H */
