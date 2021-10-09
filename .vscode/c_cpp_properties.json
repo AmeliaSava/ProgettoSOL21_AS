@@ -3,10 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**",
-                "C:/Users/Amelia Sava/AppData/Local/Packages/CanonicalGroupLimited.Ubuntu20.04onWindows_79rhkp1fndgsc/LocalState/rootfs/usr/lib/gcc/x86_64-linux-gnu/9/include",
-                "C:/Users/Amelia Sava/AppData/Local/Packages/CanonicalGroupLimited.Ubuntu20.04onWindows_79rhkp1fndgsc/LocalState/rootfs/usr/include/x86_64-linux-gnu",
-                "C:/Users/Amelia Sava/AppData/Local/Packages/CanonicalGroupLimited.Ubuntu20.04onWindows_79rhkp1fndgsc/LocalState/rootfs/usr/include"
+                "C:\\Users\\ameli\\Documents\\GitHub\\ProgettoSOL21_AS\\include"
             ],
             "defines": [
                 "_DEBUG",

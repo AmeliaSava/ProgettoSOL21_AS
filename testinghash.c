@@ -6,9 +6,8 @@
 #include <HashLFU.h>
 #define INT_MAX 2147483647
 #define MAX_SIZE 2048
-/*
-//FUNZIONA
-void print (NodeFile* n){
+
+void print_list (FileList* n){
 
 	if(n==NULL) {
 		fprintf(stdout, "NULL\n");
@@ -21,26 +20,36 @@ void print (NodeFile* n){
 	printf("Stato: %d\n", n->status);
 	printf("\n");
 
-	print(n->left);
-	print(n->right);	
+	print_list(n->next);	
+}
+
+void print_tab (Table* tab)
+{
+	for(size_t i = 0; i < tab->maxSize; i++)
+	{
+		printf("Printing hash bucket[%zu]", i);
+		print_list(&(tab->bucket[i]));
+	}
 }
 
 int main(){
 	
-	NodeFile* root = NULL;
-	root = PushNode(root, INT_MAX, "median", "fixed_root", 0);
-	PushNode(root, 0, "paswfil", "01000000110000101101100011011000110111", 0);
-	PushNode(root, 0, "docfil", "10111011101110011", 0);
-	PushNode(root, 0, "vid", "111011101110011001", 0);
-	PushNode(root, 0, "applptxt", "0011001000110010101100110011010010", 0);
-	PushNode(root, 0, "prjup", "1110101011100000111000", 0);
-	PushNode(root, 0, "docvimk", "01110011001000000110000101", 0);
+	Table* hashMap = NULL;
+	Hash_Init(hashMap, 10);
+
+	Hash_Insert(hashMap, 0, "paswfil", "01000000110000101101100011011000110111", 0, 22);
+	Hash_Insert(hashMap, 0, "docfil", "10111011101110011", 0, 34);
+	Hash_Insert(hashMap, 0, "vid", "111011101110011001", 0, 22);
+	Hash_Insert(hashMap, 0, "applptxt", "0011001000110010101100110011010010", 0, 34);
+	Hash_Insert(hashMap, 0, "prjup", "1110101011100000111000", 0, 25);
+	Hash_Insert(hashMap, 0, "docvimk", "01110011001000000110000101", 0, 12);
 	
 	printf("\n");
-	printf("Printing Tree:\n");
-	print(root);
+	printf("Printing:\n");
+	print_tab(hashMap);
 	printf("\n");
 	printf("\n");
+	/*
 	printf("Search:\n");
     NodeFile* find = NULL;
     find = searchNode(root, "vid");
@@ -61,9 +70,7 @@ int main(){
 	printf("Remove file:\n");
 	RemoveFile(root, "prjup");
 	print(root);
+	*/
 	
  return 0;
 }
-
-
-*/

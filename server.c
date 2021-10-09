@@ -14,8 +14,8 @@
 #include <conn.h>
 #include <coms.h>
 #include <message.h>
-#include <treeLFU.h>
-#include <list.h>
+#include <HashLFU.h>
+#include <clientlist.h>
 //altri include
 
 #define CONFIG_FL "./config.txt"
@@ -59,8 +59,19 @@ int reportOps(long connfd, op op_type) {
 					fprintf(stderr, "sending ok\n");
 
 			int l = 33;
-			if (writen(connfd, &l, sizeof(int))<=0) { perror("ERROR: writeok"); return -1;}
-			if (writen(connfd, "Operation completed successfully", l*sizeof(char))<=0) { perror("ERROR: writeok"); return -1;}
+
+			if (writen(connfd, &l, sizeof(int))<=0) //fai macro
+			{
+				perror("ERROR: writeok");
+				return -1;
+			}
+
+			if (writen(connfd, "Operation completed successfully", l*sizeof(char))<=0)
+			{ 
+				perror("ERROR: writeok"); 
+				return -1;
+			}
+			
 			break;
 		}
 		case SRV_NOK: {

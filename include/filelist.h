@@ -12,6 +12,11 @@ typedef struct FILE_NODE {
 	struct FILE_NODE *next;
 } FileList;
 
+void list_init(FileList* list) 
+{
+	list = NULL;
+}
+
 FileList* push_node(FileList* head, int frq, char* fName, char* fText, int fStat, long fSize)
 {
 	FileList* newNode = safe_malloc(sizeof(FileList));
@@ -48,6 +53,33 @@ FileList* search_node(FileList* head, char* filename) {
 	search_node(head->next, filename);
 	
 	return found;
+}
+
+void append_node(FileList* node, int freq, char* append, long newSize) {
+	node->frequency = freq;
+	if ((node->textFile = (char*)realloc((node->textFile), ((node->FileSize)+newSize))) == NULL) { 
+		perror("ERROR: realloc AppendNode");
+		free(node->textFile);
+		exit(EXIT_FAILURE);
+	}
+	strncat(node->textFile, append, strlen(append));
+	node->FileSize += newSize;
+}
+
+void increaseF (FileList* file) {
+	file->frequency = file->frequency + 1;
+}
+
+void list_destroy(FileList* list)
+{
+	FileList* current = list;
+	FileList* next;
+	while (current != NULL) {
+		next = current->next;
+		free(current);
+		current = next;
+	}
+	list = NULL;
 }
 
 /*

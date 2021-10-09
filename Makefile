@@ -32,7 +32,7 @@ HashLFU.o: HashLFU.c HashLFU.h
 testinghash: testinghash.o HashLFU.o
 	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
 
-testinghash.o: testinghash.o HashLFU.o
+testinghash.o: testinghash.c HashLFU.h
 
 HashLFU.o: HashLFU.c HashLFU.h
 
