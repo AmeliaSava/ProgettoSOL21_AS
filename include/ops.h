@@ -125,6 +125,7 @@ static inline void* safe_malloc (size_t size)
   return alloc;
 }
 
+
 #define LOCK(l)      if (pthread_mutex_lock(l)!=0)        { \
     fprintf(stderr, "ERRORE FATALE lock\n");        \
     pthread_exit((void*)EXIT_FAILURE);          \

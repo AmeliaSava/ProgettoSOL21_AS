@@ -3,7 +3,9 @@
         {
             "name": "Win32",
             "includePath": [
-                "C:\\Users\\ameli\\Documents\\GitHub\\ProgettoSOL21_AS\\include"
+                "C:\\Users\\Amelia Sava\\Documents\\GitHub\\ProgettoSOL21_AS\\include",
+                "${workspaceFolder}/include",
+                "C:\\Users\\Amelia Sava\\Documents\\GitHub\\ProgettoSOL21_AS"
             ],
             "defines": [
                 "_DEBUG",

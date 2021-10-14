@@ -23,6 +23,8 @@ size_t Hash_Function(Table* t, char* key);
 
 void Hash_Insert(Table* t, int frq, char* fName, char* fText, int fStat, long fSize);
 
+FileNode* Hash_Search(Table* tab, char* fName);
+
 void Hash_Destroy(Table* t);
 
 #endif /* HASHLFU_H */

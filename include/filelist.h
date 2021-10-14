@@ -3,23 +3,52 @@
 
 #include <ops.h>
 
-typedef struct FILE_NODE {
+typedef struct FILE_NODE
+{
 	int frequency;
 	char* textFile;
 	char* nameFile;
 	int status;
 	long FileSize;
 	struct FILE_NODE *next;
+
+} FileNode;
+
+typedef struct FILE_LIST
+{
+	FileNode* head;
+	FileNode* last;
+	size_t size;
+
 } FileList;
 
-void list_init(FileList* list) 
-{
-	list = NULL;
+static inline void print_list (FileNode* n){
+
+	if(n==NULL) {
+		fprintf(stdout, "NULL\n");
+		return;
+	}
+	
+	printf("Nome: %s\n", n->nameFile);
+	printf("\n");
+
+	print_list(n->next);	
 }
 
-FileList* push_node(FileList* head, int frq, char* fName, char* fText, int fStat, long fSize)
+//ok
+static inline void list_init(FileList* list) 
 {
-	FileList* newNode = safe_malloc(sizeof(FileList));
+	list->head = NULL;
+	list->last = NULL;
+	list->size = 0;
+}
+
+//ok
+//ATTENTION! Text is useless here
+static inline void push_node(FileList* list, int frq, char* fName, char* fText, int fStat, long fSize)
+{
+
+	FileNode* newNode = safe_malloc(sizeof(FileNode));
 
 	newNode->frequency = frq;
 	newNode->status = fStat;
@@ -28,78 +57,71 @@ FileList* push_node(FileList* head, int frq, char* fName, char* fText, int fStat
 	strncpy(newNode->nameFile, fName, strlen(fName));
 	newNode->nameFile[strlen(fName)] = '\0';
 
-	head->next = head;
-	head = newNode;
-
-	return head;
+	if(list->size == 0) list->head = newNode;
+	else list->last->next = newNode;
+	list->last = newNode;
+	list->size++;
 }
 
-void update_node(FileList* node, int frq, char* fText, long fSize) {
+//ok
+static inline void update_node(FileNode* node, int frq, char* fText, long fSize) 
+{
+
 	node->frequency = frq;
 	node->textFile = safe_malloc(strlen(fText)*sizeof(char));
 	strncpy(node->textFile, fText, strlen(fText));
 	node->FileSize = fSize;
+
 }
 
-FileList* search_node(FileList* head, char* filename) {
+//ok
+static inline FileNode* search_node(FileNode* node, char* filename) 
+{
 	
-	if(head == NULL) return NULL;
+	if(node == NULL) return NULL;
 	
-	if(strncmp(filename, head->nameFile, MAX_SIZE) == 0){
-		return head;
+	if(strncmp(filename, node->nameFile, MAX_SIZE) == 0)
+	{
+		return node;
 	}
 	
-	FileList* found = NULL;
-	search_node(head->next, filename);
+	return search_node(node->next, filename);
 	
-	return found;
 }
 
-void append_node(FileList* node, int freq, char* append, long newSize) {
+//ok
+static inline void append_node(FileNode* node, int freq, char* append, long newSize) 
+{
 	node->frequency = freq;
-	if ((node->textFile = (char*)realloc((node->textFile), ((node->FileSize)+newSize))) == NULL) { 
+
+	if ((node->textFile = (char*)realloc((node->textFile), ((node->FileSize)+newSize))) == NULL)
+	{ 
 		perror("ERROR: realloc AppendNode");
 		free(node->textFile);
 		exit(EXIT_FAILURE);
 	}
+
 	strncat(node->textFile, append, strlen(append));
 	node->FileSize += newSize;
 }
 
-void increaseF (FileList* file) {
+//ok
+static inline void increaseF (FileNode* file) {
 	file->frequency = file->frequency + 1;
 }
 
-void list_destroy(FileList* list)
+static inline void list_destroy(FileList* list)
 {
-	FileList* current = list;
-	FileList* next;
+	FileNode* current = list->head;
+	FileNode* next;
 	while (current != NULL) {
 		next = current->next;
 		free(current);
 		current = next;
 	}
-	list = NULL;
+	list->head = NULL;
+	list->last = NULL;
+	free(list);
 }
-
-/*
-long pop_tail(node* head) {
-	long return_fd;
-	if(head->next == NULL) {
-		return_fd = head->client_fd;
-		free(head);
-		return return_fd;
-	}
-
-	node* ptr = head;
-	while(ptr->next->next != NULL) {
-		ptr = ptr->next;
-	}
-	return_fd = ptr->next->client_fd;
-	free(ptr->next);
-	ptr->next = NULL;
-	return return_fd;
-}
-*/
 
 #endif /* FILELIST_H */
