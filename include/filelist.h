@@ -37,6 +37,8 @@ static inline void print_list (FileNode* n){
 	print_list(n->next);	
 }
 
+//LIST functions
+
 //ok
 static inline void list_init(FileList* list) 
 {
@@ -45,6 +47,55 @@ static inline void list_init(FileList* list)
 	list->size = 0;
 }
 
+//ok
+//ATTENZIONE
+static inline void list_pop(FileList* list)
+{
+	if(list->head == NULL) return;
+
+	FileNode* current = list->head;
+
+	if(current->next == NULL) {
+		free(current);
+		list->head = NULL;
+		return;
+	}
+
+	while (current->next->next != NULL)
+	{
+		current = current->next;
+	}
+
+	free(current->next);
+	current->next = NULL;
+	list->last = current;
+
+	return;
+	
+}
+
+//ok
+static inline void list_destroy(FileList* list)
+{
+	FileNode* current = list->head;
+	FileNode* next;
+
+	while (current != NULL)
+	{
+		next = current->next;
+		free(current);
+		current = next;
+	}
+
+	list->head = NULL;
+	list->last = NULL;
+
+	free(list);
+
+	return;
+}
+
+//NODE functions
 //ok
 //ATTENTION! Text is useless here...
 static inline void node_push(FileList* list, int frq, char* fName, char* fText, int fStat, long fSize)
@@ -156,52 +207,5 @@ static inline void node_delete(FileList* list, char* fileName, size_t len)
 	return;
 }
 
-//ok
-//ATTENZIONE
-static inline void list_pop(FileList* list)
-{
-	if(list->head == NULL) return;
-
-	FileNode* current = list->head;
-
-	if(current->next == NULL) {
-		free(current);
-		list->head = NULL;
-		return;
-	}
-
-	while (current->next->next != NULL)
-	{
-		current = current->next;
-	}
-
-	free(current->next);
-	current->next = NULL;
-	list->last = current;
-
-	return;
-	
-}
-
-//ok
-static inline void list_destroy(FileList* list)
-{
-	FileNode* current = list->head;
-	FileNode* next;
-
-	while (current != NULL)
-	{
-		next = current->next;
-		free(current);
-		current = next;
-	}
-
-	list->head = NULL;
-	list->last = NULL;
-
-	free(list);
-
-	return;
-}
 
 #endif /* FILELIST_H */

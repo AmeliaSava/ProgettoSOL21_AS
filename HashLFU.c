@@ -75,6 +75,7 @@ void Hash_LFUremove (Table* tab)
 	return;
 }
 
+//ok
 void Hash_Remove(Table* tab, char* Vfile) 
 {
 
@@ -86,6 +87,7 @@ void Hash_Remove(Table* tab, char* Vfile)
 
 }
 
+//ok
 void Hash_Destroy(Table* t)
 {
 	for(size_t i = 0; i < t->maxSize; i++)

@@ -10,16 +10,16 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include <ops.h> //provvisorio
+#include <ops.h>
 #include <conn.h>
 #include <coms.h>
 #include <message.h>
 #include <HashLFU.h>
 #include <clientlist.h>
-//altri include
 
 #define CONFIG_FL "./config.txt"
 #define MAX_BUF 2048
+#define TAB_SIZE 1028
 
 // Global Variables
 long NUM_THREAD_WORKERS;
@@ -30,8 +30,8 @@ char* SOCKET_NAME = NULL;
 int DEBUG = 1;
 
 
-// Global root of tree
-NodeFile cacheMemory = {MAX_INT, "median", "fixed_tree_root", 0, 0, NULL, NULL};
+// HashTable for the file memory system
+Table cacheMemory;
 
 node* client_requests = NULL;
 pthread_mutex_t cli_req = PTHREAD_MUTEX_INITIALIZER;
@@ -455,17 +455,21 @@ int main (int argc, char* argv[]) {
 	
 	//allocating the global socket name
 	CHECK_EQ_EXIT((SOCKET_NAME = malloc(MAX_BUF * sizeof(char))), NULL, "ERROR: malloc socket name");
+
 	// parsing the config file
 	configParsing();
+
 	printf("%ld\n%ld\n%ld\n%ld\n%s\n", NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_MEMORY_TOT, MAX_NUM_FILES, SOCKET_NAME);
-	//Accepting connections
 	
+	//initializing cache memory
+	Hash_Init(&cacheMemory, TAB_SIZE);
+
+	//Accepting connections
 	unlinksock();
 
 	int fd_skt; //connection socket
 	int fd_max = 0; //max fd
 	int fd_sel; //index to verify select results
-
 
 	fd_set set; //active file descriptor set
 	fd_set rdset; //set of fd wating for reading
@@ -484,13 +488,18 @@ int main (int argc, char* argv[]) {
 		}
 	}
 
+	//creating socket
+	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
+	fprintf(stderr, "Connected to %s\n", SOCKET_NAME);
+	
 	//server struct
 	struct sockaddr_un serv_addr;
 	memset(&serv_addr, '0', sizeof(serv_addr));
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, SOCKET_NAME, strlen(SOCKET_NAME)+1);
-	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
-	fprintf(stderr, "Connected to %s\n", SOCKET_NAME);
+
+
+
  	//preparing socket
 	int result;
     SYSCALL_EXIT("bind", result, bind(fd_skt, (struct sockaddr*)&serv_addr,sizeof(serv_addr)), "ERROR: bind", "");
@@ -503,6 +512,9 @@ int main (int argc, char* argv[]) {
     FD_ZERO(&set);
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
+
+	//DOSEN'T WORK
+	/*
     //adding the pipe to the master set
 	if(pipe_m[0] > fd_max) fd_max = pipe_m[0];
 	FD_SET(pipe_m[0], &set);
@@ -574,6 +586,7 @@ int main (int argc, char* argv[]) {
 			}
 		}
     }
+	*/
 
     //ogni volta che si chiude la comunicazione va aggiornato il massimo
     //sezione di deallocazione di tutte le risorse
