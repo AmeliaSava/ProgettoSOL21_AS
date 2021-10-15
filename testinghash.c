@@ -23,11 +23,11 @@ int main(){
 	Hash_Init(&hashMap, 5);
 
 	Hash_Insert(&hashMap, 0, "paswfil", "01000000110000101101100011011000110111", 0, 22);
-	Hash_Insert(&hashMap, 0, "docfil", "10111011101110011", 0, 34);
-	Hash_Insert(&hashMap, 0, "vid", "111011101110011001", 0, 22);
-	Hash_Insert(&hashMap, 0, "applptxt", "0011001000110010101100110011010010", 0, 34);
-	Hash_Insert(&hashMap, 0, "prjup", "1110101011100000111000", 0, 25);
-	Hash_Insert(&hashMap, 0, "docvimk", "01110011001000000110000101", 0, 12);
+	Hash_Insert(&hashMap, 0, "docfil", "10111011101110011", 1, 34);
+	Hash_Insert(&hashMap, 0, "vid", "111011101110011001", 2, 22);
+	Hash_Insert(&hashMap, 0, "applptxt", "0011001000110010101100110011010010", 3, 34);
+	Hash_Insert(&hashMap, 0, "prjup", "1110101011100000111000", 4, 25);
+	Hash_Insert(&hashMap, 0, "docvimk", "01110011001000000110000101", 5, 12);
 	
 	printf("\n");
 	printf("Printing:\n");
@@ -39,22 +39,15 @@ int main(){
     find = Hash_Search(&hashMap, "vid");
     printf("Trovato '%s': %d\n", find->nameFile, find->frequency);
 	printf("\n");
-	/*
-	int minValue = root->frequency;
-	NodeFile* min = root;
-	minNode(root, &min, &minValue);
-	printf("Min '%s': %d\n", min->nameFile, min->frequency);
+
+	printf("Remove LFU:\n");
+	Hash_LFUremove(&hashMap);
+	print_tab(&hashMap);
 	printf("\n");
-	printf("\n");
-	printf("Remove min:\n");
-	LFU_Remove(root);
-	print(root);
-	printf("\n");
-	printf("\n");
+	
 	printf("Remove file:\n");
-	RemoveFile(root, "prjup");
-	print(root);
-	*/
+	Hash_Remove(&hashMap, "prjup");
+	print_tab(&hashMap);
 	
  return 0;
 }

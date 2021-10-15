@@ -25,6 +25,10 @@ void Hash_Insert(Table* t, int frq, char* fName, char* fText, int fStat, long fS
 
 FileNode* Hash_Search(Table* tab, char* fName);
 
+void Hash_LFUremove (Table* tab);
+
+void Hash_Remove(Table* tab, char* Vfile);
+
 void Hash_Destroy(Table* t);
 
 #endif /* HASHLFU_H */

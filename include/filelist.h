@@ -22,6 +22,8 @@ typedef struct FILE_LIST
 
 } FileList;
 
+//AGGIORNARE I PUNTATORI TESTACODA
+
 static inline void print_list (FileNode* n){
 
 	if(n==NULL) {
@@ -44,8 +46,8 @@ static inline void list_init(FileList* list)
 }
 
 //ok
-//ATTENTION! Text is useless here
-static inline void push_node(FileList* list, int frq, char* fName, char* fText, int fStat, long fSize)
+//ATTENTION! Text is useless here...
+static inline void node_push(FileList* list, int frq, char* fName, char* fText, int fStat, long fSize)
 {
 
 	FileNode* newNode = safe_malloc(sizeof(FileNode));
@@ -64,7 +66,7 @@ static inline void push_node(FileList* list, int frq, char* fName, char* fText, 
 }
 
 //ok
-static inline void update_node(FileNode* node, int frq, char* fText, long fSize) 
+static inline void node_update(FileNode* node, int frq, char* fText, long fSize) 
 {
 
 	node->frequency = frq;
@@ -75,7 +77,7 @@ static inline void update_node(FileNode* node, int frq, char* fText, long fSize)
 }
 
 //ok
-static inline FileNode* search_node(FileNode* node, char* filename) 
+static inline FileNode* node_search(FileNode* node, char* filename) 
 {
 	
 	if(node == NULL) return NULL;
@@ -85,12 +87,12 @@ static inline FileNode* search_node(FileNode* node, char* filename)
 		return node;
 	}
 	
-	return search_node(node->next, filename);
+	return node_search(node->next, filename);
 	
 }
 
 //ok
-static inline void append_node(FileNode* node, int freq, char* append, long newSize) 
+static inline void node_append(FileNode* node, int freq, char* append, long newSize) 
 {
 	node->frequency = freq;
 
@@ -106,22 +108,100 @@ static inline void append_node(FileNode* node, int freq, char* append, long newS
 }
 
 //ok
-static inline void increaseF (FileNode* file) {
+static inline void node_incrfreq (FileNode* file)
+{
 	file->frequency = file->frequency + 1;
 }
 
+//ok
+static inline void node_delete(FileList* list, char* fileName, size_t len) 
+{
+	if(list->head == NULL) return;
+
+	FileNode* current = list->head;
+	FileNode* next;
+
+	if(current->next == NULL) 
+	{
+		if(strncmp(current->nameFile, fileName, len) == 0)
+		{
+			free(current);
+			list->head = NULL;
+			return;
+		}
+	}
+
+	while (current->next->next != NULL)
+	{
+		if(strncmp(current->next->nameFile, fileName, len) == 0)
+		{
+			next = current->next->next;
+			free(current->next);
+			current->next = next;
+			return;
+		} else 
+		{
+			current = current->next;
+		}
+	}
+
+	if(strncmp(current->next->nameFile, fileName, len) == 0)
+	{
+		next = current->next->next;
+		free(current->next);
+		current->next = next;
+		list->last = current;
+	}
+
+	return;
+}
+
+//ok
+//ATTENZIONE
+static inline void list_pop(FileList* list)
+{
+	if(list->head == NULL) return;
+
+	FileNode* current = list->head;
+
+	if(current->next == NULL) {
+		free(current);
+		list->head = NULL;
+		return;
+	}
+
+	while (current->next->next != NULL)
+	{
+		current = current->next;
+	}
+
+	free(current->next);
+	current->next = NULL;
+	list->last = current;
+
+	return;
+	
+}
+
+//ok
 static inline void list_destroy(FileList* list)
 {
 	FileNode* current = list->head;
 	FileNode* next;
-	while (current != NULL) {
+
+	while (current != NULL)
+	{
 		next = current->next;
 		free(current);
 		current = next;
 	}
+
 	list->head = NULL;
 	list->last = NULL;
+
 	free(list);
+
+	return;
 }
 
 #endif /* FILELIST_H */

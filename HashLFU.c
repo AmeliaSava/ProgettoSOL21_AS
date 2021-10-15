@@ -36,7 +36,7 @@ void Hash_Insert(Table* t, int frq, char* fName, char* fText, int fStat, long fS
 {
 	int index = Hash_Function(t, fName);
 	
-	push_node(&(t->bucket[index]), frq, fName, fText, fStat, fSize);
+	node_push(&(t->bucket[index]), frq, fName, fText, fStat, fSize);
 	
 }
 
@@ -45,23 +45,46 @@ FileNode* Hash_Search(Table* tab, char* fName)
 {
 	int index = Hash_Function(tab, fName);
 
-	FileNode* found = search_node(tab->bucket[index].head, fName);
+	FileNode* found = node_search(tab->bucket[index].head, fName);
 
 	return found;
 }
 
-/*
-void LFU_Remove (Table* t) {
+//ok
+void Hash_LFUremove (Table* tab)
+{
 	//find tail with min freq
-	//tail delete
+	int min = MAX_INT;
+	FileList* minFile = NULL;
+
+	for(size_t i = 0; i < tab->maxSize; i++)
+	{
+		if( (tab->bucket[i].last != NULL) && ((tab->bucket[i].last->frequency) <= min) )
+		{
+			min = tab->bucket[i].last->frequency;
+			minFile = &(tab->bucket[i]);
+		
+		}
+	}
+	printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
+	printf("\n");
+	print_list(minFile->head);
+	//last delete
+	list_pop(minFile);
+	printf("dopo min\n");
 	return;
 }
 
-void RemoveFile(NodeFile* toDel, NodeFile* tree, char* Vfile) {
-	//search
-	//remove
+void Hash_Remove(Table* tab, char* Vfile) 
+{
+
+	int index = Hash_Function(tab, Vfile);
+
+	node_delete(&(tab->bucket[index]), Vfile, strlen(Vfile));
+
+	return;
+
 }
-*/
 
 void Hash_Destroy(Table* t)
 {
