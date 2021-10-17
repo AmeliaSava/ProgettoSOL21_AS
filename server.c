@@ -121,6 +121,7 @@ int reportOps(long connfd, op op_type) {
 	return 0;
 }
 
+/*
 int write_file_svr(long connfd, int len, char* name, char* file, int flag){
 	fprintf(stderr, "dentro write\n");
 	if(strcmp(name, "median") == 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // cannot modify root
@@ -248,9 +249,11 @@ int remove_file_svr(long connfd, char* name) {
 	} else return reportOps(connfd, SRV_FILE_NOT_FOUND);
 	return reportOps(connfd, SRV_OK);
 }
+*/
 
+/*
 //WIP
-int cmd(long connfd, long pipe_fd, msg info) {
+int cmd(long connfd, long pipe_fd,, msg info) {
 	fprintf(stderr, "dentro cmd\n");
 	int flag;
 	switch(info.op_type) {
@@ -298,10 +301,10 @@ int cmd(long connfd, long pipe_fd, msg info) {
 			break;
 		}
 		case READ_FILE_N: {
-			/*int n;
+			int n;
 			if (readn(connfd, &n, sizeof(int))<=0) return -1;
 			if(n==0) return read_cache(connfd);
-			int ret = read_n_file_svr(connfd, info, n);*/
+			int ret = read_n_file_svr(connfd, info, n);
 			break;
 		}
 		case WRITE_FILE:
@@ -339,7 +342,25 @@ int cmd(long connfd, long pipe_fd, msg info) {
 
 	return 0;
 }
+*/
 
+int getMSG(int connfd)
+{
+	msg* file;
+	size_t msgSize;
+
+	if (readn(connfd, &msgSize, sizeof(int))<=0) return -1;
+
+	file = safe_malloc(msgSize);
+
+	if (readn(connfd, file, msgSize)<=0) return -1;
+
+	fprintf(stderr, "%s", file->filename);
+
+	return reportOps(connfd, SRV_OK);
+}
+
+/*
 void* getMSG(void* arg){
 	long args = *((long*)arg);
 	long client_f;
@@ -367,8 +388,10 @@ void* getMSG(void* arg){
 	fflush(stdout);
 	return NULL;
 }
+*/
 
 // returns the max index of fd
+//ok
 int updateMax(fd_set set, int fdmax) {
     for(int i = (fdmax-1); i >= 0; i--)
     	if (FD_ISSET(i, &set)) return i;
@@ -376,7 +399,7 @@ int updateMax(fd_set set, int fdmax) {
     	return -1;
 }
 
-//PULISCI MEGLIO QUANDO QUALCOSA CHIUDE CHIUDE TUUTO
+//ok
 void configParsing() {
 	FILE *config_input = NULL;
 	
@@ -470,11 +493,13 @@ int main (int argc, char* argv[]) {
 	int fd_skt; //connection socket
 	int fd_max = 0; //max fd
 	int fd_sel; //index to verify select results
+	int fd_con; //I/O socket with client
 
 	fd_set set; //active file descriptor set
 	fd_set rdset; //set of fd wating for reading
 
 	//creating threads and pipe
+	/*
 	CHECK_EQ_EXIT((thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t))), NULL, "ERROR: calloc threads");
 	CHECK_EQ_EXIT((pipe_m = (int*) calloc(2,sizeof(int))), NULL, "ERROR: calloc pipe");
 	if(pipe(pipe_m) == -1) { errno = -1; perror("ERROR: pipe"); free(pipe_m); free(thread_ids); free(SOCKET_NAME);}
@@ -487,18 +512,17 @@ int main (int argc, char* argv[]) {
 			exit(EXIT_FAILURE);
 		}
 	}
+	*/
 
 	//creating socket
 	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
 	fprintf(stderr, "Connected to %s\n", SOCKET_NAME);
-	
-	//server struct
+
+	//setting socket
 	struct sockaddr_un serv_addr;
 	memset(&serv_addr, '0', sizeof(serv_addr));
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, SOCKET_NAME, strlen(SOCKET_NAME)+1);
-
-
 
  	//preparing socket
 	int result;
@@ -512,6 +536,54 @@ int main (int argc, char* argv[]) {
     FD_ZERO(&set);
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
+
+	for(;;) 
+	{      
+		rdset = set; //saving the set in the temporary one
+
+		//+1 because I need the number of active file descriptors, not the max index
+		if (select(fd_max + 1, &rdset, NULL, NULL, NULL) == -1)
+		{
+		    perror("ERROR: select");
+			return EXIT_FAILURE;
+		} 
+		else { 
+			//select ok
+			fprintf(stderr, "select ok\n");
+			fprintf(stderr, "max bef for: %d\n", fd_max);
+
+			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++)
+			{
+				//accepting new connections
+				fprintf(stderr, "accepting connections\n");
+
+			    if (FD_ISSET(fd_sel, &rdset))
+				{ //is it ready?
+			    	fprintf(stderr, "ready?\n");
+
+					if (fd_sel == fd_skt)
+					{ // sock connect ready
+						fprintf(stderr, "sock ready\n");
+						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
+						FD_SET(fd_con, &set);  // adding fd to starting set
+						
+						// updating max
+						if(fd_con > fd_max) fd_max = fd_con;  
+						fprintf(stderr, "max after connection:%d\n", fd_max);
+						continue;
+					} 
+					fd_con = fd_sel;
+					if(getMSG(fd_con) < 0) 
+					{
+						close(fd_con); 
+						FD_CLR(fd_con, &set);
+
+						if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+					}
+		   		}
+			}
+		}
+    }
 
 	//DOSEN'T WORK
 	/*

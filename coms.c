@@ -83,7 +83,6 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 	if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
 
 	while ((result = connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0 && abstime.tv_sec > current_time.tv_sec) {
-		printf("sas\n");
 		if((result = usleep(msec*1000)) != 0) return result;
 		if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
 	}
@@ -100,6 +99,50 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 int closeConnection(const char* sockname) {
 	close(sockfd);
 	return 0;
+}
+
+int FileSend(const char* pathname) 
+{
+	fprintf(stderr, "Sending file\n");
+
+	msg fileC;
+	errno = 0;
+
+	//copying pathname
+	int nameL = strlen(pathname)+1;
+
+	fileC.filename = safe_malloc(nameL * sizeof(char));
+
+	strncpy(fileC.filename, pathname, nameL);
+	fileC.filename[nameL] = '\0';
+
+	fileC.filecontents = NULL;
+	fileC.lenN = nameL;
+	fileC.op_type = 0;
+	fileC.size = 0;
+
+	size_t msgSize = sizeof(fileC);
+
+	fprintf(stderr, "prima write\n");
+	if(writen(sockfd, &msgSize, sizeof(size_t)) <= 0) return -1;
+	
+	fprintf(stderr, "seconda write\n");
+	if(writen(sockfd, &fileC, msgSize) <= 0) return -1;
+
+	//recivieng outcome of operation
+	int buflen;
+	fprintf(stderr, "read\n");
+	if(readn(sockfd, &buflen, sizeof(int)) <= 0) return -1;
+	char* buf = NULL;
+	if((buf = malloc((buflen)*sizeof(char))) == NULL) return -1; 
+	if (readn(sockfd, buf, (buflen)*sizeof(char)) <= 0)	return -1;
+	buf[buflen] = '\0';
+	
+	fprintf(stderr, "buf2: %s\n", buf);
+	
+	if(buf) free(buf);
+	return 0;
+	
 }
 
 /*

@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
 			case 'R': {
-				readNfiles(0, NULL);
+				//readNfiles(0, NULL);
                 break;
             }
 			case 'd': {
