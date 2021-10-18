@@ -346,13 +346,14 @@ int cmd(long connfd, long pipe_fd,, msg info) {
 
 int getMSG(int connfd)
 {
+	fprintf(stderr, "detro getmsg");
 	msg* file = safe_malloc(sizeof(msg));
-
+	
 	if (readn(connfd, file, sizeof(msg))<=0) return -1;
 
 	fprintf(stderr, "%s", file->filename);
 
-	return reportOps(connfd, SRV_OK);
+	return reportOps(connfd, SRV_FILE_CLOSED);
 }
 
 /*
@@ -565,9 +566,12 @@ int main (int argc, char* argv[]) {
 						// updating max
 						if(fd_con > fd_max) fd_max = fd_con;  
 						fprintf(stderr, "max after connection:%d\n", fd_max);
+						//fprintf(stderr, "Client fd: %d\n", fd_con);
 						continue;
 					} 
 					fd_con = fd_sel;
+
+					//fprintf(stderr, "Client da ascoltare: %d\n", fd_con);
 					if(getMSG(fd_con) < 0) 
 					{
 						close(fd_con); 

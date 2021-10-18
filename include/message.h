@@ -8,8 +8,8 @@ typedef struct MSG {
 	int lenN;
 	long size;
 	op op_type; 
-	char* filename;
-	char* filecontents;
+	char filename[MAX_SIZE];
+	char filecontents[MAX_SIZE];
 } msg;
 
 #endif 

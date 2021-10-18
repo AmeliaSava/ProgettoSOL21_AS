@@ -105,30 +105,26 @@ int FileSend(const char* pathname)
 {
 	fprintf(stderr, "Sending file\n");
 
-	msg fileC;
+	msg* fileC = safe_malloc(sizeof(msg));
 	errno = 0;
 
 	//copying pathname
 	int nameL = strlen(pathname)+1;
 
-	fileC.filename = safe_malloc(nameL * sizeof(char));
+	fprintf(stderr, "%d\n", nameL);
 
-	strncpy(fileC.filename, pathname, nameL);
-	fileC.filename[nameL] = '\0';
+	strncpy(fileC->filename, pathname, nameL);
+	fileC->filename[nameL] = '\0';
 
-	fileC.filecontents = NULL;
-	fileC.lenN = nameL;
-	fileC.op_type = 0;
-	fileC.size = 0;
+	fprintf(stderr, "%s\n", fileC->filename);
 
-	size_t msgSize = sizeof(fileC);
+	fileC->lenN = nameL;
+	fileC->op_type = 0;
+	fileC->size = 0;
 
 	fprintf(stderr, "prima write\n");
-	if(writen(sockfd, &msgSize, sizeof(size_t)) <= 0) return -1;
+	if(writen(sockfd, fileC, sizeof(msg)) <= 0) return -1;
 	
-	fprintf(stderr, "seconda write\n");
-	if(writen(sockfd, &fileC, msgSize) <= 0) return -1;
-
 	//recivieng outcome of operation
 	int buflen;
 	fprintf(stderr, "read\n");
