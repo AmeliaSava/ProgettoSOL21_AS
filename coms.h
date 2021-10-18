@@ -24,6 +24,8 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
  */
 int closeConnection(const char* sockname);
 
+int FileSend(const char* pathname);
+
 /*
  * Richiede di apertura o di creazione di un file. 
  * Se viene passato il flag O_CREATE ed il file già esiste memorizzato nel server, oppure il file non esiste ed il flag 

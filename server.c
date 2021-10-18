@@ -346,14 +346,9 @@ int cmd(long connfd, long pipe_fd,, msg info) {
 
 int getMSG(int connfd)
 {
-	msg* file;
-	size_t msgSize;
+	msg* file = safe_malloc(sizeof(msg));
 
-	if (readn(connfd, &msgSize, sizeof(int))<=0) return -1;
-
-	file = safe_malloc(msgSize);
-
-	if (readn(connfd, file, msgSize)<=0) return -1;
+	if (readn(connfd, file, sizeof(msg))<=0) return -1;
 
 	fprintf(stderr, "%s", file->filename);
 

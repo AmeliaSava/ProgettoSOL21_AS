@@ -201,6 +201,7 @@ int main(int argc, char *argv[]) {
             }
 			case 'R': {
 				//readNfiles(0, NULL);
+				FileSend("./storage/test.txt");
                 break;
             }
 			case 'd': {
