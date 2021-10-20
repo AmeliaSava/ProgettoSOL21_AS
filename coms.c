@@ -118,7 +118,7 @@ int FileSend(const char* pathname)
 
 	fprintf(stderr, "%s\n", fileC->filename);
 
-	fileC->lenN = nameL;
+	fileC->namelenght = nameL;
 	fileC->op_type = 0;
 	fileC->size = 0;
 
@@ -145,57 +145,58 @@ int FileSend(const char* pathname)
  * Richiede di apertura o di creazione di un file. 
  * No O_LOCK implementation, flag can be 0 = NONE, 1 = O_CREATE, 2 = O_LOCK
  */
-int openFile(const char* pathname, int flags) {
+int openFile(const char* pathname, int flags)
+{
 	fprintf(stderr, "dentro openFile API\n");
 
-	op open_file = 0;
-	errno = 0;
-	//copying pathname
-	int nameL = strlen(pathname)+1;
-	char* namebuf = NULL;
-	if ((namebuf = malloc(nameL * sizeof(char))) == NULL) { free(namebuf);  errno = ENOMEM; perror("ERROR: malloc openFile"); return -1;}
-	strncpy(namebuf, pathname, nameL);
-	namebuf[nameL] = '\0';
+	msg* open_file = safe_malloc(sizeof(msg));
 	
+	errno = 0;
 	// send: operation type, name lenght, name
-	fprintf(stderr, "prima write\n");
-	if(writen(sockfd, &open_file, sizeof(open_file)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write1");
+	//copying pathname
+	int name_lenght = strlen(pathname)+1;
+
+	strncpy(open_file->filename, pathname, name_lenght);
+	open_file->filename[name_lenght] = '\0';
+
+	open_file->namelenght = name_lenght;
+	open_file->op_type = 0;
+	open_file->size = 0;
+	
+	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write openFile");
 		return -1;
-	}  //sending operation type
-		fprintf(stderr, "seconda write\n");
-	if(writen(sockfd, &flags, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write openFile");
+	}
+
+	if(writen(sockfd, &flags, sizeof(int)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: write openFile");
 		return -1;
 	}  //sending flag
-	fprintf(stderr, "3 write\n");
-	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write2");
-		return -1;
-	} //sending name len
-	fprintf(stderr, "4 write\n");
-	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write3");
-		return -1;
-	}  //sending name
+
 	
 	//recivieng outcome of operation
-	int buflen;
-	fprintf(stderr, "read\n");
-	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: read1");
+	
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
 		return -1;
 	}
-	char* buf = NULL;
-	if((buf = malloc((buflen)*sizeof(char))) == NULL) {free(namebuf); free(buf); errno = ENOMEM; perror("ERROR: malloc");
-		return -1;
-	} 
-	if (readn(sockfd, buf, (buflen)*sizeof(char)) <= 0) {free(namebuf); free(buf); errno = -1; perror("ERROR: read2");
-		return -1;
-	}
-	buf[buflen] = '\0';
-	if(strncmp(buf, "Ready for write...", buflen) == 0) {
-		fprintf(stderr, "buf: %s\n", buf);
+
+	if(response == SRV_READY_FOR_WRITE)
+	{
+		fprintf(stderr, "buf: \n");
 		return 1;
 	}
-	fprintf(stderr, "buf2: %s\n", buf);
-	if(namebuf) free(namebuf);
-	if(buf) free(buf);
+
+	fprintf(stderr, "buf2\n");
+
 	return 0;
 }
 

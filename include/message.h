@@ -5,7 +5,7 @@
  * tipo del messaggio
  */
 typedef struct MSG {
-	int lenN;
+	int namelenght;
 	long size;
 	op op_type; 
 	char filename[MAX_SIZE];
@@ -13,3 +13,4 @@ typedef struct MSG {
 } msg;
 
 #endif 
+  
