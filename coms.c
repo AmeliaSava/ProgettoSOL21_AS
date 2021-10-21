@@ -455,7 +455,7 @@ int closeFile(const char* pathname)
 	fprintf(stderr, "dentro closeFile API\n");
 
 	msg* close_file = safe_malloc(sizeof(msg));
-	close_file->op_type = 0;
+	close_file->op_type = 1;
 
 	errno = 0;
 

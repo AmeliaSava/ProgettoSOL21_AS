@@ -163,4 +163,76 @@ static inline int TRYLOCK(pthread_mutex_t* l) {
   return r; 
 }
 
+static inline void print_op(op op_type)
+{	
+	switch(op_type)
+	{
+		case SRV_OK:
+		{
+			
+			fprintf(stderr, "sending ok\n");
+
+			if (writen(connfd, &op_type, sizeof(op)) <= 0)
+			{ 
+				perror("ERROR: writeok"); 
+				return -1;
+			}
+			
+			break;
+		}
+		
+		case SRV_NOK: {
+			int l = 32;
+			if (writen(connfd, &l, sizeof(int))<=0) { perror("ERROR: writeok"); return -1;}
+			if (writen(connfd, "Error while executing operation", l*sizeof(char))<=0) { perror("ERROR: writeok"); return -1;}
+			return -1;
+		}
+		case SRV_FILE_NOT_FOUND: {
+			int l = 15;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File not found", l*sizeof(char))<=0) { free(buf); return -1;}
+			return -1;
+		}
+		case SRV_FILE_ALREADY_PRESENT: {
+			int l = 21;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File already present", l*sizeof(char))<=0) { free(buf); return -1;}
+
+			return -1;
+		}
+		case SRV_MEM_FULL: {
+			int l = 24;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File too big for memory", l*sizeof(char))<=0) { free(buf); return -1;}
+			return -1;
+		}
+		
+		case SRV_READY_FOR_WRITE: 
+		{
+			fprintf(stderr, "sending ready\n");
+
+			if (writen(connfd, &op_type, sizeof(op)) <= 0)
+			{ 
+				perror("ERROR: writeok"); 
+				return -1;
+			}
+			
+			break;
+		}
+		
+		case SRV_FILE_CLOSED: {
+			fprintf(stderr, "sending closed\n");
+			int l = 15;
+			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
+			if (writen(connfd, "File is closed", l*sizeof(char))<=0) { free(buf); return -1;}
+			return -1;
+		}
+		
+		default: {
+			fprintf(stderr, "command not found\n");
+			return -1;
+		}
+	}
+}
+
 #endif /*_CHECK_H*/

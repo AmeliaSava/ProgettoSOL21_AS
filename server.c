@@ -55,76 +55,6 @@ int reportOps(long connfd, op op_type) {
 		return -1;
 	}
 
-	/*		
-	switch(op_type)
-	{
-		case SRV_OK:
-		{
-			
-			fprintf(stderr, "sending ok\n");
-
-			if (writen(connfd, &op_type, sizeof(op)) <= 0)
-			{ 
-				perror("ERROR: writeok"); 
-				return -1;
-			}
-			
-			break;
-		}
-		
-		case SRV_NOK: {
-			int l = 32;
-			if (writen(connfd, &l, sizeof(int))<=0) { perror("ERROR: writeok"); return -1;}
-			if (writen(connfd, "Error while executing operation", l*sizeof(char))<=0) { perror("ERROR: writeok"); return -1;}
-			return -1;
-		}
-		case SRV_FILE_NOT_FOUND: {
-			int l = 15;
-			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
-			if (writen(connfd, "File not found", l*sizeof(char))<=0) { free(buf); return -1;}
-			return -1;
-		}
-		case SRV_FILE_ALREADY_PRESENT: {
-			int l = 21;
-			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
-			if (writen(connfd, "File already present", l*sizeof(char))<=0) { free(buf); return -1;}
-
-			return -1;
-		}
-		case SRV_MEM_FULL: {
-			int l = 24;
-			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
-			if (writen(connfd, "File too big for memory", l*sizeof(char))<=0) { free(buf); return -1;}
-			return -1;
-		}
-		
-		case SRV_READY_FOR_WRITE: 
-		{
-			fprintf(stderr, "sending ready\n");
-
-			if (writen(connfd, &op_type, sizeof(op)) <= 0)
-			{ 
-				perror("ERROR: writeok"); 
-				return -1;
-			}
-			
-			break;
-		}
-		
-		case SRV_FILE_CLOSED: {
-			fprintf(stderr, "sending closed\n");
-			int l = 15;
-			if (writen(connfd, &l, sizeof(int))<=0) { free(buf); return -1;}
-			if (writen(connfd, "File is closed", l*sizeof(char))<=0) { free(buf); return -1;}
-			return -1;
-		}
-		
-		default: {
-			fprintf(stderr, "command not found\n");
-			return -1;
-		}
-	}
-	*/
 	return 0;
 }
 
@@ -178,19 +108,22 @@ int open_file_svr(long connfd, char* name, int flag)
 	} else if(!flag) return reportOps(connfd, SRV_NOK); //tried to create a file with no O_CREATE flag set
 			else
 			{ //ready for write
-				Hash_Insert(&cacheMemory, 0, name, NULL, 0, 0);
+				Hash_Insert(&cacheMemory, 0, name, NULL, 0, 0); //FIX!!! I already have the file, redundant insert
 				return reportOps(connfd, SRV_READY_FOR_WRITE); 
 			} 
 	return reportOps(connfd, SRV_OK);
 }
 
-/*
-int close_file_svr(long connfd, char* name) {
+
+int close_file_svr(long connfd, char* name)
+{
 	fprintf(stderr, "dentro close\n");
-	NodeFile* current = NULL;
-	if(strcmp(name, "median") == 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // cannot modify root
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
-		if(current->status == 0) { // is open
+	FileNode* current = NULL;
+
+	if((current = Hash_Search(&cacheMemory, name)) != NULL)
+	{ // file already exists
+		if(current->status == 0)
+		{ // is open
 			fprintf(stderr, "chiudo il nodo\n");
 			increaseF (current);
 			current->status = 1; // close file
@@ -200,6 +133,7 @@ int close_file_svr(long connfd, char* name) {
 	return reportOps(connfd, SRV_OK);
 }
 
+/*
 int read_file_svr(long connfd, msg info, char** tmp, long* size) {
 	fprintf(stderr, "%s\n", info.filename);
 	NodeFile* current = NULL;
@@ -288,16 +222,15 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
 			break;
 		}
-		/*
-		case CLOSE_FILE: {
-			if (readn(connfd, &info.namelenght, sizeof(int)) <= 0) return -1;
-    		if ((info.filename = malloc(info.namelenght*sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); return -1;}
-    		if (readn(connfd, info.filename, info.namelenght*sizeof(char)) <= 0) { perror("ERROR:read in open"); free(info.filename); return -1;} 
+		case CLOSE_FILE: 
+		{
+			fprintf(stderr, "closefile cmd\n");
+			fprintf(stderr, "%s\n", info.filename);
 
-    		fprintf(stderr, "%s\n", info.filename);
 			return close_file_svr(connfd, info.filename);
 			break;
 		}
+		/*
 		case READ_FILE:	
 		{
 			fprintf(stderr, "dentro cmd read\n");

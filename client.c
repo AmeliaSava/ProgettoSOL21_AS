@@ -202,10 +202,10 @@ int main(int argc, char *argv[]) {
 			case 'R': {
 				//readNfiles(0, NULL);
 				//FileSend("./storage/test.txt");
-				int r = openFile("./storage/test.txt", 1);
-
-				if(r == 0 || r == 1) printf("open succes\n");
-				else printf("open fail\n");
+				//int r = openFile("./storage/test.txt", 1);
+				int r = closeFile("./storage/test.txt");
+				if(r == 0 || r == 1) printf("succes\n");
+				else printf("fail\n");
 				
                 break;
             }
