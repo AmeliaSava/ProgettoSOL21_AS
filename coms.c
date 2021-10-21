@@ -59,6 +59,7 @@ int WriteFilefromByte(char* pathname, char* text, long size) {
 	fclose(fp1);
 	return 0;
 }
+
 //API
 /*
  * Apre una connesione AF_UNIX al socket file sockname. Se il server non accetta immediatamente la richiesta di connessione,
@@ -101,6 +102,8 @@ int closeConnection(const char* sockname) {
 	return 0;
 }
 
+/** TESTING
+
 int FileSend(const char* pathname) 
 {
 	fprintf(stderr, "Sending file\n");
@@ -140,6 +143,7 @@ int FileSend(const char* pathname)
 	return 0;
 	
 }
+*/
 
 /*
  * Richiede di apertura o di creazione di un file. 
@@ -150,17 +154,17 @@ int openFile(const char* pathname, int flags)
 	fprintf(stderr, "dentro openFile API\n");
 
 	msg* open_file = safe_malloc(sizeof(msg));
+	open_file->op_type = 0;
 	
 	errno = 0;
-	// send: operation type, name lenght, name
+	
 	//copying pathname
 	int name_lenght = strlen(pathname)+1;
 
 	strncpy(open_file->filename, pathname, name_lenght);
-	open_file->filename[name_lenght] = '\0';
 
+	open_file->filename[name_lenght] = '\0';
 	open_file->namelenght = name_lenght;
-	open_file->op_type = 0;
 	open_file->size = 0;
 	
 	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
@@ -191,49 +195,61 @@ int openFile(const char* pathname, int flags)
 
 	if(response == SRV_READY_FOR_WRITE)
 	{
-		fprintf(stderr, "buf: \n");
+		fprintf(stderr, "Ready for write...\n");
 		return 1;
 	}
 
-	fprintf(stderr, "buf2\n");
+	//fprintf(stderr, "%d\n", response);
 
-	return 0;
+	if(response == SRV_OK) return 0;
+
+	return -1;
 }
+
 
 /*
  * Legge tutto il contenuto del file server (se esiste) ritornando un puntatore ad un'area allocatata sullo heap nel parametro 'buf', 
  * mentre 'size' conterrà la dimensione del buffer dati (ossia la dimensione in bytes del file letto). In caso di errore, 'buf' e 
  * 'size' non sono validi. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene viene settato opportunamente.
  */
-int readFile(const char* pathname, void** buf, size_t* size) {
-	op read_file = 2;
-	errno = 0;
-	fprintf(stderr, "dentro readFile API\n");
-	//copying pathname in buffer
-	int nameL = strlen(pathname)+1;
-	char* namebuf = NULL;
-	if((namebuf = malloc(nameL * sizeof(char))) == NULL) { errno = ENOMEM; perror("ERROR: malloc"); free(namebuf);
-		return -1;
-	} 
-	strncpy(namebuf, pathname, nameL);
 
-	//sending operation type
-	if(writen(sockfd, &read_file, sizeof(read_file)) <= 0) {errno = -1; perror("ERROR: write1"); free(namebuf); return -1;}
-	//sending name len
-	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {errno = -1; perror("ERROR: write2"); free(namebuf); return -1;} 
-	//sending name
-	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {errno = -1; perror("ERROR: write3"); free(namebuf); return -1;}
+int readFile(const char* pathname, void** buf, size_t* size)
+{
+	/*
+	fprintf(stderr, "dentro readFile API\n");
+
+	msg* read_file = safe_malloc(sizeof(msg));
+	read_file->op_type = 2;
+
+	errno = 0;
+
+	//copying pathname in buffer
+	int name_lenght = strlen(pathname)+1;
+
+	strncpy(read_file->filename, pathname, name_lenght);
+
+	read_file->filename[name_lenght] = '\0';
+	read_file->namelenght = name_lenght;
+	read_file->size = 0;
+
+	if(writen(sockfd, read_file, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write openFile");
+		return -1;
+	}
 
 	//recivieng outcome of operation
-	int buflen;
-	if(readn(sockfd, &buflen, sizeof(int)) <= 0) { errno = -1; free(namebuf); perror("ERROR: readb"); return -1;}
-	char* rbuf = NULL;
-	if((rbuf = malloc((buflen)*sizeof(char))) == NULL) { errno = ENOMEM; free(namebuf); free(buf); perror("ERROR: malloc"); return -1;} 
-	if (readn(sockfd, rbuf, (buflen)*sizeof(char)) <= 0) { free(namebuf); free(buf); errno = -1; perror("ERROR: read"); return -1;} 
-	rbuf[buflen] = '\0';
+	op response;
 
-	printf("result: %s\n", rbuf);
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
 
+	//if 
 	if(strncmp(rbuf, "Operation completed successfully", buflen) == 0) {
 		//recivieng data
 		long fileL;
@@ -258,6 +274,7 @@ int readFile(const char* pathname, void** buf, size_t* size) {
 
 	if(namebuf) free(namebuf);
 	if(rbuf) free(rbuf);
+	*/
 	return 0;
 }
 
@@ -267,6 +284,8 @@ int readFile(const char* pathname, void** buf, size_t* size) {
  * leggere tutti i file memorizzati al suo interno. Ritorna un valore maggiore o uguale a 0 in caso di
  * successo (cioè ritorna il n. di file effettivamente letti), -1 in caso di fallimento, errno viene settato opportunamente.
  */
+
+
 int readNfiles(int N, const char* dirname) {
 	/*op readN_file = 3;
 	errno = 0;
@@ -431,47 +450,44 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
  * Richiesta di chiusura del file puntato da ‘pathname’. Eventuali operazioni sul file dopo la closeFile falliscono.
  * Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
  */
-int closeFile(const char* pathname) {
+int closeFile(const char* pathname) 
+{
 	fprintf(stderr, "dentro closeFile API\n");
 
-	op close_file = 1;
-	errno = 0;
-	//copying pathname
-	int nameL = strlen(pathname)+1;
-	char* namebuf = NULL;
-	if ((namebuf = malloc(nameL * sizeof(char))) == NULL) { free(namebuf);  errno = ENOMEM; perror("ERROR: malloc openFile"); return -1;}
-	strncpy(namebuf, pathname, nameL);
-	namebuf[nameL] = '\0';
-	
-	// send: operation type, name lenght, name
-	if(writen(sockfd, &close_file, sizeof(close_file)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write1");
-		return -1;
-	}  //sending operation type
-	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write2");
-		return -1;
-	} //sending name len
-	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {free(namebuf); errno = -1; perror("ERROR: write3");
-		return -1;
-	}  //sending name
-	
-	//recivieng outcome of operation
-	int buflen;
-	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); errno = -1; perror("ERROR: read1");
-		return -1;
-	}
-	char* buf = NULL;
-	if((buf = malloc((buflen)*sizeof(char))) == NULL) {free(namebuf); free(buf); errno = ENOMEM; perror("ERROR: malloc");
-		return -1;
-	} 
-	if (readn(sockfd, buf, (buflen)*sizeof(char)) <= 0) {free(namebuf); free(buf); errno = -1; perror("ERROR: read2");
-		return -1;
-	}
-	buf[buflen] = '\0';
+	msg* close_file = safe_malloc(sizeof(msg));
+	close_file->op_type = 0;
 
-	fprintf(stderr, "%s\n", buf);
-	if(namebuf) free(namebuf);
-	if(buf) free(buf);
-	return 0;
+	errno = 0;
+
+	//copying pathname
+	int name_lenght = strlen(pathname)+1;
+
+	strncpy(close_file->filename, pathname, name_lenght);
+
+	close_file->filename[name_lenght] = '\0';
+	close_file->namelenght = name_lenght;
+	close_file->size = 0;
+	
+	if(writen(sockfd, close_file, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write openFile");
+		return -1;
+	}
+
+	//recivieng outcome of operation
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
+
+	if(response == SRV_OK) return 0;
+
+	return -1;
 }
 
 /*

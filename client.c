@@ -202,7 +202,11 @@ int main(int argc, char *argv[]) {
 			case 'R': {
 				//readNfiles(0, NULL);
 				//FileSend("./storage/test.txt");
-				openFile("./storage/test.txt", 1);
+				int r = openFile("./storage/test.txt", 1);
+
+				if(r == 0 || r == 1) printf("open succes\n");
+				else printf("open fail\n");
+				
                 break;
             }
 			case 'd': {

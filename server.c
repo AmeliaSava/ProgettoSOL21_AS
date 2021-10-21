@@ -164,6 +164,7 @@ int open_file_svr(long connfd, char* name, int flag)
 {
 	fprintf(stderr, "dentro open\n");
 	FileNode* current = NULL;
+
 	if((current = Hash_Search(&cacheMemory, name)) != NULL)
 	{ // file already exists
 		if(current->status == 1)
@@ -266,7 +267,7 @@ int remove_file_svr(long connfd, char* name) {
 
 
 //WIP
-int cmd(long connfd/*, long pipe_fd*/, msg info) {
+int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
 	fprintf(stderr, "dentro cmd\n");
 
@@ -297,12 +298,10 @@ int cmd(long connfd/*, long pipe_fd*/, msg info) {
 			return close_file_svr(connfd, info.filename);
 			break;
 		}
-		case READ_FILE:	{
+		case READ_FILE:	
+		{
 			fprintf(stderr, "dentro cmd read\n");
-			if (readn(connfd, &info.namelenght, sizeof(int))<=0) return -1;
-    		if ((info.filename = calloc((info.namelenght), sizeof(char))) == NULL) { perror("ERROR:calloc"); free(info.filename); return -1;}
-			fprintf(stderr, "dopo calloc\n");
-			if (readn(connfd, info.filename, info.namelenght*sizeof(char))<=0){ free(info.filename); return -1;}
+			fprintf(stderr, "%s\n", info.filename);
 			fprintf(stderr, "prima ret\n");
 			char* temp = NULL;
 			int ret = read_file_svr(connfd, info, &temp, &info.size);
@@ -371,7 +370,7 @@ int getMSG(int connfd)
 
 	fprintf(stderr, "%s\n", file->filename);
 
-	return reportOps(connfd, SRV_FILE_CLOSED);
+	return cmd(connfd, *file);
 }
 
 /*
