@@ -13,6 +13,7 @@ void print_tab (Table* tab)
 	for(size_t i = 0; i < tab->maxSize; i++)
 	{
 		printf("Printing hash bucket[%zu]\n", i);
+		printf("\n");
 		print_list(tab->bucket[i].head);
 	}
 }
@@ -33,13 +34,24 @@ int main(){
 	printf("Printing:\n");
 	print_tab(&hashMap);
 	printf("\n");
-	
+
 	printf("Search:\n");
     FileNode* find = NULL;
-    find = Hash_Search(&hashMap, "vid");
+    find = Hash_SearchNode(&hashMap, "vid");
     printf("Trovato '%s': %d\n", find->nameFile, find->frequency);
 	printf("\n");
 
+	Hash_Inc(&hashMap, find);
+	print_tab(&hashMap);
+	printf("\n");
+
+	printf("Search:\n");
+    FileNode* found = NULL;
+    found = Hash_SearchNode(&hashMap, "vid");
+    printf("Trovato '%s': %d\n", found->nameFile, found->frequency);
+	printf("\n");
+
+	/*
 	printf("Remove LFU:\n");
 	Hash_LFUremove(&hashMap);
 	print_tab(&hashMap);
@@ -48,6 +60,7 @@ int main(){
 	printf("Remove file:\n");
 	Hash_Remove(&hashMap, "prjup");
 	print_tab(&hashMap);
+	*/
 	
  return 0;
 }

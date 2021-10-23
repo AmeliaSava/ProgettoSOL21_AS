@@ -342,56 +342,58 @@ int readNfiles(int N, const char* dirname) {
  * server perchè espulso dalla cache per far posto al file ‘pathname’ dovrà essere  scritto in ‘dirname’;
  * Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
  */
-int writeFile(const char* pathname, const char* dirname) {
+int writeFile(const char* pathname, const char* dirname) 
+{
 	fprintf(stderr, "dentro writeFile API\n");
-	op write_file = 4;
-	errno = 0;
-	//copying pathname
-	int nameL = strlen(pathname)+1;
-	char* namebuf = NULL;
-	if ((namebuf = malloc(nameL * sizeof(char))) == NULL) { free(namebuf);  errno = ENOMEM; perror("ERROR: malloc openFile"); return -1;}
-	strncpy(namebuf, pathname, nameL);
-	namebuf[nameL] = '\0';
-	//reading file
-	long fileL;
-	char* filebuf = NULL;
-	if((filebuf = readFileBytes(pathname, &fileL)) == NULL) { free(namebuf); free(filebuf);	errno = -1; perror("ERROR: readFileBytes");
-		return -1;
-	}
-	//sending
-	fprintf(stderr, "sending\n");
-	if(writen(sockfd, &write_file, sizeof(write_file)) <= 0) {free(namebuf); free(filebuf); errno = -1; perror("ERROR: write1");
-		return -1;
-	}  //sending operation type
-	if(writen(sockfd, &nameL, sizeof(int)) <= 0) {free(namebuf); free(filebuf);	errno = -1; perror("ERROR: write2");
-		return -1;
-	} //sending name len
-	if(writen(sockfd, namebuf, nameL*sizeof(char)) <= 0) {free(namebuf); free(filebuf);	errno = -1; perror("ERROR: write3");
-		return -1;
-	}  //sending name
-	if(writen(sockfd, &fileL, sizeof(long)) <= 0) {free(namebuf); free(filebuf); errno = -1; perror("ERROR: write4");
-		return -1;
-	}  //sending file len
-	if(writen(sockfd, filebuf, fileL*sizeof(char)) <= 0) {free(namebuf); free(filebuf);	errno = -1; perror("ERROR: write5");
-		return -1;
-	}  //sending byte file
 
-	int buflen;
-	if(readn(sockfd, &buflen, sizeof(int)) <= 0) {free(namebuf); free(filebuf);	errno = -1; perror("ERROR: read1");
-		return -1;
-	}
+	msg* write_file = safe_malloc(sizeof(msg));
+	write_file->op_type = 4;
+
+	errno = 0;
+
+	//copying pathname
+	int name_lenght = strlen(pathname)+1;
+	
+	strncpy(write_file->filename, pathname, name_lenght);
+
+	write_file->filename[name_lenght] = '\0';
+	write_file->namelenght = name_lenght;
+
+	//reading file
+	long file_lenght;
 	char* buf = NULL;
-	if((buf = malloc((buflen)*sizeof(char))) == NULL) {free(namebuf); free(filebuf); free(buf); errno = ENOMEM; perror("ERROR: malloc");
-		return -1;
-	} 
-	if (readn(sockfd, buf, (buflen)*sizeof(char)) <= 0) {free(namebuf); free(filebuf); free(buf); errno = -1; perror("ERROR: read2");
+	if((buf = readFileBytes(pathname, &file_lenght)) == NULL) 
+	{ 
+		errno = -1;
+		perror("ERROR: readFileBytes");
 		return -1;
 	}
-	buf[buflen] = '\0';
-	fprintf(stderr, "%s\n", buf);
-	if(filebuf) free(filebuf);
-	if(buf) free(buf);
-	return 0;
+
+	strncpy(write_file->filecontents, buf, file_lenght);
+	write_file->size = file_lenght;
+
+	//sending
+	if(writen(sockfd, write_file, sizeof(write_file)) <= 0) 
+	{
+		errno = -1;
+		perror("ERROR: write");
+		return -1;
+	}
+
+	//recieving outcome of operation
+
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
+
+	if(response == SRV_OK) return 0;
+
+	return -1;
 }
 
 /*
@@ -484,6 +486,8 @@ int closeFile(const char* pathname)
 		perror("ERROR: read2");
 		return -1;
 	}
+
+	print_op(response);
 
 	if(response == SRV_OK) return 0;
 

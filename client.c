@@ -203,16 +203,16 @@ int main(int argc, char *argv[]) {
 				//readNfiles(0, NULL);
 				//FileSend("./storage/test.txt");
 				//int r = openFile("./storage/test.txt", 1);
-				int r = closeFile("./storage/test.txt");
+				int r = openFile("./storage/test.txt", 1);
 				if(r == 0 || r == 1) printf("succes\n");
 				else printf("fail\n");
-				
                 break;
             }
 			case 'd': {
                 printf("option: %s\n", optarg);
-                char* file = "./storage/test.txt";
-                openFile(file, 1);
+				int r = writeFile("./storage/test.txt", NULL);
+				if(r == 0 || r == 1) printf("succes\n");
+				else printf("fail\n");
                 break;
             }
 			case 't': {

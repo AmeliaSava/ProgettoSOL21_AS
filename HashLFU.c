@@ -32,22 +32,32 @@ size_t Hash_Function(Table* t, char* key)
 }
 
 //ok
-void Hash_Insert(Table* t, int frq, char* fName, char* fText, int fStat, long fSize)
+void Hash_Insert(Table* t, FileNode* node)
 {
-	int index = Hash_Function(t, fName);
+	int index = Hash_Function(t, node->nameFile);
 	
-	node_push(&(t->bucket[index]), frq, fName, fText, fStat, fSize);
+	node_push(&(t->bucket[index]), node);
 	
 }
 
 //ok
-FileNode* Hash_Search(Table* tab, char* fName)
+FileNode* Hash_SearchNode(Table* tab, char* fName)
 {
 	int index = Hash_Function(tab, fName);
 
 	FileNode* found = node_search(tab->bucket[index].head, fName);
 
 	return found;
+}
+
+void Hash_Inc(Table* tab, FileNode* node)
+{
+	int index = Hash_Function(tab, node->nameFile);
+	
+	node_incrfreq(node);
+	node_movetofront(&(tab->bucket[index]), node->nameFile, strlen(node->nameFile));
+
+	return;
 }
 
 //ok
