@@ -175,7 +175,8 @@ int main(int argc, char *argv[]) {
             }
             case 'W': { 
             	optind--;
-            	for(; optind<argc && *argv[optind] != '-'; optind++) {
+            	for(; optind<argc && *argv[optind] != '-'; optind++)
+				{
             		//write_from_dir_find(".", argv[optind], 0);
             		openFile(argv[optind], 1);
                 	printf("filename: %s\n", argv[optind]); 
@@ -185,7 +186,8 @@ int main(int argc, char *argv[]) {
             case 'r': {
             	char* token;
             	token = strtok(optarg,",");
-            	while(token != NULL) {
+            	while(token != NULL)
+				{
             		openFile(token,1);
             		printf("filename: %s\n", token);
             		token = strtok(NULL, ",");
@@ -202,16 +204,28 @@ int main(int argc, char *argv[]) {
 			case 'R': {
 				//readNfiles(0, NULL);
 				//FileSend("./storage/test.txt");
-				//int r = openFile("./storage/test.txt", 1);
+
+				//printf("option: %s\n", optarg);
+
 				int r = openFile("./storage/test.txt", 1);
 				if(r == 0 || r == 1) printf("success\n");
 				else printf("fail\n");
 
-				printf("option: %s\n", optarg);
 				int r2 = writeFile("./storage/test.txt", NULL);
 				if(r2 == 0) printf("success\n");
 				else printf("fail\n");
-				
+
+				char* buf = safe_malloc(MAX_SIZE*sizeof(char));
+				strncpy(buf, " append", 9);
+				buf[9] = '\0';
+				int r3 = appendToFile("./storage/test.txt", buf, 9, NULL);
+				if(r3 == 0) printf("success\n");
+				else printf("fail\n");
+
+				int r4 = removeFile("./storage/test.txt");
+				if(r4 == 0) printf("success\n");
+				else printf("fail\n");
+
                 break;
             }
 			case 'd': {

@@ -88,7 +88,7 @@ void Hash_LFUremove (Table* tab)
 //ok
 void Hash_Remove(Table* tab, char* Vfile) 
 {
-
+	fprintf(stderr, "dentro hash remove\n");
 	int index = Hash_Function(tab, Vfile);
 
 	node_delete(&(tab->bucket[index]), Vfile, strlen(Vfile));

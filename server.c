@@ -45,7 +45,7 @@ void unlinksock() {
     unlink(SOCKET_NAME);
 }
 
-//WRITE NOT WORKING
+//returns a response according to the result of the operation
 int reportOps(long connfd, op op_type) {
 	fprintf(stderr, "dentro return\n");
 
@@ -58,6 +58,7 @@ int reportOps(long connfd, op op_type) {
 	return 0;
 }
 
+//Handling of API operations on server side
 
 int write_file_svr(long connfd, msg file, int flag){
 	fprintf(stderr, "dentro write\n");
@@ -70,8 +71,9 @@ int write_file_svr(long connfd, msg file, int flag){
 		if(current->FileSize > 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); //node exists but has content inside, can't over write
 		if(current->status == 1) return reportOps(connfd, SRV_FILE_CLOSED); //node exists but is closed
 		if(MAX_MEMORY_TOT < file.size) return reportOps(connfd, SRV_MEM_FULL); //the file is bigger than the whole available memory
-		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file.size)) { //not enough space for new node
-			long removed = 0;
+		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file.size)) //not enough space for new node
+		{ 
+			long removed = 0; //ATTENTION
 			Hash_LFUremove(&cacheMemory);
 			if(MAX_MEMORY_MB < file.size) MAX_MEMORY_MB += file.size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
@@ -115,7 +117,6 @@ int open_file_svr(long connfd, char* name, int flag)
 	return reportOps(connfd, SRV_OK);
 }
 
-
 int close_file_svr(long connfd, char* name)
 {
 	fprintf(stderr, "dentro close\n");
@@ -134,77 +135,87 @@ int close_file_svr(long connfd, char* name)
 	return reportOps(connfd, SRV_OK);
 }
 
-
-int read_file_svr(long connfd, msg info, char** tmp, size_t* size) {
+int read_file_svr(long connfd, msg info, char** tmp, size_t* size) 
+{
 	fprintf(stderr, "%s\n", info.filename);
+
 	FileNode* current = NULL;
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) { // file found
+
+	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) 
+	{	// file found
 		fprintf(stderr, "%s\n", current->nameFile);
+
 		if(current->status == 1) return 13; // file is closed, cannot read
-		else { // file already exists and its open
+
+		else 
+		{	// file already exists and its open
 			Hash_Inc(&cacheMemory, current);
+
 			*size = current->FileSize;
-			if ((*tmp = malloc((*size)*sizeof(char))) == NULL) return 8;
-			fprintf(stderr, "Testo nel nodo: %s\n", current->textFile);
+
+			if ((*tmp = malloc((*size)*sizeof(char))) == NULL) return 8; //error
 			strncpy(*tmp, current->textFile, *size);
-			fprintf(stderr, "Copyed node: %s\n", *tmp);
-			return 0;
+			
+			return 0; //ok
 		} 
 	}
 	return 9; //file not found
 }
 
-/*
 int read_n_file_svr(long connfd, msg info, int n) {
 	return 0;
 }
 
-int append_file_svr(long connfd, int len, char* name, char* file) {
+int append_file_svr(long connfd, msg info) 
+{
 	fprintf(stderr, "dentro append\n");
-	NodeFile* current = NULL;
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
+	FileNode* current = NULL;
+	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) { // file already exists
 		if(current->status == 1) return reportOps(connfd, SRV_FILE_CLOSED); // file is closed
 		else {
-			if(MAX_MEMORY_MB < len) {
+			if(MAX_MEMORY_MB < info.size) 
+			{
 				fprintf(stderr, "append LFU\n");
-				long removed;
-				LFU_Remove(&cacheMemory, &removed);
-				MAX_MEMORY_MB += len;
+				long removed = 0; //ATTENTION
+				Hash_LFUremove(&cacheMemory);
+				MAX_MEMORY_MB += info.size;
 				if(DEBUG) fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
-				return append_file_svr(connfd, len, name, file);
-			} else {
+				return append_file_svr(connfd, info);
+			} else 
+			{
 				fprintf(stderr, "append ok\n");
-				MAX_MEMORY_MB -= len;
-				if(DEBUG) fprintf(stdout, "Bytes added: %d\nMemory left:%ld\nInserting file...\n", len, MAX_MEMORY_MB);
-				AppendNode(current, current->frequency + 1, file, len); //file is open, enough memory, make append
+				MAX_MEMORY_MB -= info.size;
+				if(DEBUG) fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", info.size, MAX_MEMORY_MB);
+				node_append(current, current->frequency + 1, info.filecontents, (current->FileSize + info.size)); //file is open, enough memory, make append
+				Hash_Inc(&cacheMemory, current);
 			}	
 		}
 	} else return reportOps(connfd, SRV_FILE_NOT_FOUND);
 	return reportOps(connfd, SRV_OK);
 }
 
-int remove_file_svr(long connfd, char* name) {
+int remove_file_svr(long connfd, msg info) {
 	fprintf(stderr, "dentro remove\n");
-	NodeFile* current = NULL;
-	if(strcmp(name, "median") == 0) return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // cannot modify root
-	if((current = searchNode(&cacheMemory, name)) != NULL) { // file already exists
+	FileNode* current = NULL;
+	
+	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) 
+	{ // file already exists
 		if(current->status == 1) return reportOps(connfd, SRV_FILE_CLOSED); // file is closed
-		else { //removing the node
+		else
+		{ //removing the node
 			MAX_MEMORY_MB += current->FileSize;
 			MAX_NUM_FILES++;
 			if(DEBUG) fprintf(stdout, "Bytes freed: %ld\nMemory left:%ld\n", current->FileSize, MAX_MEMORY_MB);
-			RemoveFile(current, &cacheMemory, name);
+			Hash_Remove(&cacheMemory, info.filename);
 		} 
 	} else return reportOps(connfd, SRV_FILE_NOT_FOUND);
 	return reportOps(connfd, SRV_OK);
 }
-*/
-
 
 //WIP
 int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
-	fprintf(stderr, "dentro cmd\n");
+	fprintf(stderr, "dentro cmd: %d\n", info.op_type);
 
 	int flag;
 

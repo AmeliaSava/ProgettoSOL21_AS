@@ -169,13 +169,15 @@ static inline void node_incrfreq (FileNode* file)
 //ATTENTION element not in list fail? return int to check errors?
 static inline void node_delete(FileList* list, char* fileName, size_t len) 
 {
-	if(list->head == NULL) return;
+	fprintf(stderr, "dentro list remove\n");
 
+	if(list->head == NULL) return;
+	fprintf(stderr, "%s\n", list->head->nameFile);
 	FileNode* current = list->head;
 	FileNode* next;
 
 	if(current->next == NULL) 
-	{
+	{fprintf(stderr, "dentro head remove\n");
 		if(strncmp(current->nameFile, fileName, len) == 0)
 		{
 			free(current);
@@ -218,7 +220,6 @@ static inline void node_movetofront(FileList* list, char* fileName, size_t len)
 	FileNode* next;
 	
 	if(strncmp(current->nameFile, fileName, len) == 0) return; //element is already at the top
-	if(current->next == NULL) return; //one element list (should not happen??)
 	
 	while (current->next->next != NULL)
 	{
