@@ -21,7 +21,7 @@ void Hash_Init(Table* tab, int size);
 
 size_t Hash_Function(Table* t, char* key);
 
-void Hash_Insert(Table* t, FileNode* node);
+void Hash_Insert(Table* t, int frq, char* fName, int fStat);
 
 FileNode* Hash_SearchNode(Table* tab, char* fName);
 

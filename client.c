@@ -204,19 +204,29 @@ int main(int argc, char *argv[]) {
 				//FileSend("./storage/test.txt");
 				//int r = openFile("./storage/test.txt", 1);
 				int r = openFile("./storage/test.txt", 1);
-				if(r == 0 || r == 1) printf("succes\n");
+				if(r == 0 || r == 1) printf("success\n");
 				else printf("fail\n");
+
+				printf("option: %s\n", optarg);
+				int r2 = writeFile("./storage/test.txt", NULL);
+				if(r2 == 0) printf("success\n");
+				else printf("fail\n");
+				
                 break;
             }
 			case 'd': {
-                printf("option: %s\n", optarg);
-				int r = writeFile("./storage/test.txt", NULL);
-				if(r == 0 || r == 1) printf("succes\n");
+                
+				void* buf = safe_malloc(MAX_SIZE*sizeof(char));
+				size_t size;
+				int r = readFile("./storage/test.txt", &buf, &size);
+				if(r == 0) printf("%p\n%zu\n", buf, size);
 				else printf("fail\n");
+
                 break;
             }
 			case 't': {
-                printf("option: %s\n", optarg); 
+                printf("option: %s\n", optarg);
+				
                 break;
             }
 			case 'c': {

@@ -215,7 +215,6 @@ int openFile(const char* pathname, int flags)
 
 int readFile(const char* pathname, void** buf, size_t* size)
 {
-	/*
 	fprintf(stderr, "dentro readFile API\n");
 
 	msg* read_file = safe_malloc(sizeof(msg));
@@ -250,31 +249,24 @@ int readFile(const char* pathname, void** buf, size_t* size)
 	}
 
 	//if 
-	if(strncmp(rbuf, "Operation completed successfully", buflen) == 0) {
-		//recivieng data
-		long fileL;
-
-		if(readn(sockfd, &fileL, sizeof(long)) <= 0) { errno = -1; perror("ERROR: read1"); free(rbuf); free(namebuf);
+	if(response == SRV_OK) 
+	{
+		if(readn(sockfd, size, sizeof(size_t)) <= 0) 
+		{ 
+			errno = -1; 
+			perror("ERROR: read1");
 			return -1;
 		}  //reciveing file len
-		*size = fileL;
-		char* filebuf = NULL;
-		if((filebuf = malloc(fileL*sizeof(char))) == NULL) { errno = ENOMEM; free(namebuf); free(rbuf); perror("ERROR: malloc");
-			return -1;
-		}
-		if(readn(sockfd, filebuf, fileL*sizeof(char)) <= 0) { errno = -1; free(namebuf); free(filebuf);	perror("ERROR: read2");
+
+		if(readn(sockfd, &buf, (*size)*sizeof(char)) <= 0) 
+		{ 
+			errno = -1;
+			perror("ERROR: read2");
 			return -1;
 		}  //reciveing byte file
 
-		//putting the file in the buf
-		*buf = filebuf;
-		*size = fileL;
-		if(filebuf) free(filebuf);
 	} else return -1;
 
-	if(namebuf) free(namebuf);
-	if(rbuf) free(rbuf);
-	*/
 	return 0;
 }
 
@@ -373,13 +365,14 @@ int writeFile(const char* pathname, const char* dirname)
 	write_file->size = file_lenght;
 
 	//sending
-	if(writen(sockfd, write_file, sizeof(write_file)) <= 0) 
+	if(writen(sockfd, write_file, sizeof(msg)) <= 0) 
 	{
 		errno = -1;
 		perror("ERROR: write");
 		return -1;
 	}
 
+	fprintf(stderr,"dopo write\n");
 	//recieving outcome of operation
 
 	op response;
@@ -390,6 +383,8 @@ int writeFile(const char* pathname, const char* dirname)
 		perror("ERROR: read2");
 		return -1;
 	}
+
+	print_op(response);
 
 	if(response == SRV_OK) return 0;
 

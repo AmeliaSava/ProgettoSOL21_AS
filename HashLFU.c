@@ -32,11 +32,11 @@ size_t Hash_Function(Table* t, char* key)
 }
 
 //ok
-void Hash_Insert(Table* t, FileNode* node)
+void Hash_Insert(Table* t, int frq, char* fName, int fStat)
 {
-	int index = Hash_Function(t, node->nameFile);
+	int index = Hash_Function(t, fName);
 	
-	node_push(&(t->bucket[index]), node);
+	node_push(&(t->bucket[index]), frq, fName, fStat);
 	
 }
 

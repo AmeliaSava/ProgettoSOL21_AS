@@ -24,7 +24,8 @@ typedef struct FILE_LIST
 
 //AGGIORNARE I PUNTATORI TESTACODA
 
-static inline void print_list (FileNode* n){
+static inline void print_list (FileNode* n) 
+{
 
 	if(n==NULL) {
 		fprintf(stdout, "NULL\n");
@@ -99,11 +100,20 @@ static inline void list_destroy(FileList* list)
 //NODE functions
 //ok
 //ATTENTION! Text is useless here...
-static inline void node_push(FileList* list, FileNode* node)
+static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 {
-	if(list->size == 0) list->head = node;
-	else list->last->next = node;
-	list->last = node;
+	FileNode* newNode = safe_malloc(sizeof(FileNode));
+
+	newNode->frequency = frq;
+	newNode->status = fStat;
+	newNode->nameFile = safe_malloc(strlen(fName)*sizeof(char));
+	strncpy(newNode->nameFile, fName, strlen(fName));
+	newNode->nameFile[strlen(fName)] = '\0';
+	newNode->FileSize = 0;
+
+	if(list->size == 0) list->head = newNode;
+	else list->last->next = newNode;
+	list->last = newNode;
 	list->size++;
 }
 

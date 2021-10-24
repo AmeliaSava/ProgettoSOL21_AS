@@ -91,12 +91,12 @@ int write_file_svr(long connfd, msg file, int flag){
 	return reportOps(connfd, SRV_OK);
 }
 
-int open_file_svr(long connfd, msg info, int flag)
+int open_file_svr(long connfd, char* name, int flag)
 {
 	fprintf(stderr, "dentro open\n");
 	FileNode* current = NULL;
 
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL)
+	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL)
 	{ // file already exists
 		if(current->status == 1)
 		{ // if the file is closed, open file
@@ -109,7 +109,7 @@ int open_file_svr(long connfd, msg info, int flag)
 	} else if(!flag) return reportOps(connfd, SRV_NOK); //tried to create a file with no O_CREATE flag set
 			else
 			{ //ready for write
-				Hash_Insert(&cacheMemory, &info); //FIX!!! I already have the file, redundant insert
+				Hash_Insert(&cacheMemory, 0, name, 0);
 				return reportOps(connfd, SRV_READY_FOR_WRITE); 
 			} 
 	return reportOps(connfd, SRV_OK);
@@ -134,18 +134,17 @@ int close_file_svr(long connfd, char* name)
 	return reportOps(connfd, SRV_OK);
 }
 
-/*
-int read_file_svr(long connfd, msg info, char** tmp, long* size) {
+
+int read_file_svr(long connfd, msg info, char** tmp, size_t* size) {
 	fprintf(stderr, "%s\n", info.filename);
-	NodeFile* current = NULL;
-	if(strcmp(info.filename, "median") == 0) return 10; // cannot modify root
-	if((current = searchNode(&cacheMemory, info.filename)) != NULL) { // file found
+	FileNode* current = NULL;
+	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) { // file found
 		fprintf(stderr, "%s\n", current->nameFile);
 		if(current->status == 1) return 13; // file is closed, cannot read
 		else { // file already exists and its open
-			increaseF (current);
+			Hash_Inc(&cacheMemory, current);
 			*size = current->FileSize;
-			if ((*tmp = malloc(*size*sizeof(char))) == NULL) return 8;
+			if ((*tmp = malloc((*size)*sizeof(char))) == NULL) return 8;
 			fprintf(stderr, "Testo nel nodo: %s\n", current->textFile);
 			strncpy(*tmp, current->textFile, *size);
 			fprintf(stderr, "Copyed node: %s\n", *tmp);
@@ -155,6 +154,7 @@ int read_file_svr(long connfd, msg info, char** tmp, long* size) {
 	return 9; //file not found
 }
 
+/*
 int read_n_file_svr(long connfd, msg info, int n) {
 	return 0;
 }
@@ -219,7 +219,7 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 			fprintf(stderr, "Flag: %d\n", flag);
     		fprintf(stderr, "%s\n", info.filename);
 
-			return open_file_svr(connfd, info, flag);
+			return open_file_svr(connfd, info.filename, flag);
 
 			break;
 		}
@@ -232,27 +232,41 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 			break;
 		}
 
-	/*
 		case READ_FILE:	
 		{
 			fprintf(stderr, "dentro cmd read\n");
 			fprintf(stderr, "%s\n", info.filename);
 			fprintf(stderr, "prima ret\n");
-			char* temp = NULL;
-			int ret = read_file_svr(connfd, info, &temp, &info.size);
+
+			char* tmp_buf = NULL;
+			size_t tmp_size;
+			int ret = read_file_svr(connfd, info, &tmp_buf, &tmp_size);
+
 			fprintf(stderr, "dopo read");
-			fprintf(stderr, "%s\n", temp);
+			fprintf(stderr, "%s\n", tmp_buf);
 			fprintf(stderr, "%ld\n", info.size);
 			fprintf(stderr, "Result Return: %d\n", ret);
+
 			if(ret == 0) {
 				fprintf(stderr, "dentro ok read");
 			    if(reportOps(connfd, SRV_OK) == -1) return -1;
-			    if(writen(connfd, &info.size, sizeof(long)) <= 0) { perror("ERROR: write read file len"); return -1; }
-				if(writen(connfd, temp, info.size*sizeof(char)) <= 0) { perror("ERROR: write read file"); return -1; }
+
+			    if(writen(connfd, &tmp_size, sizeof(long)) <= 0) 
+				{
+					perror("ERROR: write read file len");
+					return -1;
+				}
+
+				if(writen(connfd, tmp_buf, tmp_size*sizeof(char)) <= 0)
+				{
+					perror("ERROR: write read file");
+					return -1;
+				}
 			} else return reportOps(connfd, ret);
 			break;
 		}
 		
+		/*
 		case READ_FILE_N: {
 			int n;
 			if (readn(connfd, &n, sizeof(int))<=0) return -1;
@@ -263,19 +277,23 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 		*/
 
 		case WRITE_FILE:
+		{
 			flag = 1; //in write the flag will be always set to create
 			return write_file_svr(connfd, info, flag);
 			break;
-		/*
+		}
 		case APPEND_FILE:
-		fprintf(stderr, "append cmd\n");
+		{
+			fprintf(stderr, "append cmd\n");
 			return append_file_svr(connfd, info);
 			break;
+		}
 		case REMOVE_FILE:
-    		fprintf(stderr, "%s\n", info.filename);
+    	{
+			fprintf(stderr, "%s\n", info.filename);
 			return remove_file_svr(connfd, info);
 			break;
-			*/
+		}
 		default: 
 		{
 			fprintf(stderr, "Command not found\n");
