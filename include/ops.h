@@ -70,6 +70,8 @@ typedef enum {
   WRITE_FILE = 4,
   APPEND_FILE = 5,
   REMOVE_FILE = 6,
+  LOCK_FILE = 14,
+  UNLOCK_FILE = 15, //ATTENTION fix numbers
   //server reply
   SRV_OK = 7,
   SRV_NOK = 8,

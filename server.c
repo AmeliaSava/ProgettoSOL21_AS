@@ -212,6 +212,10 @@ int remove_file_svr(long connfd, msg info) {
 	return reportOps(connfd, SRV_OK);
 }
 
+int lock_file_srv(){}
+
+int unlock_file_srv(){}
+
 //WIP
 int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
@@ -276,16 +280,15 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 			} else return reportOps(connfd, ret);
 			break;
 		}
-		
-		/*
-		case READ_FILE_N: {
+
+		case READ_FILE_N: 
+		{
 			int n;
 			if (readn(connfd, &n, sizeof(int))<=0) return -1;
 			if(n==0) return read_cache(connfd);
 			int ret = read_n_file_svr(connfd, info, n);
 			break;
 		}
-		*/
 
 		case WRITE_FILE:
 		{
@@ -303,6 +306,16 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
     	{
 			fprintf(stderr, "%s\n", info.filename);
 			return remove_file_svr(connfd, info);
+			break;
+		}
+
+		case LOCK_FILE:
+		{
+			break;
+		}
+
+		case UNLOCK_FILE:
+		{
 			break;
 		}
 		default: 

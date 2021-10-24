@@ -249,7 +249,7 @@ int readFile(const char* pathname, void** buf, size_t* size)
 	}
 
 	print_op(response);
-	
+
 	//if 
 	if(response == SRV_OK) 
 	{
@@ -280,53 +280,64 @@ int readFile(const char* pathname, void** buf, size_t* size)
  */
 
 
-int readNfiles(int N, const char* dirname) {
-	/*op readN_file = 3;
+int readNfiles(int N, const char* dirname) 
+{
+
+	msg readN_file = safe_malloc(sizeof(msg));
+	readN_file->op_type = 3;
+	readN_file->namelenght = N; //using namelenght field to store N
 	errno = 0;
+
 	fprintf(stderr, "dentro readNFile API\n");
 
-	//sending operation type
-	if(writen(sockfd, &readN_file, sizeof(readN_file)) <= 0) {errno = -1; perror("ERROR: write1"); free(namebuf); return -1;}
-	//sending name len
-	if(writen(sockfd, &N, sizeof(int)) <= 0) {errno = -1; perror("ERROR: write2"); free(namebuf); return -1;} 
+	if(writen(sockfd, readN_file, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write1");
+		return -1;
+	}
 	
-	//recivieng outcome of operation
-	int result;
-	if(readn(sockfd, &result, sizeof(int)) <= 0) { errno = -1; free(namebuf); perror("ERROR: readb"); return -1;}
-	
-	printf("result: %d\n", result);
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
+
+	print_op(response);
 
 	if(result > 0) {
 		for(int i = 0; i < result; i++){
 			//recivieng data
-			long fileL;
-			if(readn(sockfd, &fileL, sizeof(long)) <= 0) { errno = -1; perror("ERROR: read1"); free(rbuf); free(namebuf);
+			
+			if(readn(sockfd, &fileL, sizeof(long)) <= 0) 
+			{
+				errno = -1;
+				perror("ERROR: read1");
 				return -1;
-			}  //reciveing file len
-			if(readn(sockfd, filebuf, fileL*sizeof(char)) <= 0) { errno = -1; free(namebuf); free(filebuf);	perror("ERROR: read2");
-				return -1;
-			}  //reciveing byte file
-			if(readn(sockfd, &nameL, sizeof(int)) <= 0) {errno = -1; perror("ERROR: read3"); free(namebuf); return -1;} 
-			//sending name
-			if(readn(sockfd, namebuf, nameL*sizeof(char)) <= 0) {errno = -1; perror("ERROR: read4"); free(namebuf); return -1;}
+			} 
 
 		//questa parte funziona
 		char* p;
 		p = strrchr(namebuf, '/');
 		++p;
 		printf("name: %s\n", p);
-		if((WriteFilefromByte(p, filebuf, fileL)) == -1) { errno = -1; free(namebuf); free(filebuf); perror("ERROR: writefb");
+		if((WriteFilefromByte(p, filebuf, fileL)) == -1) 
+		{
+			errno = -1;
+			perror("ERROR: writefb");
 			return -1;
 		}
 		//fine parte che funziona
 
 			printf("File Name: %s\nFile Text:%s\n", namebuf, filebuf);
-			if(filebuf) free(filebuf);
-			if(namebuf) free(namebuf);		
+		
 		}
 		
 	
-	} else return -1; */
+	} else return -1;
 	return 0;
 }
 
@@ -441,6 +452,106 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 
 	return -1;
 }
+
+/*
+*In caso di successo setta il flag O_LOCK al file. Se il file era stato aperto/creato con il flag O_LOCK e la
+*richiesta proviene dallo stesso processo, oppure se il file non ha il flag O_LOCK settato, l’operazione termina
+*immediatamente con successo, altrimenti l’operazione non viene completata fino a quando il flag O_LOCK non
+*viene resettato dal detentore della lock. L’ordine di acquisizione della lock sul file non è specificato. Ritorna 0 in
+*caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
+*/
+int lockFile(const char* pathname)
+{
+	fprintf(stderr, "dentro lockFile API\n");
+
+	msg* lock_file = safe_malloc(sizeof(msg));
+	lock_file->op_type = 14;
+	
+	errno = 0;
+	
+	//copying pathname
+	int name_lenght = strlen(pathname)+1;
+
+	strncpy(lock_file->filename, pathname, name_lenght);
+
+	lock_file->filename[name_lenght] = '\0';
+	lock_file->namelenght = name_lenght;
+	lock_file->size = 0;
+	
+	if(writen(sockfd, lock_file, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write openFile");
+		return -1;
+	}
+
+	//recivieng outcome of operation
+	
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
+
+	//fprintf(stderr, "%d\n", response);
+
+	if(response == SRV_OK) return 0;
+
+	return -1;
+}
+
+/*
+* Resetta il flag O_LOCK sul file ‘pathname’. L’operazione ha successo solo se l’owner della lock è il processo che
+* ha richiesto l’operazione, altrimenti l’operazione termina con errore. Ritorna 0 in caso di successo, -1 in caso di
+* fallimento, errno viene settato opportunamente.
+*/
+
+int unlockFile(const char* pathname) 
+{
+	fprintf(stderr, "dentro lockFile API\n");
+
+	msg* unlock_file = safe_malloc(sizeof(msg));
+	unlock_file->op_type = 15;
+	
+	errno = 0;
+	
+	//copying pathname
+	int name_lenght = strlen(pathname)+1;
+
+	strncpy(unlock_file->filename, pathname, name_lenght);
+
+	unlock_file->filename[name_lenght] = '\0';
+	unlock_file->namelenght = name_lenght;
+	unlock_file->size = 0;
+	
+	if(writen(sockfd, unlock_file, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write openFile");
+		return -1;
+	}
+
+	//recivieng outcome of operation
+	
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
+
+	//fprintf(stderr, "%d\n", response);
+
+	if(response == SRV_OK) return 0;
+
+	return -1;
+}
+
 
 /*
  * Richiesta di chiusura del file puntato da ‘pathname’. Eventuali operazioni sul file dopo la closeFile falliscono.
