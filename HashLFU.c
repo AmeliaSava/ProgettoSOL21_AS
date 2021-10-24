@@ -90,7 +90,7 @@ void Hash_Remove(Table* tab, char* Vfile)
 {
 	fprintf(stderr, "dentro hash remove\n");
 	int index = Hash_Function(tab, Vfile);
-
+	print_list((tab->bucket[index].head));
 	node_delete(&(tab->bucket[index]), Vfile, strlen(Vfile));
 
 	return;

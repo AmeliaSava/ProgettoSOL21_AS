@@ -248,6 +248,8 @@ int readFile(const char* pathname, void** buf, size_t* size)
 		return -1;
 	}
 
+	print_op(response);
+	
 	//if 
 	if(response == SRV_OK) 
 	{
