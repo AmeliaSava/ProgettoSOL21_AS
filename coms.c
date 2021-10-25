@@ -287,7 +287,6 @@ int readFile(const char* pathname, void** buf, size_t* size)
 
 int readNfiles(int N, const char* dirname) 
 {
-	/*
 	msg* readN_file = safe_malloc(sizeof(msg));
 	readN_file->op_type = 3;
 	readN_file->namelenght = N; //using namelenght field to store N
@@ -302,48 +301,48 @@ int readNfiles(int N, const char* dirname)
 		return -1;
 	}
 	
-	op response;
+	int result;
 
-	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	if (readn(sockfd, &result, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
 		perror("ERROR: read2");
 		return -1;
 	}
 
-	print_op(response);
+	fprintf(stderr, "%d", result);
 
 	if(result > 0) {
-		for(int i = 0; i < result; i++){
+		for(int i = 0; i < result; i++)
+		{
 			//recivieng data
-			
-			if(readn(sockfd, &fileL, sizeof(long)) <= 0) 
+			msg* file = safe_malloc(sizeof(msg));
+
+			if(readn(sockfd, file, sizeof(msg)) <= 0) 
 			{
 				errno = -1;
 				perror("ERROR: read1");
 				return -1;
 			} 
 
-		//questa parte funziona
-		char* p;
-		p = strrchr(namebuf, '/');
-		++p;
-		printf("name: %s\n", p);
-		if((WriteFilefromByte(p, filebuf, fileL)) == -1) 
-		{
-			errno = -1;
-			perror("ERROR: writefb");
-			return -1;
-		}
-		//fine parte che funziona
-
-			printf("File Name: %s\nFile Text:%s\n", namebuf, filebuf);
+			//questa parte funziona
+			char* p;
+			p = strrchr(file->filename, '/');
+			++p;
+			printf("name: %s\n", p);
+			if((WriteFilefromByte(p, file->filecontents, file->size)) == -1) 
+			{
+				errno = -1;
+				perror("ERROR: writefb");
+				return -1;
+			}
+			//fine parte che funziona
 		
 		}
 		
 	
 	} else return -1;
-	*/
+	
 	return 0;
 }
 

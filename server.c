@@ -179,7 +179,12 @@ int read_file_svr(long connfd, msg info, char** tmp, size_t* size)
 	return 9; //file not found
 }
 
-int read_n_file_svr(long connfd, msg info, int n) {
+int read_n_file_svr(long connfd, msg info) {
+
+	for(int i = 0; i < info.namelenght; i++)
+	{
+		//prendere valori a caso dalla hash
+	}
 	return 0;
 }
 
@@ -339,13 +344,9 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
 		case READ_FILE_N: 
 		{
-			/*
-			int n;
-			if (readn(connfd, &n, sizeof(int))<=0) return -1;
-			if(n==0) return read_cache(connfd);
-			int ret = read_n_file_svr(connfd, info, n);
+			if(info.namelenght == 0) return 0; //read_cache(connfd);
+			int ret = read_n_file_svr(connfd, info);
 			break;
-			*/
 		}
 
 		case WRITE_FILE:
@@ -576,6 +577,10 @@ int main (int argc, char* argv[]) {
     FD_ZERO(&set);
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
+
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1;
 
 	for(;;) 
 	{      
