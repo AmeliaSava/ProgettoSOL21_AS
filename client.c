@@ -211,26 +211,28 @@ int main(int argc, char *argv[]) {
 				if(r == 0 || r == 1) printf("success\n");
 				else printf("fail\n");
 
-				int r2 = writeFile("./storage/test.txt", NULL);
-				if(r2 == 0) printf("success\n");
-				else printf("fail\n");
+				writeFile("./storage/test.txt", NULL);
+				closeFile("./storage/test.txt");
 
 				int r3 = lockFile("./storage/test.txt");
 				if(r3 == 0) printf("success\n");
 				else printf("fail\n");
 
-				int r4 = removeFile("./storage/test.txt");
-				if(r4 == 0) printf("success\n");
-				else printf("fail\n");
+				unlockFile("./storage/test.txt");
 
                 break;
             }
 			case 'd': {
-                
+                /*
 				void* buf = safe_malloc(MAX_SIZE*sizeof(char));
 				size_t size;
 				int r = readFile("./storage/test.txt", &buf, &size);
 				if(r == 0) printf("%p\n%zu\n", buf, size);
+				else printf("fail\n");
+				*/
+
+				int r = openFile("./storage/test.txt", 0);
+				if(r == 0 || r == 1) printf("success\n");
 				else printf("fail\n");
 
                 break;

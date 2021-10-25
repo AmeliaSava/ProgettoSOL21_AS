@@ -147,7 +147,7 @@ int FileSend(const char* pathname)
 
 /*
  * Richiede di apertura o di creazione di un file. 
- * I flag possono essere 0 = NONE, 1 = O_CREATE, 2 = O_LOCK
+ * I flag possono essere 0 = NONE, 1 = O_CREATE, 2 = O_LOCK, 3 = O_CREATE && O_LOCK
  */
 int openFile(const char* pathname, int flags)
 {
@@ -167,10 +167,11 @@ int openFile(const char* pathname, int flags)
 	open_file->namelenght = name_lenght;
 	open_file->size = 0;
 
-	if(flag == 2) 
-	{
-		open_file->pid = gettid();
-	}
+	//passing the process' pid
+	open_file->pid = getpid();
+	fprintf(stderr, "%d\n", open_file->pid);
+	fprintf(stderr, "%d\n", getppid());
+	
 	
 	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
 	{
@@ -198,13 +199,9 @@ int openFile(const char* pathname, int flags)
 		return -1;
 	}
 
-	if(response == SRV_READY_FOR_WRITE)
-	{
-		fprintf(stderr, "Ready for write...\n");
-		return 1;
-	}
+		print_op(response);
 
-	//fprintf(stderr, "%d\n", response);
+	if(response == SRV_READY_FOR_WRITE)	return 1;
 
 	if(response == SRV_OK) return 0;
 
@@ -235,6 +232,9 @@ int readFile(const char* pathname, void** buf, size_t* size)
 	read_file->filename[name_lenght] = '\0';
 	read_file->namelenght = name_lenght;
 	read_file->size = 0;
+
+	//passing the process' pid
+	read_file->pid = getpid();
 
 	if(writen(sockfd, read_file, sizeof(msg)) <= 0)
 	{
@@ -287,8 +287,8 @@ int readFile(const char* pathname, void** buf, size_t* size)
 
 int readNfiles(int N, const char* dirname) 
 {
-
-	msg readN_file = safe_malloc(sizeof(msg));
+	/*
+	msg* readN_file = safe_malloc(sizeof(msg));
 	readN_file->op_type = 3;
 	readN_file->namelenght = N; //using namelenght field to store N
 	errno = 0;
@@ -343,6 +343,7 @@ int readNfiles(int N, const char* dirname)
 		
 	
 	} else return -1;
+	*/
 	return 0;
 }
 
@@ -382,6 +383,11 @@ int writeFile(const char* pathname, const char* dirname)
 	strncpy(write_file->filecontents, buf, file_lenght);
 	write_file->size = file_lenght;
 
+	//passing the pid of the calling process
+	write_file->pid = getpid();
+	fprintf(stderr, "%d\n", write_file->pid);
+	fprintf(stderr, "%d\n", getppid());
+
 	//sending
 	if(writen(sockfd, write_file, sizeof(msg)) <= 0) 
 	{
@@ -390,7 +396,6 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
-	fprintf(stderr,"dopo write\n");
 	//recieving outcome of operation
 
 	op response;
@@ -434,6 +439,9 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	//copying append in msg contents and size
 	append_file->size = size;
 	strncpy(append_file->filecontents, buf, size);;
+
+	//passing the process' pid
+	append_file->pid = getpid();
 
 	if(writen(sockfd, append_file, sizeof(msg)) <= 0) 
 	{
@@ -482,6 +490,9 @@ int lockFile(const char* pathname)
 	lock_file->filename[name_lenght] = '\0';
 	lock_file->namelenght = name_lenght;
 	lock_file->size = 0;
+
+	//passing the process' pid
+	lock_file->pid = getpid();
 	
 	if(writen(sockfd, lock_file, sizeof(msg)) <= 0)
 	{
@@ -516,7 +527,7 @@ int lockFile(const char* pathname)
 
 int unlockFile(const char* pathname) 
 {
-	fprintf(stderr, "dentro lockFile API\n");
+	fprintf(stderr, "dentro unlockFile API\n");
 
 	msg* unlock_file = safe_malloc(sizeof(msg));
 	unlock_file->op_type = 15;
@@ -532,6 +543,8 @@ int unlockFile(const char* pathname)
 	unlock_file->namelenght = name_lenght;
 	unlock_file->size = 0;
 	
+	unlock_file->pid = getpid();
+
 	if(writen(sockfd, unlock_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;

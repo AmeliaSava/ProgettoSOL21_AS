@@ -11,7 +11,7 @@ typedef struct FILE_NODE
 	int status;
 	long FileSize;
 	int lock;
-	int lock_pid;
+	pid_t lock_pid;
 	struct FILE_NODE *next;
 
 } FileNode;
@@ -168,10 +168,11 @@ static inline void node_incrfreq (FileNode* file)
 	return;
 }
 
-static inline void node_lock (FileNode* file, int pid)
+static inline void node_lock (FileNode* file, pid_t pid)
 {
+	fprintf(stderr, "Node is locked\n");
 	file->lock = 1;
-	file->pid = pid;
+	file->lock_pid = pid;
 	return;
 }
 
