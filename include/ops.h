@@ -80,6 +80,7 @@ typedef enum {
   SRV_MEM_FULL = 11,
   SRV_READY_FOR_WRITE = 12,
   SRV_FILE_CLOSED = 13,
+  SRV_FILE_LOCKED = 16,
   //client messages
   END_COMMUNICATION = 20
 
@@ -204,6 +205,11 @@ static inline void print_op(op op_type)
 			printf("File is closed\n");
       break;
 		}
+
+    case SRV_FILE_LOCKED:
+    {
+      printf("File is locked");
+    }
 		
 		default: {
 			fprintf(stderr, "command not found\n");

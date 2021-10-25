@@ -147,7 +147,7 @@ int FileSend(const char* pathname)
 
 /*
  * Richiede di apertura o di creazione di un file. 
- * No O_LOCK implementation, flag can be 0 = NONE, 1 = O_CREATE, 2 = O_LOCK
+ * I flag possono essere 0 = NONE, 1 = O_CREATE, 2 = O_LOCK
  */
 int openFile(const char* pathname, int flags)
 {
@@ -166,6 +166,11 @@ int openFile(const char* pathname, int flags)
 	open_file->filename[name_lenght] = '\0';
 	open_file->namelenght = name_lenght;
 	open_file->size = 0;
+
+	if(flag == 2) 
+	{
+		open_file->pid = gettid();
+	}
 	
 	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
 	{

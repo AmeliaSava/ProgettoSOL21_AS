@@ -93,26 +93,41 @@ int write_file_svr(long connfd, msg file, int flag){
 	return reportOps(connfd, SRV_OK);
 }
 
-int open_file_svr(long connfd, char* name, int flag)
+int open_file_svr(long connfd, char* name, int flag, int pid)
 {
 	fprintf(stderr, "dentro open\n");
 	FileNode* current = NULL;
 
-	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL)
-	{ // file already exists
-		if(current->status == 1)
-		{ // if the file is closed, open file
-			fprintf(stderr, "found closed file\n");
-			fprintf(stderr, "Stato: %d\n", current->status);
-			Hash_Inc(&cacheMemory, current);
-			current->status = 0; //opening file
-			fprintf(stderr, "Stato Updated: %d\n", current->status);
-		} else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // file already exists and its open
+	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL) // file already exists
+	{	//file is either unlocked or locked by the same client
+		if(current->lock == 0 || (current->lock == 1 && current->lock_pid == pid))
+		{	// if the file is closed, open file
+			if(current->status == 1)
+			{ 
+				fprintf(stderr, "found closed file\n");
+				fprintf(stderr, "Stato: %d\n", current->status);
+				Hash_Inc(&cacheMemory, current);
+				current->status = 0; //opening file
+				fprintf(stderr, "Stato Updated: %d\n", current->status);
+				//O_LOCK flag set, lock the file.
+				//if O_LOCK is tryied on already locked file nothing happens
+				if(flag == 2 && current->lock != 1) node_lock(current, pid);
+			} else return reportOps(connfd, SRV_FILE_ALREADY_PRESENT); // file already exists and its open
+		} else //file is locked by some other process
+			return reportOps(connfd, SRV_FILE_LOCKED);
 	} else if(!flag) return reportOps(connfd, SRV_NOK); //tried to create a file with no O_CREATE flag set
 			else
-			{ //ready for write
-				Hash_Insert(&cacheMemory, 0, name, 0);
-				return reportOps(connfd, SRV_READY_FOR_WRITE); 
+			{	
+				if(flag == 1) 
+				{	//ready for write
+					Hash_Insert(&cacheMemory, 0, name, 0);
+					return reportOps(connfd, SRV_READY_FOR_WRITE); 
+				}
+
+				if(flag == 2)
+				{
+					
+				}
 			} 
 	return reportOps(connfd, SRV_OK);
 }
@@ -222,6 +237,7 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 	fprintf(stderr, "dentro cmd: %d\n", info.op_type);
 
 	int flag;
+	int pid;
 
 	switch(info.op_type) 
 	{
@@ -233,8 +249,9 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
 			fprintf(stderr, "Flag: %d\n", flag);
     		fprintf(stderr, "%s\n", info.filename);
+			fprintf(stderr, "%d", info.pid);
 
-			return open_file_svr(connfd, info.filename, flag);
+			return open_file_svr(connfd, info.filename, flag, info.pid);
 
 			break;
 		}

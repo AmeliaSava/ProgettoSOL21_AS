@@ -10,6 +10,8 @@ typedef struct FILE_NODE
 	char* nameFile;
 	int status;
 	long FileSize;
+	int lock;
+	int lock_pid;
 	struct FILE_NODE *next;
 
 } FileNode;
@@ -163,6 +165,14 @@ static inline void node_append(FileNode* node, int freq, char* append, long newS
 static inline void node_incrfreq (FileNode* file)
 {
 	file->frequency = file->frequency + 1;
+	return;
+}
+
+static inline void node_lock (FileNode* file, int pid)
+{
+	file->lock = 1;
+	file->pid = pid;
+	return;
 }
 
 //ok

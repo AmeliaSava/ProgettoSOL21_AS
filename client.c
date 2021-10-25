@@ -215,10 +215,7 @@ int main(int argc, char *argv[]) {
 				if(r2 == 0) printf("success\n");
 				else printf("fail\n");
 
-				char* buf = safe_malloc(MAX_SIZE*sizeof(char));
-				strncpy(buf, " append", 9);
-				buf[9] = '\0';
-				int r3 = appendToFile("./storage/test.txt", buf, 9, NULL);
+				int r3 = lockFile("./storage/test.txt");
 				if(r3 == 0) printf("success\n");
 				else printf("fail\n");
 

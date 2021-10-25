@@ -10,6 +10,7 @@ typedef struct MSG {
 	op op_type; 
 	char filename[MAX_SIZE];
 	char filecontents[MAX_SIZE];
+	pid_t pid;
 } msg;
 
 #endif 
