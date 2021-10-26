@@ -10,6 +10,7 @@ void Hash_Init(Table* tab, int size)
 {
 	tab->bucket = malloc(sizeof(FileList) * size);
 	tab->maxSize = size;
+	tab->curSize = 0;
 	
 	for(int i = 0; i < size; i++)
 	{
@@ -37,6 +38,10 @@ void Hash_Insert(Table* t, int frq, char* fName, int fStat)
 	int index = Hash_Function(t, fName);
 	
 	node_push(&(t->bucket[index]), frq, fName, fStat);
+
+	t->curSize++;
+
+	return;
 	
 }
 
@@ -81,7 +86,9 @@ void Hash_LFUremove (Table* tab)
 	print_list(minFile->head);
 	//last delete
 	list_pop(minFile);
-	printf("dopo min\n");
+	
+	tab->curSize--;
+
 	return;
 }
 
@@ -92,9 +99,37 @@ void Hash_Remove(Table* tab, char* Vfile)
 	int index = Hash_Function(tab, Vfile);
 	print_list((tab->bucket[index].head));
 	node_delete(&(tab->bucket[index]), Vfile, strlen(Vfile));
+	tab->curSize--;
+	return;
+}
+
+void Hash_Read (Table* tab, int n, FileNode* to_send, int* tot)
+{
+	fprintf(stderr, "dentro hash\n");
+
+	if(n == 0) n = tab->curSize;
+
+	fprintf(stderr, "%d\n", n);
+	fprintf(stderr, "%d\n", tab->maxSize);
+
+	for(int i = 0; i < tab->maxSize && n != 0; i++)
+	{
+		FileNode* current = tab->bucket[i].head;
+		fprintf(stderr, "index: %d\n", i);
+			
+		if(current == NULL) continue;
+		//Sono tutte null???
+		while (current->next != NULL && n != 0)
+		{
+			fprintf(stderr, "N: %d\n", n);
+			node_insert(to_send, current);
+			current = current->next;
+			n--;
+			tot++;
+		}
+	}
 
 	return;
-
 }
 
 //ok

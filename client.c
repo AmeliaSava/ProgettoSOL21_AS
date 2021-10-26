@@ -25,6 +25,8 @@ void print_h() {
 	printf("-w dirname[, n = 0]-> sends request for writing the files in the directory -dirname- in the file storage.\n");
 	printf("						if n is specified, sends n files. If n = 0 or not specified there's not limit to the number of sent files\n");
 	printf("-W file1[, file2] -> list of file pathnames to write in the server, speparated by commas.\n");
+	printf("-D dirname -> folder where the files expelled because of capacity misses will be saved in case of ‘-w’ e ‘-W’.\n"
+	printf("So it must be used with those options. If it is not specified all the files will be discarded");
 	printf("-r file1[, file2]-> list of file pathnames to read from the file storage, speparated by commas.\n");
 	printf("-R [n = 0] -> allows to read n files from the file storage, if n = 0 or not specified all the files are read\n");
 	printf("-d dirname -> memory folder where the file read with -r and -R are written. Must be used in addiction to those.\n");
@@ -32,6 +34,8 @@ void print_h() {
 	printf("-t -> time in milliseconds that passes between sending a request from the previous to the server\n");
 	printf("		if not specified, t is assumed set to 0\n");
 	printf("-c file1[, file2]-> list of files to remove from the storage, if present.\n");
+	printf("l file1[,file2] -> lista di nomi di file su cui acquisire la mutua esclusione;\n");
+	printf("-u file1[,file2] -> lista di nomi di file su cui rilasciare la mutua esclusione;\n");
 	printf("-p -> enables prints throughout the code\n");
 }
 
@@ -207,18 +211,24 @@ int main(int argc, char *argv[]) {
 
 				//printf("option: %s\n", optarg);
 
-				int r = openFile("./storage/test.txt", 1);
-				if(r == 0 || r == 1) printf("success\n");
-				else printf("fail\n");
-
+				printf("--------------------\n");
+				openFile("./storage/test.txt", 1);
 				writeFile("./storage/test.txt", NULL);
-				closeFile("./storage/test.txt");
+				printf("--------------------\n");
 
-				int r3 = lockFile("./storage/test.txt");
-				if(r3 == 0) printf("success\n");
-				else printf("fail\n");
-
-				unlockFile("./storage/test.txt");
+				/*
+				openFile("./storage/it is a mystery.mp3", 1);
+				writeFile("./storage/it is a mystery.mp3", NULL);
+				printf("--------------------\n");
+				
+				openFile("./storage/manuale-unix.pdf", 1);
+				writeFile("./storage/manuale-unix.pdf", NULL);
+				printf("--------------------\n");
+				openFile("./storage/virtual.gif", 1);
+				writeFile("./storage/virtual.gif", NULL);
+				printf("--------------------\n");
+				*/
+				readNfiles(0, "./savedfiles");
 
                 break;
             }

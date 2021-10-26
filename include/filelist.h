@@ -119,6 +119,21 @@ static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 	list->size++;
 }
 
+static inline void node_insert(FileNode* node, FileNode* ins)
+{
+	if(ins == NULL) node = ins;
+
+	FileNode* current = node;
+
+	while(current->next !=  NULL) {
+		current = current->next;
+	}
+
+	current->next = ins;
+
+	return;
+}
+
 //ok
 static inline void node_update(FileNode* node, int frq, char* fText, long fSize) 
 {

@@ -19,7 +19,7 @@
 
 #define CONFIG_FL "./config.txt"
 #define MAX_BUF 2048
-#define TAB_SIZE 1028
+#define TAB_SIZE 10
 
 // Global Variables
 long NUM_THREAD_WORKERS;
@@ -58,6 +58,16 @@ int reportOps(long connfd, op op_type) {
 	return 0;
 }
 
+void file_to_msg(FileNode* file, msg* msg)
+{
+	//ATTENTION
+	strcpy(msg->filecontents,file->textFile);
+	strcpy(msg->filename, file->nameFile);
+	msg->size = file->FileSize;
+	msg->namelenght = strlen(file->nameFile);
+
+	return;
+}
 //Handling of API operations on server side
 
 int write_file_svr(long connfd, msg file, int flag, pid_t pid){
@@ -181,10 +191,35 @@ int read_file_svr(long connfd, msg info, char** tmp, size_t* size)
 
 int read_n_file_svr(long connfd, msg info) {
 
-	for(int i = 0; i < info.namelenght; i++)
+	fprintf(stderr, "dentro read n\n");
+	FileNode* to_send = NULL;
+	int tot = 0;
+
+	Hash_Read(&cacheMemory, info.namelenght, to_send, &tot);
+
+	msg* send[tot-1];
+	FileNode* current = to_send;
+	int i = tot;
+
+	while(current != NULL)
 	{
-		//prendere valori a caso dalla hash
+		file_to_msg(current, send[i]);
+		i--;
 	}
+
+	if(writen(connfd, &tot, sizeof(int)) <= 0) 
+	{
+		perror("ERROR: write read file len");
+		return -1;
+	}
+	for(int j  = 0; j < tot; j++) {
+		if(writen(connfd, send[i], sizeof(msg)) <= 0)
+		{
+			perror("ERROR: write read file");
+			return -1;
+		}
+	}
+
 	return 0;
 }
 
@@ -344,8 +379,7 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 
 		case READ_FILE_N: 
 		{
-			if(info.namelenght == 0) return 0; //read_cache(connfd);
-			int ret = read_n_file_svr(connfd, info);
+			return read_n_file_svr(connfd, info);
 			break;
 		}
 
@@ -578,9 +612,9 @@ int main (int argc, char* argv[]) {
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
 
-	struct timeval timeout;
+	/*struct timeval timeout;
 	timeout.tv_sec = 0;
-	timeout.tv_usec = 1;
+	timeout.tv_usec = 1;*/
 
 	for(;;) 
 	{      

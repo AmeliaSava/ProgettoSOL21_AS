@@ -303,14 +303,14 @@ int readNfiles(int N, const char* dirname)
 	
 	int result;
 
-	if (readn(sockfd, &result, sizeof(op)) <= 0) 
+	if (readn(sockfd, &result, sizeof(int)) <= 0) 
 	{
 		errno = -1; 
 		perror("ERROR: read2");
 		return -1;
 	}
 
-	fprintf(stderr, "%d", result);
+	fprintf(stderr, "Files Read: %d", result);
 
 	if(result > 0) {
 		for(int i = 0; i < result; i++)
@@ -337,7 +337,6 @@ int readNfiles(int N, const char* dirname)
 				return -1;
 			}
 			//fine parte che funziona
-		
 		}
 		
 	
