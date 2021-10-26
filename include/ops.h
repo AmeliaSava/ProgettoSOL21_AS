@@ -182,6 +182,11 @@ static inline void print_op(op op_type)
       break;
 		}
 
+    case SRV_READY_FOR_WRITE:
+    {
+      printf("Ready for write...");
+      break;
+    }
 		case SRV_FILE_NOT_FOUND:
     {
 			printf("File not found\n");

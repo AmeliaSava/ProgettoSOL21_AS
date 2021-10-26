@@ -61,7 +61,7 @@ int reportOps(long connfd, op op_type) {
 void file_to_msg(FileNode* file, msg* msg)
 {
 	//ATTENTION
-	strncpy(msg->filecontents, file->textFile, file->FileSize);
+	memcpy(msg->filecontents, file->textFile, file->FileSize);
 	msg->filecontents[(file->FileSize) + 1] = '\0';
 	strncpy(msg->filename, file->nameFile, strlen(file->nameFile));
 	msg->filename[(strlen(file->nameFile)) + 1] = '\0';
@@ -183,7 +183,7 @@ int read_file_svr(long connfd, msg info, char** tmp, size_t* size)
 			*size = current->FileSize;
 
 			if ((*tmp = malloc((*size)*sizeof(char))) == NULL) return 8; //error
-			strncpy(*tmp, current->textFile, *size);
+			memcpy(*tmp, current->textFile, *size);
 			
 			return 0; //ok
 		} 
@@ -223,7 +223,7 @@ int read_n_file_svr(long connfd, msg info) {
 
 		int ret = 0;
 
-		if((ret = writen(connfd, &(send[i]), sizeof(msg))) <= 0)
+		if((ret = writen(connfd, &(send[j]), sizeof(msg))) <= 0)
 		{
 			perror("ERROR: write read file");
 			return -1;

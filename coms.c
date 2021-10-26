@@ -50,13 +50,20 @@ char* readFileBytes(const char *name, long* filelen) {
 	return ret;
 }
 
-int WriteFilefromByte(char* pathname, char* text, long size) {
+//ATTENTION CORRUPT FILE
+int WriteFilefromByte(const char* name, char* text, long size, const char* dirname) 
+{
 	FILE *fp1;
-	if((fp1 = fopen(pathname, "w")) == NULL) return -1;
+	char fullpath[MAX_SIZE];
+
+	sprintf(fullpath,"%s/%s", dirname, name);
+	
+	if((fp1 = fopen(fullpath, "wb")) == NULL) return -1;
 
 	if((fwrite(text, sizeof(char), size, fp1)) != size) return -1;
 
 	fclose(fp1);
+
 	return 0;
 }
 
@@ -328,15 +335,15 @@ int readNfiles(int N, const char* dirname)
 
 			//questa parte funziona
 			char* p;
-			p = strrchr(file.filename, '\\'); //ATTENTION306
+			p = strrchr(file.filename, '/'); //ATTENTION306
 			++p;
 			printf("name: %s\n", p);
-			/*if((WriteFilefromByte(p, file.filecontents, file.size)) == -1) 
+			if((WriteFilefromByte(p, file.filecontents, file.size, dirname)) == -1) 
 			{
 				errno = -1;
 				perror("ERROR: writefb");
 				return -1;
-			}*/
+			}
 			//fine parte che funziona
 		}	
 	} else return -1;
@@ -377,7 +384,7 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
-	strncpy(write_file->filecontents, buf, file_lenght);
+	memcpy(write_file->filecontents, buf, file_lenght);
 	write_file->size = file_lenght;
 
 	//passing the pid of the calling process
@@ -435,7 +442,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 
 	//copying append in msg contents and size
 	append_file->size = size;
-	strncpy(append_file->filecontents, buf, size);;
+	memcpy(append_file->filecontents, buf, size);;
 
 	//passing the process' pid
 	append_file->pid = getpid();

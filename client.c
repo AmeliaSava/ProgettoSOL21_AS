@@ -211,16 +211,19 @@ int main(int argc, char *argv[]) {
 
 				//printf("option: %s\n", optarg);
 
+				
 				printf("--------------------\n");
 				openFile("./storage/test.txt", 1);
 				writeFile("./storage/test.txt", NULL);
 				printf("--------------------\n");
 
-				/*
-				openFile("./storage/it is a mystery.mp3", 1);
-				writeFile("./storage/it is a mystery.mp3", NULL);
+				
+				openFile("./storage/1kb.png", 1);
+				writeFile("./storage/1kb.png", NULL);
 				printf("--------------------\n");
 				
+				
+				/*
 				openFile("./storage/manuale-unix.pdf", 1);
 				writeFile("./storage/manuale-unix.pdf", NULL);
 				printf("--------------------\n");

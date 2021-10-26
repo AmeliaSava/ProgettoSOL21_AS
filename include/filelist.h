@@ -143,7 +143,7 @@ static inline void node_update(FileNode* node, int frq, char* fText, long fSize)
 
 	node->frequency = frq;
 	node->textFile = safe_malloc(strlen(fText)*sizeof(char));
-	strncpy(node->textFile, fText, strlen(fText));
+	memcpy(node->textFile, fText, strlen(fText));
 	node->FileSize = fSize;
 
 }
