@@ -25,7 +25,7 @@ void print_h() {
 	printf("-w dirname[, n = 0]-> sends request for writing the files in the directory -dirname- in the file storage.\n");
 	printf("						if n is specified, sends n files. If n = 0 or not specified there's not limit to the number of sent files\n");
 	printf("-W file1[, file2] -> list of file pathnames to write in the server, speparated by commas.\n");
-	printf("-D dirname -> folder where the files expelled because of capacity misses will be saved in case of ‘-w’ e ‘-W’.\n"
+	printf("-D dirname -> folder where the files expelled because of capacity misses will be saved in case of ‘-w’ e ‘-W’.\n");
 	printf("So it must be used with those options. If it is not specified all the files will be discarded");
 	printf("-r file1[, file2]-> list of file pathnames to read from the file storage, speparated by commas.\n");
 	printf("-R [n = 0] -> allows to read n files from the file storage, if n = 0 or not specified all the files are read\n");

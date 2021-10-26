@@ -310,36 +310,35 @@ int readNfiles(int N, const char* dirname)
 		return -1;
 	}
 
-	fprintf(stderr, "Files Read: %d", result);
+	fprintf(stderr, "Files Read: %d\n", result);
 
 	if(result > 0) {
 		for(int i = 0; i < result; i++)
-		{
-			//recivieng data
-			msg* file = safe_malloc(sizeof(msg));
-
-			if(readn(sockfd, file, sizeof(msg)) <= 0) 
+		{		
+			msg file;
+			int ret = 0;
+			if((ret = readn(sockfd, &file, sizeof(msg))) <= 0) 
 			{
 				errno = -1;
 				perror("ERROR: read1");
 				return -1;
-			} 
+			} else fprintf(stderr, "Read: %d\n", ret);
+
+			fprintf(stderr, "File Name: %s\n", file.filename); 
 
 			//questa parte funziona
 			char* p;
-			p = strrchr(file->filename, '/');
+			p = strrchr(file.filename, '\\'); //ATTENTION306
 			++p;
 			printf("name: %s\n", p);
-			if((WriteFilefromByte(p, file->filecontents, file->size)) == -1) 
+			/*if((WriteFilefromByte(p, file.filecontents, file.size)) == -1) 
 			{
 				errno = -1;
 				perror("ERROR: writefb");
 				return -1;
-			}
+			}*/
 			//fine parte che funziona
-		}
-		
-	
+		}	
 	} else return -1;
 	
 	return 0;

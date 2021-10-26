@@ -61,8 +61,10 @@ int reportOps(long connfd, op op_type) {
 void file_to_msg(FileNode* file, msg* msg)
 {
 	//ATTENTION
-	strcpy(msg->filecontents,file->textFile);
-	strcpy(msg->filename, file->nameFile);
+	strncpy(msg->filecontents, file->textFile, file->FileSize);
+	msg->filecontents[(file->FileSize) + 1] = '\0';
+	strncpy(msg->filename, file->nameFile, strlen(file->nameFile));
+	msg->filename[(strlen(file->nameFile)) + 1] = '\0';
 	msg->size = file->FileSize;
 	msg->namelenght = strlen(file->nameFile);
 
@@ -195,16 +197,20 @@ int read_n_file_svr(long connfd, msg info) {
 	FileNode* to_send = NULL;
 	int tot = 0;
 
-	Hash_Read(&cacheMemory, info.namelenght, to_send, &tot);
+	Hash_Read(&cacheMemory, info.namelenght, &to_send, &tot);
 
-	msg* send[tot-1];
+	fprintf(stderr, "tot:%d\n", tot);
+
+	msg send[tot];
 	FileNode* current = to_send;
-	int i = tot;
-
+	int i = 0;
+	
 	while(current != NULL)
 	{
-		file_to_msg(current, send[i]);
-		i--;
+		file_to_msg(current, &send[i]);
+
+		current = current->next;
+		i++;
 	}
 
 	if(writen(connfd, &tot, sizeof(int)) <= 0) 
@@ -212,12 +218,17 @@ int read_n_file_svr(long connfd, msg info) {
 		perror("ERROR: write read file len");
 		return -1;
 	}
+
 	for(int j  = 0; j < tot; j++) {
-		if(writen(connfd, send[i], sizeof(msg)) <= 0)
+
+		int ret = 0;
+
+		if((ret = writen(connfd, &(send[i]), sizeof(msg))) <= 0)
 		{
 			perror("ERROR: write read file");
 			return -1;
-		}
+		} else fprintf(stderr, "Write: %d\n", ret);
+		
 	}
 
 	return 0;
@@ -430,7 +441,7 @@ int getMSG(int connfd)
 	
 	if (readn(connfd, file, sizeof(msg))<=0) return -1;
 
-	fprintf(stderr, "%s\n", file->filename);
+	fprintf(stderr, "Nome: %s\n", file->filename);
 
 	return cmd(connfd, *file);
 }

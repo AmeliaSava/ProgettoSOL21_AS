@@ -103,10 +103,8 @@ void Hash_Remove(Table* tab, char* Vfile)
 	return;
 }
 
-void Hash_Read (Table* tab, int n, FileNode* to_send, int* tot)
+void Hash_Read (Table* tab, int n, FileNode** to_send, int* tot)
 {
-	fprintf(stderr, "dentro hash\n");
-
 	if(n == 0) n = tab->curSize;
 
 	fprintf(stderr, "%d\n", n);
@@ -119,16 +117,15 @@ void Hash_Read (Table* tab, int n, FileNode* to_send, int* tot)
 			
 		if(current == NULL) continue;
 		//Sono tutte null???
-		while (current->next != NULL && n != 0)
+		while (current != NULL && n != 0)
 		{
 			fprintf(stderr, "N: %d\n", n);
 			node_insert(to_send, current);
 			current = current->next;
 			n--;
-			tot++;
+			(*tot)++;
 		}
 	}
-
 	return;
 }
 
