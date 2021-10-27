@@ -46,4 +46,4 @@ clean		:
 	rm -f $(TARGETS)
 
 cleanall	: clean
-	\rm -f *.o *~ *.a ./storage_sock 
+	\rm -f *.o *~ *.a ./storage_sock ./savedfiles/*.*

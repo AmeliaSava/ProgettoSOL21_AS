@@ -11,6 +11,18 @@
 
 #define MAXBACKLOG   32
 
+/** 
+ * tipo del messaggio
+ */
+typedef struct MSG {
+	int namelenght;
+	long size;
+	op op_type; 
+	char filename[MAX_SIZE];
+	char filecontents[MAX_SIZE];
+	pid_t pid;
+} msg;
+
 /** Evita letture parziali
  *
  *   \retval -1   errore (errno settato)
