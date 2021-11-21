@@ -14,7 +14,7 @@
 #include <conn.h>
 #include <coms.h>
 #include <HashLFU.h>
-#include <clientlist.h>
+//#include <clientlist.h>
 
 #define CONFIG_FL "./config.txt"
 #define MAX_BUF 2048
@@ -33,7 +33,7 @@ Table cacheMemory;
 pthread_mutex_t cache_lock = PTHREAD_MUTEX_INITIALIZER;
 
 //list to handle client requests
-node* client_requests = NULL;
+FileList* client_requests;
 pthread_mutex_t cli_req = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t wait_list = PTHREAD_COND_INITIALIZER;
 
@@ -443,7 +443,23 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 	return 0;
 }
 
+/*
+	ConnessioniSelect
+		select
+			if (connessione)
+				connetti
+			else
+				prendi l'fd che è pronto
+				leggi
+				metti la richiesta in coda
+	
+	Worker
+		while (true)
+			if (!coda vuota)
+				esaudisci richiesta
+*/
 
+/*
 int getMSG(int connfd)
 {
 	msg* file = safe_malloc(sizeof(msg));
@@ -454,36 +470,32 @@ int getMSG(int connfd)
 
 	return cmd(connfd, *file);
 }
+*/
 
-/*
-void* getMSG(void* arg){
-	long args = *((long*)arg);
-	long client_f;
-	op com_op;
+void* getMSG(void* arg)
+{
+
 	fprintf(stderr, "dentro getmsg thread\n");
-	for(;;) {
+
+	for(;;) 
+	{
 		msg operation;
+
 		pthread_mutex_lock(&cli_req);
 		pthread_cond_wait(&wait_list, &cli_req);
-		client_f = pop_tail(client_requests);
+		operation = list_pop(client_requests);
 
 		fprintf(stderr, "prelevo coda\n");
 		pthread_mutex_unlock(&cli_req);
 
-		if (readn(args, &operation.op_type, sizeof(op)) <= 0){
-			fprintf(stderr, "END_COMMUNICATION\n");
-			com_op = END_COMMUNICATION;
-			write(args, &client_f, sizeof(long));
-			write(args, &com_op, sizeof(int));
-		} else {
-			
-			cmd(client_f, args, operation);
-		}
+		cmd(operation.fd_con, operation);
+
 	}
+
 	fflush(stdout);
 	return NULL;
 }
-*/
+
 
 // returns the max index of fd
 int updateMax(fd_set set, int fdmax) {
@@ -581,7 +593,9 @@ int main (int argc, char* argv[]) {
 	//initializing cache memory
 	Hash_Init(&cacheMemory, TAB_SIZE);
 
-	//ATTENTION list init?
+	//ATTENTION list init
+	list_init(*client_requests);
+	init_list(&client_connections);
 
 	//Accepting connections
 	unlinksock();
@@ -603,7 +617,7 @@ int main (int argc, char* argv[]) {
 
 	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
 		if((res = pthread_create(&(thread_ids[i]), NULL, &getMSG, NULL) != 0)) { 
-			perror("ERROR: threads init");
+			perror("ERROR: threads init %d", i);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -687,14 +701,82 @@ int main (int argc, char* argv[]) {
 	*
 	**/
 
-	//DOSEN'T WORK
-
-    if(DEBUG) fprintf(stderr, "Max fd at start: %d\n", fd_max);
-
 	struct timeval timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 1;
+	
+	for(;;) 
+	{      
+		rdset = set; //saving the set in the temporary one
 
+		//+1 because I need the number of active file descriptors, not the max index
+		if (select(fd_max + 1, &rdset, NULL, NULL, NULL) == -1)
+		{
+		    perror("ERROR: select");
+			return EXIT_FAILURE;
+		} 
+		else { 
+			//select ok
+			fprintf(stderr, "select ok\n");
+			fprintf(stderr, "max bef for: %d\n", fd_max);
+
+			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++)
+			{
+				//accepting new connections
+				fprintf(stderr, "accepting connections\n");
+
+			    if (FD_ISSET(fd_sel, &rdset))
+				{ //is it ready?
+			    	fprintf(stderr, "ready?\n");
+
+					if (fd_sel == fd_skt)
+					{ // sock connect ready
+						fprintf(stderr, "sock ready\n");
+						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
+						FD_SET(fd_con, &set);  // adding fd to starting set
+						
+						// updating max
+						if(fd_con > fd_max) fd_max = fd_con;  
+						fprintf(stderr, "max after connection:%d\n", fd_max);
+						//fprintf(stderr, "Client fd: %d\n", fd_con);
+						continue;
+					} 
+
+					fd_con = fd_sel;
+
+					fprintf(stderr, "Client da ascoltare: %d\n", fd_con);
+
+					msg* file = safe_malloc(sizeof(msg));
+	
+					if (readn(connfd, file, sizeof(msg))<=0) 
+					{
+						perror("ERROR: select");
+						return EXIT_FAILURE;
+					}
+
+					fprintf(stderr, "Nome: %s\n", file->filename);
+
+					file.fd_con = fd_con;
+				
+					fprintf(stderr, "adding request to list\n");
+					pthread_mutex_lock(&cli_req);
+					push_head(&client_requests, file);
+					pthread_cond_signal(&wait_list);
+					pthread_mutex_unlock(&cli_req);
+
+					close(fd_con); 
+					FD_CLR(fd_con, &set);
+
+					if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+					
+		   		}
+			}
+		}
+    }
+
+	//DOSEN'T WORK
+	/*
+    if(DEBUG) fprintf(stderr, "Max fd at start: %d\n", fd_max);
 	for(;;)
 	{   
 
@@ -702,11 +784,21 @@ int main (int argc, char* argv[]) {
 		rdset = set; //saving the set in the temporary one
 		UNLOCK(&set_lock);
 
-		//+1 because I need the number of active file descriptors, not the max index
-		if (select(fd_max + 1, &rdset, NULL, NULL, &timeout) == -1) {
-			perror("ERROR: select");
-			return EXIT_FAILURE;
-		} 
+		int connected = client_connected.lenght;
+
+		if(connected != 0) {
+			struct timeval timeout;
+			timeout.tv_sec = 0;
+			timeout.tv_usec = 1;
+			//+1 because I need the number of active file descriptors, not the max index
+			if (select(fd_max + 1, &rdset, NULL, NULL, &timeout) == -1) 
+			{
+				perror("ERROR: select");
+				return EXIT_FAILURE;
+			} 
+			
+		}
+		
 		//select ok
 		printf("QUI\n");
 		fprintf(stderr, "select ok\n");
@@ -772,7 +864,6 @@ int main (int argc, char* argv[]) {
 							 exit(EXIT_FAILURE); 
 						}	
 			   		
-						//else fd_sel == pipe_m[0]
 						fprintf(stderr, "adding request to list\n");
 						pthread_mutex_lock(&cli_req);
 						push_head(&client_requests, fd_sel);
@@ -785,7 +876,7 @@ int main (int argc, char* argv[]) {
 		}
 		
     }
-
+	*/
 
     //ogni volta che si chiude la comunicazione va aggiornato il massimo
     //sezione di deallocazione di tutte le risorse

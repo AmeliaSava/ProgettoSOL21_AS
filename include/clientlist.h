@@ -8,6 +8,19 @@ typedef struct NODE {
 	long client_fd;
 } node;
 
+typedef struct FILE_LIST
+{
+	node* head;
+	size_t size;
+
+} list;
+
+void init_list_client(list** list)
+{
+	list->head = NULL;
+	list->size = 0;
+}
+
 void push_head(node** head, long fd) {
 	node* newNode = safe_malloc(sizeof(node));
 	newNode->client_fd = fd;

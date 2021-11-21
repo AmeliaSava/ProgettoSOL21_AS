@@ -12,6 +12,7 @@ typedef struct FILE_NODE
 	long FileSize;
 	int lock;
 	pid_t lock_pid;
+	long fd_con;
 	struct FILE_NODE *next;
 
 } FileNode;
