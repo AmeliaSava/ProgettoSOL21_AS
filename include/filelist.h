@@ -12,7 +12,6 @@ typedef struct FILE_NODE
 	long FileSize;
 	int lock;
 	pid_t lock_pid;
-	long fd_con;
 	struct FILE_NODE *next;
 
 } FileNode;
@@ -76,6 +75,34 @@ static inline void list_pop(FileList* list)
 	list->last = current;
 
 	return;
+	
+}
+//ATTENTION non aggiorni mai la testa
+static inline FileNode* list_pop_return(FileList* list)
+{
+	if(list->head == NULL)	return NULL;
+
+	FileNode* current = list->head;
+	FileNode* toReturn;
+
+	if(current->next == NULL) {
+		toReturn = current;
+		free(current);
+		list->head = NULL;
+		return toReturn;
+	}
+
+	while (current->next->next != NULL)
+	{
+		current = current->next;
+	}
+
+	toReturn = current->next;
+	free(current->next);
+	current->next = NULL;
+	list->last = current;
+
+	return toReturn;
 	
 }
 

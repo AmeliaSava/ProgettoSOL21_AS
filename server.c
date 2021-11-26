@@ -33,7 +33,7 @@ Table cacheMemory;
 pthread_mutex_t cache_lock = PTHREAD_MUTEX_INITIALIZER;
 
 //list to handle client requests
-FileList* client_requests;
+MSGlist* client_requests;
 pthread_mutex_t cli_req = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t wait_list = PTHREAD_COND_INITIALIZER;
 
@@ -479,16 +479,16 @@ void* getMSG(void* arg)
 
 	for(;;) 
 	{
-		msg operation;
+		msg* operation;
 
 		pthread_mutex_lock(&cli_req);
 		pthread_cond_wait(&wait_list, &cli_req);
-		operation = list_pop(client_requests);
+		operation = msg_list_pop_return(client_requests);
 
 		fprintf(stderr, "prelevo coda\n");
 		pthread_mutex_unlock(&cli_req);
 
-		cmd(operation.fd_con, operation);
+		cmd(operation->fd_con, *operation);
 
 	}
 
@@ -594,8 +594,7 @@ int main (int argc, char* argv[]) {
 	Hash_Init(&cacheMemory, TAB_SIZE);
 
 	//ATTENTION list init
-	list_init(*client_requests);
-	init_list(&client_connections);
+	msg_list_init(client_requests);
 
 	//Accepting connections
 	unlinksock();
@@ -617,7 +616,7 @@ int main (int argc, char* argv[]) {
 
 	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
 		if((res = pthread_create(&(thread_ids[i]), NULL, &getMSG, NULL) != 0)) { 
-			perror("ERROR: threads init %d", i);
+			perror("ERROR: threads init");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -710,7 +709,7 @@ int main (int argc, char* argv[]) {
 		rdset = set; //saving the set in the temporary one
 
 		//+1 because I need the number of active file descriptors, not the max index
-		if (select(fd_max + 1, &rdset, NULL, NULL, NULL) == -1)
+		if (select(fd_max + 1, &rdset, NULL, NULL, &timeout) == -1)
 		{
 		    perror("ERROR: select");
 			return EXIT_FAILURE;
@@ -746,21 +745,21 @@ int main (int argc, char* argv[]) {
 
 					fprintf(stderr, "Client da ascoltare: %d\n", fd_con);
 
-					msg* file = safe_malloc(sizeof(msg));
+					msg* request = safe_malloc(sizeof(msg));
 	
-					if (readn(connfd, file, sizeof(msg))<=0) 
+					if (readn(fd_con, request, sizeof(msg))<=0) 
 					{
 						perror("ERROR: select");
 						return EXIT_FAILURE;
 					}
 
-					fprintf(stderr, "Nome: %s\n", file->filename);
+					fprintf(stderr, "Nome: %s\n", request->filename);
 
-					file.fd_con = fd_con;
+					request->fd_con = fd_con;
 				
 					fprintf(stderr, "adding request to list\n");
 					pthread_mutex_lock(&cli_req);
-					push_head(&client_requests, file);
+					msg_push_head(request, client_requests);
 					pthread_cond_signal(&wait_list);
 					pthread_mutex_unlock(&cli_req);
 

@@ -21,7 +21,7 @@ void init_list_client(list** list)
 	list->size = 0;
 }
 
-void push_head(node** head, long fd) {
+void push_head_client(node** head, long fd) {
 	node* newNode = safe_malloc(sizeof(node));
 	newNode->client_fd = fd;
 	newNode->next = *head;

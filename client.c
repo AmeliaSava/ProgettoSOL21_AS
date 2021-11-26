@@ -7,7 +7,6 @@
 #include <ops.h>
 #include <coms.h>
 #include <conn.h>
-#include <message.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>

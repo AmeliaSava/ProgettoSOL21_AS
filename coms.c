@@ -13,7 +13,6 @@
 #include <ops.h>
 #include <coms.h>
 #include <conn.h>
-#include <message.h>
 
 int sockfd;
 

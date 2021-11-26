@@ -21,7 +21,70 @@ typedef struct MSG {
 	char filename[MAX_SIZE];
 	char filecontents[MAX_SIZE];
 	pid_t pid;
+	long fd_con;
+	struct MSG* next;
 } msg;
+
+typedef struct MSG_LIST
+{
+	msg* head;
+	msg* last;
+	size_t size;
+
+} MSGlist;
+
+
+static inline void msg_list_init(MSGlist* list) 
+{
+	list->head = NULL;
+	list->last = NULL;
+	list->size = 0;
+}
+
+static inline msg* msg_list_pop_return(MSGlist* list)
+{
+	if(list->head == NULL)	return NULL;
+
+	msg* current = list->head;
+	msg* toReturn;
+
+	if(current->next == NULL) {
+		toReturn = current;
+		free(current);
+		list->head = NULL;
+		return toReturn;
+	}
+
+	while (current->next->next != NULL)
+	{
+		current = current->next;
+	}
+
+	toReturn = current->next;
+	free(current->next);
+	current->next = NULL;
+	list->last = current;
+
+	return toReturn;
+	
+}
+
+static inline void msg_push_head(msg* head, MSGlist* list) {
+
+	if(list->size == 0) 
+	{
+		list->head = head;
+		list->last = head;
+	} 
+	else 
+	{
+		head->next = list->head;
+		list->head = head;
+	}
+	list->size++;
+	return;
+}
+
 
 /** Evita letture parziali
  *
