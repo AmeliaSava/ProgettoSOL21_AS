@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
 				else printf("fail\n");
 				*/
 
-				int r = openFile("./storage/test.txt", 0);
+				int r = openFile("./storage/test.txt", 1);
 				if(r == 0 || r == 1) printf("success\n");
 				else printf("fail\n");
 

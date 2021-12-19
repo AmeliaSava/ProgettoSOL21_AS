@@ -177,6 +177,8 @@ int openFile(const char* pathname, int flags)
 	open_file->pid = getpid();
 	fprintf(stderr, "%d\n", open_file->pid);
 	fprintf(stderr, "%d\n", getppid());
+
+	open_file->flag = flags;
 	
 	
 	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
@@ -185,17 +187,12 @@ int openFile(const char* pathname, int flags)
 		perror("ERROR: write openFile");
 		return -1;
 	}
-
-	if(writen(sockfd, &flags, sizeof(int)) <= 0) 
-	{
-		errno = -1; 
-		perror("ERROR: write openFile");
-		return -1;
-	}  //sending flag
-
 	
 	//recivieng outcome of operation
-	
+
+	//int count = 0;
+	//while(1) count ++;
+
 	op response;
 
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 

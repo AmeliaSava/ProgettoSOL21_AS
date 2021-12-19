@@ -332,7 +332,7 @@ int unlock_file_srv(long connfd, msg info){
 }
 
 //WIP
-int cmd(int connfd/*, long pipe_fd*/, msg info) {
+int cmd(int connfd, msg info) {
 
 	fprintf(stderr, "dentro cmd: %d\n", info.op_type);
 
@@ -342,15 +342,16 @@ int cmd(int connfd/*, long pipe_fd*/, msg info) {
 	{
 		case OPEN_FILE: 
 		{
+			int count = 0;
+			while(1) count ++;
 			fprintf(stderr, "openfile cmd\n");
+			fprintf(stderr, "fd: %ld\n",info.fd_con);
 
-			if (readn(connfd, &flag, sizeof(int)) <= 0) return -1;
-
-			fprintf(stderr, "Flag: %d\n", flag);
+			fprintf(stderr, "Flag: %d\n", info.flag);
     		fprintf(stderr, "%s\n", info.filename);
 			fprintf(stderr, "%d", info.pid);
 
-			return open_file_svr(connfd, info.filename, flag, info.pid);
+			return open_file_svr(connfd, info.filename, info.flag, info.pid);
 
 			break;
 		}
@@ -489,6 +490,7 @@ void* getMSG(void* arg)
 		pthread_mutex_unlock(&cli_req);
 
 		cmd(operation->fd_con, *operation);
+		fprintf(stderr, "fd: %ld\n", operation->fd_con);
 
 	}
 
@@ -593,8 +595,12 @@ int main (int argc, char* argv[]) {
 	//initializing cache memory
 	Hash_Init(&cacheMemory, TAB_SIZE);
 
+	fprintf(stderr, "hash created\n");
+
 	//ATTENTION list init
+	client_requests = safe_malloc(sizeof(MSGlist));
 	msg_list_init(client_requests);
+	fprintf(stderr, "list created\n");
 
 	//Accepting connections
 	unlinksock();
@@ -606,9 +612,6 @@ int main (int argc, char* argv[]) {
 	fd_set rdset; //set of fd wating for reading
 
 	//creating threads
-
-	//CHECK_EQ_EXIT((pipe_m = (int*) calloc(2,sizeof(int))), NULL, "ERROR: calloc pipe");
-	//if(pipe(pipe_m) == -1) { errno = -1; perror("ERROR: pipe"); free(pipe_m); free(thread_ids); free(SOCKET_NAME);}
 
 	CHECK_EQ_EXIT((thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t))), NULL, "ERROR: calloc threads");
 
@@ -716,17 +719,17 @@ int main (int argc, char* argv[]) {
 		} 
 		else { 
 			//select ok
-			fprintf(stderr, "select ok\n");
-			fprintf(stderr, "max bef for: %d\n", fd_max);
+			//fprintf(stderr, "select ok\n");
+			//fprintf(stderr, "max bef for: %d\n", fd_max);
 
 			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++)
 			{
 				//accepting new connections
-				fprintf(stderr, "accepting connections\n");
+				//fprintf(stderr, "accepting connections\n");
 
 			    if (FD_ISSET(fd_sel, &rdset))
 				{ //is it ready?
-			    	fprintf(stderr, "ready?\n");
+			    	//fprintf(stderr, "ready?\n");
 
 					if (fd_sel == fd_skt)
 					{ // sock connect ready

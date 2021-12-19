@@ -22,6 +22,7 @@ typedef struct MSG {
 	char filecontents[MAX_SIZE];
 	pid_t pid;
 	long fd_con;
+	int flag;
 	struct MSG* next;
 } msg;
 
