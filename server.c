@@ -51,6 +51,24 @@ void unlinksock() {
     unlink(SOCKET_NAME);
 }
 
+
+// returns the max index of fd
+int updateMax(fd_set set, int fdmax) {
+    for(int i = (fdmax-1); i >= 0; i--)
+    	if (FD_ISSET(i, &set)) return i;
+    	assert(1 == 0);
+    	return -1;
+}
+
+void requestServed(long fd_con) {
+
+	close(fd_con); 
+	FD_CLR(fd_con, &set);
+	if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+
+	return;
+}
+
 //returns a response according to the result of the operation
 int report_ops(long connfd, op op_type) {
 
@@ -342,8 +360,8 @@ int cmd(int connfd, msg info) {
 	{
 		case OPEN_FILE: 
 		{
-			int count = 0;
-			while(1) count ++;
+			//int count = 0;
+			//while(1) count ++;
 			fprintf(stderr, "openfile cmd\n");
 			fprintf(stderr, "fd: %ld\n",info.fd_con);
 
@@ -499,13 +517,6 @@ void* getMSG(void* arg)
 }
 
 
-// returns the max index of fd
-int updateMax(fd_set set, int fdmax) {
-    for(int i = (fdmax-1); i >= 0; i--)
-    	if (FD_ISSET(i, &set)) return i;
-    	assert(1 == 0);
-    	return -1;
-}
 
 //ok, better clean up
 void configParsing() {
@@ -579,6 +590,7 @@ void configParsing() {
 	free(buffer);
 	
 }
+
 
 int main (int argc, char* argv[]) {
 
@@ -752,24 +764,24 @@ int main (int argc, char* argv[]) {
 	
 					if (readn(fd_con, request, sizeof(msg))<=0) 
 					{
-						perror("ERROR: select");
+						perror("ERROR: reading msg");
 						return EXIT_FAILURE;
 					}
 
-					fprintf(stderr, "Nome: %s\n", request->filename);
+					//fprintf(stderr, "Nome: %s\n", request->filename);
 
 					request->fd_con = fd_con;
 				
 					fprintf(stderr, "adding request to list\n");
 					pthread_mutex_lock(&cli_req);
 					msg_push_head(request, client_requests);
-					pthread_cond_signal(&wait_list);
+					//pthread_cond_signal(&wait_list);
 					pthread_mutex_unlock(&cli_req);
 
-					close(fd_con); 
-					FD_CLR(fd_con, &set);
+					//close(fd_con); 
+					//FD_CLR(fd_con, &set);
 
-					if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+					//if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
 					
 		   		}
 			}

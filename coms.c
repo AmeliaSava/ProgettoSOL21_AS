@@ -385,9 +385,10 @@ int writeFile(const char* pathname, const char* dirname)
 
 	//passing the pid of the calling process
 	write_file->pid = getpid();
-	fprintf(stderr, "%d\n", write_file->pid);
-	fprintf(stderr, "%d\n", getppid());
+	//fprintf(stderr, "%d\n", write_file->pid);
+	//fprintf(stderr, "%d\n", getppid());
 
+	fprintf(stderr, "sending\n");
 	//sending
 	if(writen(sockfd, write_file, sizeof(msg)) <= 0) 
 	{
@@ -397,7 +398,7 @@ int writeFile(const char* pathname, const char* dirname)
 	}
 
 	//recieving outcome of operation
-
+fprintf(stderr, "response\n");
 	op response;
 
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
@@ -408,7 +409,7 @@ int writeFile(const char* pathname, const char* dirname)
 	}
 
 	print_op(response);
-
+fprintf(stderr, "recieved\n");
 	if(response == SRV_OK) return 0;
 
 	return -1;

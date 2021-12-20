@@ -114,7 +114,6 @@ int write_from_dir_find (const char* dir, const char *infile, long n) {
 						// per trovare il path assoluto del file utilizzo la funzione cwd
 						char* buf = cwd();
 						if (buf == NULL) return -1;
-						// stampo il path, il nome del file e la sua data di modifica convertita da ctime
 						int ret;
 						if((ret = openFile(buf, 1)) == 1) writeFile(buf, NULL);
 							else return ret;
@@ -123,7 +122,6 @@ int write_from_dir_find (const char* dir, const char *infile, long n) {
 				} else {
 					char* buf = cwd();
 					if (buf == NULL) return -1;
-					// stampo il path, il nome del file e la sua data di modifica convertita da ctime
 					int ret;
 					if((ret = openFile(buf, 1)) == 1) { if(writeFile(buf, NULL) == 0) n--;}
 						else return ret;
