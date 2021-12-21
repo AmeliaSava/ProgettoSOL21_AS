@@ -363,7 +363,6 @@ int cmd(int connfd, msg info) {
 			//int count = 0;
 			//while(1) count ++;
 			fprintf(stderr, "openfile cmd\n");
-			fprintf(stderr, "fd: %ld\n",info.fd_con);
 
 			fprintf(stderr, "Flag: %d\n", info.flag);
     		fprintf(stderr, "%s\n", info.filename);
@@ -763,9 +762,11 @@ int main (int argc, char* argv[]) {
 					msg* request = safe_malloc(sizeof(msg));
 	
 					if (readn(fd_con, request, sizeof(msg))<=0) 
-					{
-						perror("ERROR: reading msg");
-						return EXIT_FAILURE;
+					{	//dividere -! e 0?
+						FD_CLR(fd_con, &set);
+						if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+						//perror("ERROR: reading msg");
+						//return EXIT_FAILURE;
 					}
 
 					//fprintf(stderr, "Nome: %s\n", request->filename);
@@ -775,11 +776,11 @@ int main (int argc, char* argv[]) {
 					fprintf(stderr, "adding request to list\n");
 					pthread_mutex_lock(&cli_req);
 					msg_push_head(request, client_requests);
-					//pthread_cond_signal(&wait_list);
+					pthread_cond_signal(&wait_list);
 					pthread_mutex_unlock(&cli_req);
 
 					//close(fd_con); 
-					//FD_CLR(fd_con, &set);
+					//FD_CLR(fd_con, &rdset);
 
 					//if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
 					

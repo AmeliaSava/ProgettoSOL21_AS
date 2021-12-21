@@ -66,22 +66,26 @@ char* cwd() {
 	return buf;
 }
 
-// function that finds a file or reads all the files in a given directory if the second parameter is NULL
-int write_from_dir_find (const char* dir, const char *infile, long n) {
+// function that reads n or all files in a given directory
+int write_from_dir_find (const char* dir, long n) {
 
+	if(n == 0) return 0;
+	//entro nella directory
 	if(chdir(dir) == -1) { print_error("error entering directory %s\n", dir); return 0; }
 
 	DIR *d;
+
 	// apro la directory
-	if((d = opendir(".")) == NULL) { perror("opening cwd in findfile");	return -1;
-	} else { // non c'è stato errore
+	if((d = opendir(".")) == NULL) { perror("opening cwd in findfile");	return -1;} 
+	else { // non c'è stato errore
 		struct dirent *file;
 
 		// leggo tutti i file
 		// setto errno prima di chiamare readdir, per discriminare i due casi in cui ritorna NULL
 		// 1. se c'è un errore, e in quel caso setta errno
 		// 2. se è arrivato alla fine della dir e non c'è più niente da leggere
-		while((errno = 0, file = readdir(d)) != NULL) {
+		while((file = readdir(d)) != NULL) {
+			errno = 0;
 			struct stat statb;
 			// prendo le statistiche
 			if(stat(file->d_name, &statb) == -1) {
@@ -94,7 +98,7 @@ int write_from_dir_find (const char* dir, const char *infile, long n) {
 				//...ed ho escluso il caso che sia la stessa directory in cui sono adesso o la directory padre...
 				if(!isdot(file->d_name)) {
 					//...chiamo la funzione ricorsivamente
-					if(write_from_dir_find(file->d_name, infile, n) != 0) {
+					if(write_from_dir_find(file->d_name, n) != 0) {
 						// quando ho finito risalgo nella directory precedente
 						// WARNING: dato che stat segue i link simbolici ritornando gli attributi
 						// del file puntato (e non del link) se un link simbolico punta ad una
@@ -109,24 +113,17 @@ int write_from_dir_find (const char* dir, const char *infile, long n) {
 				}
 			// caso in cui il file non è una directory
 			} else {
-				if(infile) {
-					if (strncmp((file->d_name), infile, strlen(infile)) == 0) {
-						// per trovare il path assoluto del file utilizzo la funzione cwd
-						char* buf = cwd();
-						if (buf == NULL) return -1;
-						int ret;
-						if((ret = openFile(buf, 1)) == 1) writeFile(buf, NULL);
-							else return ret;
-						free(buf);
-					}
-				} else {
-					char* buf = cwd();
+					char* buf = cwd(); //non c'è il nome del file
+					buf = strncat(buf, "/", 1);
+					buf = strncat(buf, file->d_name, strlen(file->d_name));
 					if (buf == NULL) return -1;
 					int ret;
-					if((ret = openFile(buf, 1)) == 1) { if(writeFile(buf, NULL) == 0) n--;}
-						else return ret;
+					if((ret = openFile(buf, 1)) == 1) 
+					{
+						if(writeFile(buf, NULL) == 0) n--;
+					}
+					else return ret;
 					free(buf);
-				}
 			}
 		}
 		// c'è stato un errore e stampo
@@ -148,7 +145,8 @@ int main(int argc, char *argv[]) {
             	print_h();
 				break;
             }
-            case 'f': {
+            case 'f': 
+			{
 				if(add_current_folder(&SOCKNAME, optarg) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
 				if(print) printf("Socket file pathname: %s\n", SOCKNAME);
 				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
@@ -157,7 +155,8 @@ int main(int argc, char *argv[]) {
             	else fprintf(stderr, "Connected\n");
             	break;
             }
-            case 'w': {
+            case 'w': 
+			{
             	int i = 0;
             	long n = -1;
             	char* dirname = NULL;
@@ -165,22 +164,32 @@ int main(int argc, char *argv[]) {
             	token = strtok(optarg,",");
             	while(token != NULL) {
             		if(i==0) {
-            			if(add_current_folder(&dirname, token) == -1) {errno = -1; perror("ERROR: -w"); exit(EXIT_FAILURE);}
-            			i++;
+            			if(add_current_folder(&dirname, token) == -1) 
+						{
+							errno = -1; 
+							perror("ERROR: -w"); 
+							exit(EXIT_FAILURE);
+						}
+						i++;
             		}
             		if(i==1) isNumber(token, &n);
             		token = strtok(NULL, ",");
             	}
-				write_from_dir_find(dirname, NULL, n);
+				write_from_dir_find(dirname, n);
                 break;
             }
-            case 'W': { 
+            case 'W': 
+			{ 
             	optind--;
-            	for(; optind<argc && *argv[optind] != '-'; optind++)
+            	for(; optind < argc && *argv[optind] != '-'; optind++)
 				{
-            		//write_from_dir_find(".", argv[optind], 0);
-            		openFile(argv[optind], 1);
-                	printf("filename: %s\n", argv[optind]); 
+					int ret;
+            		if((ret = openFile(argv[optind], 1)) == 1) 
+					{
+						if((ret = writeFile(argv[optind], NULL)) != 0)
+							exit(EXIT_FAILURE); //in realtà bisognerebbe usare ret per l'errore
+					}
+					else exit(EXIT_FAILURE);
                 }
                 break;
             }
