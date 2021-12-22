@@ -214,6 +214,7 @@ static inline void print_op(op op_type)
     case SRV_FILE_LOCKED:
     {
       printf("File is locked\n");
+      break;
     }
 		
 		default: {

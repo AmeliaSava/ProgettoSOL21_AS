@@ -124,8 +124,6 @@ int closeConnection(const char* sockname) {
 		return -1;
 	}
 
-	print_op(response);
-
 	if(response == SRV_OK) return 0;
 
 	close(sockfd);
@@ -537,7 +535,7 @@ int lockFile(const char* pathname)
 		return -1;
 	}
 
-	//fprintf(stderr, "%d\n", response);
+	print_op(response);
 
 	if(response == SRV_OK) return 0;
 
@@ -588,7 +586,7 @@ int unlockFile(const char* pathname)
 		return -1;
 	}
 
-	//fprintf(stderr, "%d\n", response);
+	print_op(response);
 
 	if(response == SRV_OK) return 0;
 
@@ -675,6 +673,8 @@ int removeFile(const char* pathname) {
 		perror("ERROR: read2");
 		return -1;
 	}
+
+	print_op(response);
 
 	if(response == SRV_OK) return 0;
 

@@ -26,8 +26,11 @@ long MAX_MEMORY_MB; //ATTENTION da lockare?
 long MAX_MEMORY_TOT;
 long MAX_NUM_FILES;
 char* SOCKET_NAME = NULL;
+char* LOG_NAME = NULL;
 int DEBUG = 1;
 
+FILE* log_file = NULL;
+pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 // HashTable for the file memory system
 Table cacheMemory;
 pthread_mutex_t cache_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -517,8 +520,6 @@ void* getMSG(void* arg)
 	return NULL;
 }
 
-
-
 //ok, better clean up
 void configParsing() {
 	FILE *config_input = NULL;
@@ -581,6 +582,15 @@ void configParsing() {
 					exit(EXIT_FAILURE);
 				}
 				strncpy(SOCKET_NAME, equals, MAX_BUF);
+			case 4:
+				while((*equals) != '\0' && isspace(*equals)) ++equals;
+				if((*equals) == '\0') 
+				{
+					fprintf(stderr, "wrong config.txt file format: fourth line must be log file name\n");
+					free(buffer);
+					exit(EXIT_FAILURE);
+				}
+				strncpy(LOG_NAME, equals, MAX_BUF);
 		}
 
 		count++;
@@ -592,28 +602,48 @@ void configParsing() {
 	
 }
 
+void log_create()
+{
+	
+	char* log_path = safe_malloc(2 + strlen(LOG_NAME));
+	sprintf(log_path, "./%s.txt", LOG_NAME);
+	
+	log_file = fopen(log_path, "w");
+
+	if(log_file != NULL) 
+	{
+		fprintf(log_file, "LOG FILE\n");
+		fflush(log_file);
+	}
+	
+	return;
+}
 
 int main (int argc, char* argv[]) {
 
 	atexit(unlinksock);  
 	
 	//allocating the global socket name
-	CHECK_EQ_EXIT((SOCKET_NAME = malloc(MAX_BUF * sizeof(char))), NULL, "ERROR: malloc socket name");
+	SOCKET_NAME = safe_malloc(MAX_BUF * sizeof(char));
+	LOG_NAME = safe_malloc(MAX_BUF * sizeof(char));
 
 	// parsing the config file
 	configParsing();
 
-	printf("%ld\n%ld\n%ld\n%ld\n%s\n", NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_MEMORY_TOT, MAX_NUM_FILES, SOCKET_NAME);
-	
+	log_create(LOG_NAME);
+
+	fprintf(log_file, "Server created\nMax number of thread workers: %ld\nMax memory available: %ld\nCurrently available memory: %ld\nMax Number of files: %ld\nSocket Name: %s\nLog file name: %s\n", 
+		NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_MEMORY_TOT, MAX_NUM_FILES, SOCKET_NAME, LOG_NAME);
+	fflush(log_file);
+
 	//initializing cache memory
 	Hash_Init(&cacheMemory, TAB_SIZE);
 
-	fprintf(stderr, "hash created\n");
+	fprintf(log_file, "Hash memory initialized successfully\n");
 
 	//ATTENTION list init
 	client_requests = safe_malloc(sizeof(MSGlist));
 	msg_list_init(client_requests);
-	fprintf(stderr, "list created\n");
 
 	//Accepting connections
 	unlinksock();
@@ -640,7 +670,7 @@ int main (int argc, char* argv[]) {
 	//Initializing Socket
 
 	SYSCALL_EXIT("socket", fd_skt, socket(AF_UNIX, SOCK_STREAM, 0), "ERROR: socket", "");
-	fprintf(stderr, "Connecting to %s\n", SOCKET_NAME);
+	fprintf(log_file, "Connecting to %s\n", SOCKET_NAME);
 
 	//socket address
 	struct sockaddr_un serv_addr;
@@ -753,13 +783,15 @@ int main (int argc, char* argv[]) {
 						// updating max
 						if(fd_con > fd_max) fd_max = fd_con;  
 						fprintf(stderr, "max after connection:%d\n", fd_max);
-						//fprintf(stderr, "Client fd: %d\n", fd_con);
+						fprintf(log_file, "Connected to client: %d\n", fd_con);
+						fflush(log_file);
 						continue;
 					} 
 
 					fd_con = fd_sel;
 
-					fprintf(stderr, "Client da ascoltare: %d\n", fd_con);
+					fprintf(log_file, "Listening to client: %d\n", fd_con);
+					fflush(log_file);
 
 					msg* request = safe_malloc(sizeof(msg));
 	

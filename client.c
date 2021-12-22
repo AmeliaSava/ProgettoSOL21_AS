@@ -15,6 +15,11 @@
 
 int print = 1;
 char* SOCKNAME = NULL;
+long sleeptime = 0;
+
+//flag
+int isW = 0;
+int isR = 0;
 
 void print_h() {
 	printf("usage: ./client [option]\n");
@@ -136,19 +141,19 @@ int write_from_dir_find (const char* dir, long* n)
 
 					//printf("n: %ld", *n);
 					//printf("%s\n", buf);
+
 					
 					if((openFile(buf, 1)) == 1) 
 					{ 
 						printf("%s\n", buf);
-						
 						if((writeFile(buf, NULL)) == 0) 
 						{
 							*n = *n - 1;
 						} 
-						else return -1;
+						//else return 1;
 						
 					}
-					else return -1;
+					//else return 1;
 
 					//*n = *n - 1;
 
@@ -170,7 +175,7 @@ int main(int argc, char *argv[]) {
 	struct timespec abstime;
 	int opt;
 
-	while((opt = getopt(argc, argv, "hf:w:W:r:R::d::t:c:p")) != -1) { 
+	while((opt = getopt(argc, argv, "hf:w:W:D:r:R::d::t:l:u:c:p")) != -1) { 
 		switch(opt) { 
             case 'h': {
             	print_h();
@@ -188,6 +193,7 @@ int main(int argc, char *argv[]) {
             }
             case 'w': 
 			{
+				isW = 1;
             	int i = 0;
             	long n = -1;
             	char* dirname = NULL;
@@ -212,6 +218,7 @@ int main(int argc, char *argv[]) {
             }
             case 'W': 
 			{ 
+				isW = 1;
             	optind--;
             	for(; optind < argc && *argv[optind] != '-'; optind++)
 				{
@@ -221,26 +228,32 @@ int main(int argc, char *argv[]) {
 						if((ret = writeFile(argv[optind], NULL)) != 0)
 							exit(EXIT_FAILURE); //in realtà bisognerebbe usare ret per l'errore
 					}
-					else exit(EXIT_FAILURE);
+					else continue;
                 }
                 break;
             }
-            case 'r': {
-            	char* token;
-            	token = strtok(optarg,",");
-            	while(token != NULL)
+			case 'D':
+			{
+				if(!isW)
 				{
-            		openFile(token,1);
-            		printf("filename: %s\n", token);
-            		token = strtok(NULL, ",");
-            	}
-            	                	 
-                //for(int i = 0; i < 1; i++){
-                	//void* buf = NULL;
-                	//size_t sz;
-                	//int r = readFile(nome3, &buf, &sz);
-                	//if(!r) printf("Buf: %p\nSize: %zu\n", buf, sz); // qualcosa non va nel puntatore
-                //}
+					printf("-D option must be used with -w or -W options preceeding it.");
+					break;
+				}
+				isW = 0;
+				break;
+			}
+            case 'r': {
+
+				optind--;
+
+				for(; optind<argc && *argv[optind] != '-'; optind++)
+				{
+					void* buf = NULL;
+                	size_t sz;
+                	int r = readFile(argv[optind], &buf, &sz);
+                	if(!r) printf("Buf: %p\nSize: %zu\n", buf, sz); // qualcosa non va nel puntatore
+				}
+
                 break;
             }
 			case 'R': {
@@ -274,51 +287,84 @@ int main(int argc, char *argv[]) {
                 break;
             }
 			case 'd': {
-                /*
-				void* buf = safe_malloc(MAX_SIZE*sizeof(char));
-				size_t size;
-				int r = readFile("./storage/test.txt", &buf, &size);
-				if(r == 0) printf("%p\n%zu\n", buf, size);
-				else printf("fail\n");
-				*/
 
-				int r = openFile("./storage/test.txt", 1);
-				if(r == 0 || r == 1) printf("success\n");
-				else printf("fail\n");
-
+				if(!isR)
+				{
+					printf("-D option must be used with -w or -W options preceeding it.");
+					break;
+				}
+				isR = 0;
+				//optarg
                 break;
             }
 			case 't': {
-                printf("option: %s\n", optarg);
+
+                
+				if((isNumber(optarg, &sleeptime)) == 1)
+				{
+					printf("option %s is not a number\n", optarg);
+					return EXIT_FAILURE;
+				}
 				
                 break;
             }
-			case 'c': {
-            	optind--;
-				/*
-            	for(; optind<argc && *argv[optind] != '-'; optind++)
-            		removeFile(argv[optind]);
-                	printf("filename: %s\n", argv[optind]); 
-					*/
+			case 'l':
+			{
+				optind--;
+
+				for(; optind<argc && *argv[optind] != '-'; optind++)
+				{
+					lockFile(argv[optind]);
+					printf("filename: %s\n", argv[optind]);
+				}				
+				break;
+			}
+			case 'u':
+			{
+				optind--;
+
+				for(; optind<argc && *argv[optind] != '-'; optind++)
+				{
+					unlockFile(argv[optind]);
+					printf("filename: %s\n", argv[optind]);
+				}
+
+				break;
+			}
+			case 'c': 
+			{
+				optind--;
+
+				for(; optind<argc && *argv[optind] != '-'; optind++)
+				{
+					removeFile(argv[optind]);
+					printf("filename: %s\n", argv[optind]);
+				}
+	 
                 break;
             }
-			case 'p': {
+			case 'p': 
+			{
                 printf("prints activated\n");
                 print = 1;
-				
                 break;
             }
-            case ':': {
+            case ':': 
+			{
                 printf("option needs a value\n"); 
                 break;
 			}
-			case '?': {
+			case '?': 
+			{
 				printf("unknown option: %c\n", optopt);
 				break; 
 			}
-        } 
+        }
+
+		usleep(sleeptime*1000);
     }
-	fprintf(stderr,"ho chiuso");
+
+	//after completing all request the connection is closed
 	closeConnection(SOCKNAME);
 
 	return 0;
