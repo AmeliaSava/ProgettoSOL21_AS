@@ -104,6 +104,30 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
  * errno viene settato opportunamente.
  */
 int closeConnection(const char* sockname) {
+
+	msg* close_connection = safe_malloc(sizeof(msg));
+	close_connection->op_type = 20;
+
+	if(writen(sockfd, close_connection, sizeof(msg)) <= 0)
+	{
+		errno = -1;
+		perror("ERROR: write openFile");
+		return -1;
+	}
+
+	op response;
+
+	if (readn(sockfd, &response, sizeof(op)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read2");
+		return -1;
+	}
+
+	print_op(response);
+
+	if(response == SRV_OK) return 0;
+
 	close(sockfd);
 	return 0;
 }

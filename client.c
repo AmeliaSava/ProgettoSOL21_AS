@@ -21,9 +21,9 @@ void print_h() {
 	printf("options: \n");
 	printf("-h -> prints helper\n");
 	printf("-f filename -> used to specify the name of the socketfile\n");
-	printf("-w dirname[, n = 0]-> sends request for writing the files in the directory -dirname- in the file storage.\n");
+	printf("-w dirname[,n = 0]-> sends request for writing the files in the directory -dirname- in the file storage.\n");
 	printf("						if n is specified, sends n files. If n = 0 or not specified there's not limit to the number of sent files\n");
-	printf("-W file1[, file2] -> list of file pathnames to write in the server, speparated by commas.\n");
+	printf("-W file1[ file2] -> list of file pathnames to write in the server, speparated by commas.\n");
 	printf("-D dirname -> folder where the files expelled because of capacity misses will be saved in case of ‘-w’ e ‘-W’.\n");
 	printf("So it must be used with those options. If it is not specified all the files will be discarded");
 	printf("-r file1[, file2]-> list of file pathnames to read from the file storage, speparated by commas.\n");
@@ -33,7 +33,7 @@ void print_h() {
 	printf("-t -> time in milliseconds that passes between sending a request from the previous to the server\n");
 	printf("		if not specified, t is assumed set to 0\n");
 	printf("-c file1[, file2]-> list of files to remove from the storage, if present.\n");
-	printf("l file1[,file2] -> lista di nomi di file su cui acquisire la mutua esclusione;\n");
+	printf("-l file1[,file2] -> lista di nomi di file su cui acquisire la mutua esclusione;\n");
 	printf("-u file1[,file2] -> lista di nomi di file su cui rilasciare la mutua esclusione;\n");
 	printf("-p -> enables prints throughout the code\n");
 }
@@ -67,33 +67,47 @@ char* cwd() {
 }
 
 // function that reads n or all files in a given directory
-int write_from_dir_find (const char* dir, long n) {
+// returns 0 if it was not able to enter the directory
+// -1 error
+// 1 success
+int write_from_dir_find (const char* dir, long* n) 
+{
 
-	if(n == 0) return 0;
-	//entro nella directory
-	if(chdir(dir) == -1) { print_error("error entering directory %s\n", dir); return 0; }
+	//enetering directory
+	if(chdir(dir) == -1) 
+	{ 
+		print_error("error entering directory %s\n", dir); 
+		return 0; 
+	}
 
 	DIR *d;
 
-	// apro la directory
-	if((d = opendir(".")) == NULL) { perror("opening cwd in findfile");	return -1;} 
-	else { // non c'è stato errore
+	//opening directory
+	if((d = opendir(".")) == NULL) 
+	{ 
+		print_error("error entering directory %s\n", dir);
+		return -1;
+	} 
+	else {
+
 		struct dirent *file;
 
-		// leggo tutti i file
+		// reading all files
 		// setto errno prima di chiamare readdir, per discriminare i due casi in cui ritorna NULL
 		// 1. se c'è un errore, e in quel caso setta errno
 		// 2. se è arrivato alla fine della dir e non c'è più niente da leggere
-		while((file = readdir(d)) != NULL) {
-			errno = 0;
+		while((errno = 0, file = readdir(d)) != NULL) {
+
 			struct stat statb;
-			// prendo le statistiche
-			if(stat(file->d_name, &statb) == -1) {
-				perror("stat");
+
+			//getting stats
+			if(stat(file->d_name, &statb) == -1) 
+			{ 
 				print_error("Error during stat of %s\n", file->d_name);
 				return -1;
 			}
-			//Se ho trovato una directory...
+
+			//if a directory is found...
 			if(S_ISDIR(statb.st_mode)) {
 				//...ed ho escluso il caso che sia la stessa directory in cui sono adesso o la directory padre...
 				if(!isdot(file->d_name)) {
@@ -105,25 +119,41 @@ int write_from_dir_find (const char* dir, long n) {
 						// directory entrero' in quella directory pero' poi salire di livello
 						// con .. non va bene perche' non ritornero' nella parent directory.
 						// per diminuire la complessità dell'esercizio non si controlla questa cosa    
-						if (chdir("..") == -1) {
+						if (chdir("..") == -1) 
+						{
 							print_error("Impossibile risalire alla directory padre.\n");
 							return -1;
 						}
 					}
 				}
-			// caso in cui il file non è una directory
+			// the file is not a directory
 			} else {
-					char* buf = cwd(); //non c'è il nome del file
-					buf = strncat(buf, "/", 1);
+					if(*n == 0) return 1;
+					char* buf = cwd();
+					buf = strncat(buf, "/", 2);
 					buf = strncat(buf, file->d_name, strlen(file->d_name));
 					if (buf == NULL) return -1;
-					int ret;
-					if((ret = openFile(buf, 1)) == 1) 
-					{
-						if(writeFile(buf, NULL) == 0) n--;
+
+					//printf("n: %ld", *n);
+					//printf("%s\n", buf);
+					
+					if((openFile(buf, 1)) == 1) 
+					{ 
+						printf("%s\n", buf);
+						
+						if((writeFile(buf, NULL)) == 0) 
+						{
+							*n = *n - 1;
+						} 
+						else return -1;
+						
 					}
-					else return ret;
+					else return -1;
+
+					//*n = *n - 1;
+
 					free(buf);
+	
 			}
 		}
 		// c'è stato un errore e stampo
@@ -133,6 +163,7 @@ int write_from_dir_find (const char* dir, long n) {
 
 	return 1;
 }
+
 
 int main(int argc, char *argv[]) {
 
@@ -175,7 +206,8 @@ int main(int argc, char *argv[]) {
             		if(i==1) isNumber(token, &n);
             		token = strtok(NULL, ",");
             	}
-				write_from_dir_find(dirname, n);
+				printf("n: %ld\n", n);
+				write_from_dir_find(dirname, &n);
                 break;
             }
             case 'W': 
@@ -273,6 +305,7 @@ int main(int argc, char *argv[]) {
 			case 'p': {
                 printf("prints activated\n");
                 print = 1;
+				
                 break;
             }
             case ':': {
@@ -285,7 +318,7 @@ int main(int argc, char *argv[]) {
 			}
         } 
     }
-
+	fprintf(stderr,"ho chiuso");
 	closeConnection(SOCKNAME);
 
 	return 0;

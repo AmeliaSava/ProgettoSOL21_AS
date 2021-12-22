@@ -60,15 +60,6 @@ int updateMax(fd_set set, int fdmax) {
     	return -1;
 }
 
-void requestServed(long fd_con) {
-
-	close(fd_con); 
-	FD_CLR(fd_con, &set);
-	if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
-
-	return;
-}
-
 //returns a response according to the result of the operation
 int report_ops(long connfd, op op_type) {
 
@@ -365,8 +356,8 @@ int cmd(int connfd, msg info) {
 			fprintf(stderr, "openfile cmd\n");
 
 			fprintf(stderr, "Flag: %d\n", info.flag);
-    		fprintf(stderr, "%s\n", info.filename);
-			fprintf(stderr, "%d", info.pid);
+    		fprintf(stderr, "Name: %s\n", info.filename);
+			fprintf(stderr, "PID: %d\n", info.pid);
 
 			return open_file_svr(connfd, info.filename, info.flag, info.pid);
 
@@ -451,6 +442,11 @@ int cmd(int connfd, msg info) {
 			return unlock_file_srv(connfd, info);
 			break;
 		}
+		case END_COMMUNICATION:
+		{
+			return report_ops(connfd, SRV_OK);
+			break;
+		}
 		default: 
 		{
 			fprintf(stderr, "Command not found SRV\n");
@@ -507,8 +503,14 @@ void* getMSG(void* arg)
 		pthread_mutex_unlock(&cli_req);
 
 		cmd(operation->fd_con, *operation);
-		fprintf(stderr, "fd: %ld\n", operation->fd_con);
-
+		//fprintf(stderr, "fd: %ld\n", operation->fd_con);
+		if(operation->op_type != 20)
+		{
+			LOCK(&set_lock);
+			FD_SET(operation->fd_con, &set);
+			UNLOCK(&set_lock);
+		}
+		
 	}
 
 	fflush(stdout);
@@ -763,10 +765,10 @@ int main (int argc, char* argv[]) {
 	
 					if (readn(fd_con, request, sizeof(msg))<=0) 
 					{	//dividere -! e 0?
-						FD_CLR(fd_con, &set);
-						if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
-						//perror("ERROR: reading msg");
-						//return EXIT_FAILURE;
+						//FD_CLR(fd_con, &set);
+						//if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
+						perror("ERROR: reading msg");
+						return EXIT_FAILURE;
 					}
 
 					//fprintf(stderr, "Nome: %s\n", request->filename);
@@ -780,7 +782,7 @@ int main (int argc, char* argv[]) {
 					pthread_mutex_unlock(&cli_req);
 
 					//close(fd_con); 
-					//FD_CLR(fd_con, &rdset);
+					FD_CLR(fd_con, &set);
 
 					//if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
 					
