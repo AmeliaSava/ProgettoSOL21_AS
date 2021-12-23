@@ -10,13 +10,20 @@ Hash memory initialized successfully
 Connecting to storage_sock
 Connected to client: 5
 Listening to client: 5
+Returning result: 12
 Listening to client: 5
+Returning result: 7
 Listening to client: 5
+Returning result: 12
 Listening to client: 5
+Returning result: 7
 Listening to client: 5
+Returning result: 12
 Listening to client: 5
+Returning result: 7
 Listening to client: 5
-Listening to client: 5
-Listening to client: 5
-Listening to client: 5
-Listening to client: 5
+Returning result: 7
+Connected to client: 6
+Listening to client: 6
+Listening to client: 6
+Returning result: 7

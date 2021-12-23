@@ -113,13 +113,11 @@ void Hash_Read (Table* tab, int n, FileNode** to_send, int* tot)
 	for(int i = 0; i < tab->maxSize && n != 0; i++)
 	{
 		FileNode* current = tab->bucket[i].head;
-		fprintf(stderr, "index: %d\n", i);
 			
 		if(current == NULL) continue;
 		//Sono tutte null???
 		while (current != NULL && n != 0)
 		{
-			fprintf(stderr, "N: %d\n", n);
 			node_insert(to_send, current);
 			current = current->next;
 			n--;

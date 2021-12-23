@@ -17,11 +17,13 @@
 int sockfd;
 
 //EXTRA FUNCTIONS
-char* readFileBytes(const char *name, long* filelen) {
+char* readFileBytes(const char *name, long* filelen) 
+{
 	fprintf(stderr, "dentro readbyte\n");
 	FILE *file = NULL;
 
-	if ((file = fopen(name, "rb")) == NULL) {
+	if ((file = fopen(name, "rb")) == NULL) 
+	{
 		perror("ERROR: opening file");
 		fclose(file);
 		exit(EXIT_FAILURE);
@@ -249,6 +251,8 @@ int readFile(const char* pathname, void** buf, size_t* size)
 
 	errno = 0;
 
+	char* tmp_buf;
+
 	//copying pathname in buffer
 	int name_lenght = strlen(pathname)+1;
 
@@ -280,7 +284,7 @@ int readFile(const char* pathname, void** buf, size_t* size)
 
 	print_op(response);
 
-	//if 
+	//if there were no errors on the server's side
 	if(response == SRV_OK) 
 	{
 		if(readn(sockfd, size, sizeof(size_t)) <= 0) 
@@ -290,12 +294,20 @@ int readFile(const char* pathname, void** buf, size_t* size)
 			return -1;
 		}  //reciveing file len
 
-		if(readn(sockfd, &buf, (*size)*sizeof(char)) <= 0) 
+		fprintf(stderr, "Recived size: %zu\n", *size);
+		tmp_buf = safe_malloc((*size)*sizeof(char));
+
+		if(readn(sockfd, tmp_buf, (*size)*sizeof(char)) <= 0) 
 		{ 
 			errno = -1;
 			perror("ERROR: read2");
 			return -1;
 		}  //reciveing byte file
+
+		fprintf(stderr, "Recived text: %s\n", tmp_buf);
+		fprintf(stderr, "Stored at %p\n", (void*)tmp_buf);
+
+		*buf = (void*)tmp_buf;
 
 	} else return -1;
 

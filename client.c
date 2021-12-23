@@ -15,6 +15,7 @@
 
 int print = 1;
 char* SOCKNAME = NULL;
+char* SAVE_DIR = NULL;
 long sleeptime = 0;
 
 //flag
@@ -43,7 +44,8 @@ void print_h() {
 	printf("-p -> enables prints throughout the code\n");
 }
 
-int add_current_folder(char** pathname, char* name) {
+int add_current_folder(char** pathname, char* name)
+{
 	char* folder = NULL;
 	if((folder = malloc((strlen(name) + 2)*sizeof(char))) == NULL) return -1;
 	if((*pathname = malloc(2*sizeof(char))) == NULL) return -1;
@@ -54,19 +56,24 @@ int add_current_folder(char** pathname, char* name) {
 	return 0;
 }
 
-int isdot (const char dir[]){
+int isdot (const char dir[])
+{
 	int l = strlen(dir);
 	if((l > 0 && dir[l - 1] == '.')) return 1;
 	return 0;
 }
 
 // function to obtain absolute pathname of a file
-char* cwd() {
+char* cwd() 
+{
+	char* buf = safe_malloc(MAX_SIZE*sizeof(char));
 
-	char* buf = malloc(MAX_SIZE*sizeof(char));
-	if(!buf) { perror("cwd malloc"); return NULL;}
-
-	if(getcwd(buf, MAX_SIZE) == NULL) {	perror("cwd during getcwd"); free(buf);	return NULL; }
+	if(getcwd(buf, MAX_SIZE) == NULL) 
+	{
+		perror("cwd during getcwd");
+		free(buf);
+		return NULL; 
+	}
 	
 	return buf;
 }
@@ -257,32 +264,19 @@ int main(int argc, char *argv[]) {
                 break;
             }
 			case 'R': {
-				//readNfiles(0, NULL);
-				//FileSend("./storage/test.txt");
+				char *tmp_optarg = optarg;
+				long r = 0;
+				// if `optarg` isn't set and argv[optind] isn't another option,
+				// then it's the arg and overtly modify optind to compensate.
+				if( !optarg && NULL != argv[optind] && '-' != argv[optind][0] ) {
+					tmp_optarg = argv[optind++];
+				}
+				// if the argument is a number it will be assigned to r
+				// else nothing happens and r stays 0, as if no argument was given
+				if (tmp_optarg) isNumber(tmp_optarg, &r);
 
-				//printf("option: %s\n", optarg);
-
-				
-				printf("--------------------\n");
-				openFile("./storage/test.txt", 1);
-				writeFile("./storage/test.txt", NULL);
-				printf("--------------------\n");
-
-				
-				openFile("./storage/1kb.png", 1);
-				writeFile("./storage/1kb.png", NULL);
-				printf("--------------------\n");
-				
-				
-				/*
-				openFile("./storage/manuale-unix.pdf", 1);
-				writeFile("./storage/manuale-unix.pdf", NULL);
-				printf("--------------------\n");
-				openFile("./storage/virtual.gif", 1);
-				writeFile("./storage/virtual.gif", NULL);
-				printf("--------------------\n");
-				*/
-				readNfiles(0, "./savedfiles");
+				//is SAVE_DIR was not specified before NULL wil be passed
+				readNfiles(r, SAVE_DIR);
 
                 break;
             }
@@ -298,7 +292,6 @@ int main(int argc, char *argv[]) {
                 break;
             }
 			case 't': {
-
                 
 				if((isNumber(optarg, &sleeptime)) == 1)
 				{

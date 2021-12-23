@@ -9,3 +9,9 @@ Si è deciso di utilizzare una struttura dati di tipo
 I file con stato 1 sono chiusi, con stato 0 sono aperti
 
 Il file ops.h si basa sul file util.h fornito a lezione.
+
+Client
+
+Quando vengono passati i file si suppon che venga passato il path assoluto del file.
+
+isdot cwd e write_from_dir_find sono basate su funzioni viste a lezione.

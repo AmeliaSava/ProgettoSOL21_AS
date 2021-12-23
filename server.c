@@ -27,7 +27,11 @@ long MAX_MEMORY_TOT;
 long MAX_NUM_FILES;
 char* SOCKET_NAME = NULL;
 char* LOG_NAME = NULL;
-int DEBUG = 1;
+
+//stats variables
+int MAX_FILES_MEMORIZED = 0;
+int MAX_MEMORY_EVER = 0;
+int EXPELLED_COUNT = 0;
 
 FILE* log_file = NULL;
 pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -41,7 +45,6 @@ pthread_mutex_t cli_req = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t wait_list = PTHREAD_COND_INITIALIZER;
 
 pthread_t* thread_ids = NULL;
-//int* pipe_m = NULL; ATTENTION
 
 fd_set set; //active file descriptor set
 pthread_mutex_t set_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -54,7 +57,6 @@ void unlinksock() {
     unlink(SOCKET_NAME);
 }
 
-
 // returns the max index of fd
 int updateMax(fd_set set, int fdmax) {
     for(int i = (fdmax-1); i >= 0; i--)
@@ -66,11 +68,12 @@ int updateMax(fd_set set, int fdmax) {
 //returns a response according to the result of the operation
 int report_ops(long connfd, op op_type) {
 
-	if(DEBUG) fprintf(stderr, "Returning result: %d\n", op_type);
+	fprintf(log_file, "Returning result: %d\n", op_type);
+	fflush(log_file);
 
 	if (writen(connfd, &op_type, sizeof(op)) <= 0)
 	{ 
-		perror("ERROR: writeok"); 
+		perror("ERROR: write report ops"); 
 		return -1;
 	}
 
@@ -80,11 +83,15 @@ int report_ops(long connfd, op op_type) {
 //converts a file into a msg
 void file_to_msg(FileNode* file, msg* msg)
 {
+	fprintf(stderr,"file to msg");
 	//ATTENTION
 	memcpy(msg->filecontents, file->textFile, file->FileSize);
+	fprintf(stderr,"contents");
 	//msg->filecontents[(file->FileSize) + 1] = '\0';
 	strncpy(msg->filename, file->nameFile, strlen(file->nameFile));
+	fprintf(stderr,"name");
 	msg->filename[(strlen(file->nameFile)) + 1] = '\0';
+	fprintf(stderr,"termination");
 	msg->size = file->FileSize;
 	msg->namelenght = strlen(file->nameFile);
 
@@ -112,12 +119,12 @@ int write_file_svr(long connfd, msg file, int flag, pid_t pid){
 			Hash_LFUremove(&cacheMemory);
 			if(MAX_MEMORY_MB < file.size) MAX_MEMORY_MB += file.size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
-			if(DEBUG) fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+			fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
 			return write_file_svr(connfd, file, flag, pid);
 		} else {
 					MAX_MEMORY_MB -= file.size;
 					MAX_NUM_FILES--;
-					if(DEBUG) fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", file.size, MAX_MEMORY_MB);
+					fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", file.size, MAX_MEMORY_MB);
 					node_update(current, current->frequency +  1, file.filecontents, file.size);
 					Hash_Inc(&cacheMemory, current);
 				} 				
@@ -186,26 +193,28 @@ int close_file_svr(long connfd, msg info, char* name)
 
 int read_file_svr(long connfd, msg info, char** tmp, size_t* size) 
 {
-	fprintf(stderr, "%s\n", info.filename);
+	fprintf(stderr, "Reading file: %s\n", info.filename);
 
 	FileNode* current = NULL;
 
 	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) 
 	{	// file found
+		fprintf(stderr, "Found file: %s\n", current->nameFile);
+
 		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED); //file is locked by some other process
-		fprintf(stderr, "%s\n", current->nameFile);
 
 		if(current->status == 1) return 13; // file is closed, cannot read
 
 		else 
 		{	// file already exists and its open
+	
+			*size = current->FileSize;
+			*tmp = safe_malloc((*size)*sizeof(char));
+			fprintf(stderr, "File Size: %zu\nAssigned Size: %zu\n", current->FileSize, *size);
+			memcpy(*tmp, current->textFile, *size);
+
 			Hash_Inc(&cacheMemory, current);
 
-			*size = current->FileSize;
-
-			if ((*tmp = malloc((*size)*sizeof(char))) == NULL) return 8; //error
-			memcpy(*tmp, current->textFile, *size);
-			
 			return 0; //ok
 		} 
 	}
@@ -224,14 +233,12 @@ int read_n_file_svr(long connfd, msg info) {
 
 	msg send[tot];
 	FileNode* current = to_send;
-	int i = 0;
 	
-	while(current != NULL)
+	for(int i = 0; i < tot; i++)
 	{
 		file_to_msg(current, &send[i]);
-
+		printf("file %d: %s\n",i,send[i].filename);
 		current = current->next;
-		i++;
 	}
 
 	if(writen(connfd, &tot, sizeof(int)) <= 0) 
@@ -270,13 +277,13 @@ int append_file_svr(long connfd, msg info)
 				long removed = 0; //ATTENTION
 				Hash_LFUremove(&cacheMemory);
 				MAX_MEMORY_MB += info.size;
-				if(DEBUG) fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+				fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
 				return append_file_svr(connfd, info);
 			} else 
 			{
 				fprintf(stderr, "append ok\n");
 				MAX_MEMORY_MB -= info.size;
-				if(DEBUG) fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", info.size, MAX_MEMORY_MB);
+				fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", info.size, MAX_MEMORY_MB);
 				node_append(current, current->frequency + 1, info.filecontents, (current->FileSize + info.size)); //file is open, enough memory, make append
 				Hash_Inc(&cacheMemory, current);
 			}	
@@ -297,7 +304,7 @@ int remove_file_svr(long connfd, msg info) {
 		{ //removing the node
 			MAX_MEMORY_MB += current->FileSize;
 			MAX_NUM_FILES++;
-			if(DEBUG) fprintf(stdout, "Bytes freed: %ld\nMemory left:%ld\n", current->FileSize, MAX_MEMORY_MB);
+			fprintf(stdout, "Bytes freed: %ld\nMemory left:%ld\n", current->FileSize, MAX_MEMORY_MB);
 			Hash_Remove(&cacheMemory, info.filename);
 		} 
 	} else return report_ops(connfd, SRV_FILE_NOT_FOUND);
@@ -378,20 +385,21 @@ int cmd(int connfd, msg info) {
 		case READ_FILE:	
 		{
 			fprintf(stderr, "dentro cmd read\n");
-			fprintf(stderr, "%s\n", info.filename);
-			fprintf(stderr, "prima ret\n");
+			fprintf(stderr, "Requested file: %s\n", info.filename);
+			fprintf(stderr, "prima chiamata read\n");
 
 			char* tmp_buf = NULL;
 			size_t tmp_size;
 			int ret = read_file_svr(connfd, info, &tmp_buf, &tmp_size);
 
-			fprintf(stderr, "dopo read");
-			fprintf(stderr, "%s\n", tmp_buf);
-			fprintf(stderr, "%ld\n", info.size);
+			fprintf(stderr, "Read file:\n");
+			fprintf(stderr, "Contenets: %s\n", tmp_buf);
+			fprintf(stderr, "Size: %ld\n", tmp_size);
 			fprintf(stderr, "Result Return: %d\n", ret);
 
 			if(ret == 0) {
-				fprintf(stderr, "dentro ok read");
+				fprintf(stderr, "dentro ok read\n");
+
 			    if(report_ops(connfd, SRV_OK) == -1) return -1;
 
 			    if(writen(connfd, &tmp_size, sizeof(long)) <= 0) 
@@ -526,7 +534,8 @@ void configParsing() {
 	
 	char* buffer = NULL;
 
-	if ((config_input = fopen(CONFIG_FL, "r")) == NULL) {
+	if ((config_input = fopen(CONFIG_FL, "r")) == NULL) 
+	{
 		perror("ERROR: opening config file");
 		fclose(config_input);
 		exit(EXIT_FAILURE);
@@ -536,11 +545,13 @@ void configParsing() {
 
 	int count = 0;
 
-	while(fgets(buffer, MAX_BUF, config_input) != NULL) {
+	while(fgets(buffer, MAX_BUF, config_input) != NULL) 
+	{
 
 		char* comment;
 
-		if ((comment = strchr(buffer, '#')) != NULL) { 
+		if ((comment = strchr(buffer, '#')) != NULL) 
+		{ 
 			continue;
 		}
 
@@ -554,7 +565,8 @@ void configParsing() {
 
 		++equals;
 
-		switch (count) {
+		switch (count)
+		{
 
 			case 0:
 				if(isNumber(equals,  &NUM_THREAD_WORKERS) != 0) {
@@ -619,7 +631,8 @@ void log_create()
 	return;
 }
 
-int main (int argc, char* argv[]) {
+int main (int argc, char* argv[]) 
+{
 
 	atexit(unlinksock);  
 	
@@ -660,8 +673,10 @@ int main (int argc, char* argv[]) {
 
 	int res = 0;
 
-	for(int i = 0; i < NUM_THREAD_WORKERS; i++) {
-		if((res = pthread_create(&(thread_ids[i]), NULL, &getMSG, NULL) != 0)) { 
+	for(int i = 0; i < NUM_THREAD_WORKERS; i++) 
+	{
+		if((res = pthread_create(&(thread_ids[i]), NULL, &getMSG, NULL) != 0)) 
+		{ 
 			perror("ERROR: threads init");
 			exit(EXIT_FAILURE);
 		}
@@ -825,7 +840,7 @@ int main (int argc, char* argv[]) {
 
 	//DOSEN'T WORK
 	/*
-    if(DEBUG) fprintf(stderr, "Max fd at start: %d\n", fd_max);
+    fprintf(stderr, "Max fd at start: %d\n", fd_max);
 	for(;;)
 	{   
 
@@ -928,6 +943,14 @@ int main (int argc, char* argv[]) {
 	*/
 
     //ogni volta che si chiude la comunicazione va aggiornato il massimo
+
+	/*Stampare il riassunto:
+		Numero massimo di file memorizzati
+		dimensioni masima raggiunta
+		numero di vittime
+		lista di tutti i file
+	*/
+
     //sezione di deallocazione di tutte le risorse
 	close(fd_skt);
     free(SOCKET_NAME);
