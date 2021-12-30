@@ -25,13 +25,17 @@ long NUM_THREAD_WORKERS;
 long MAX_MEMORY_MB; //ATTENTION da lockare?
 long MAX_MEMORY_TOT;
 long MAX_NUM_FILES;
+long MAX_NUM_FILES_TOT;
 char* SOCKET_NAME = NULL;
 char* LOG_NAME = NULL;
 
 //stats variables
-int MAX_FILES_MEMORIZED = 0;
-int MAX_MEMORY_EVER = 0;
-int EXPELLED_COUNT = 0;
+long MAX_FILES_MEMORIZED = 0;
+pthread_mutex_t max_file_lock = PTHREAD_MUTEX_INITIALIZER;
+long MAX_MEMORY_EVER = 0;
+pthread_mutex_t max_mem_lock = PTHREAD_MUTEX_INITIALIZER;
+long EXPELLED_COUNT = 0;
+pthread_mutex_t exp_lock = PTHREAD_MUTEX_INITIALIZER;
 
 FILE* log_file = NULL;
 pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -124,6 +128,21 @@ int write_file_svr(long connfd, msg file, int flag, pid_t pid){
 		} else {
 					MAX_MEMORY_MB -= file.size;
 					MAX_NUM_FILES--;
+
+					if((MAX_NUM_FILES_TOT - MAX_NUM_FILES) > MAX_FILES_MEMORIZED) 
+					{
+						LOCK(&max_file_lock);
+						MAX_FILES_MEMORIZED = MAX_NUM_FILES_TOT - MAX_NUM_FILES;
+						UNLOCK(&max_file_lock);
+					}
+
+					if((MAX_MEMORY_TOT - MAX_MEMORY_MB) > MAX_MEMORY_EVER) 
+					{
+						LOCK(&max_mem_lock);
+						MAX_MEMORY_EVER = MAX_MEMORY_TOT - MAX_MEMORY_MB;
+						UNLOCK(&max_mem_lock);
+					}
+					 
 					fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", file.size, MAX_MEMORY_MB);
 					node_update(current, current->frequency +  1, file.filecontents, file.size);
 					Hash_Inc(&cacheMemory, current);
