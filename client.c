@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
 	struct timespec abstime;
 	int opt;
 
-	while((opt = getopt(argc, argv, "hf:w:W:D:r:R::d::t:l:u:c:p")) != -1) { 
+	while((opt = getopt(argc, argv, "hf:w:W:D:r:R::d:t:l:u:c:p")) != -1) { 
 		switch(opt) { 
             case 'h': {
             	print_h();
@@ -273,11 +273,11 @@ int main(int argc, char *argv[]) {
 					*/
 					char* file = buf;
                 	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s", buf, sz, file); 
-					/*if((WriteFilefromByte(argv[optind], file, sz, dirname)) == -1) 
+					if((WriteFilefromByte(argv[optind], file, sz, dirname)) == -1) 
 					{
 						perror("ERROR: writefb");
 						return EXIT_FAILURE;
-					}*/
+					}
 				}
 
                 break;
@@ -309,10 +309,10 @@ int main(int argc, char *argv[]) {
 				isR = 0;
 				*/
 				isd = 1;
-				printf("boo");
-				//dirname = safe_malloc(strlen(optarg)*sizeof(char*));
-				//strncpy(dirname, optarg, strlen(optarg));
-				//printf("%s\n%s\n", dirname, optarg);
+				char* tmp_optarg = optarg;
+				dirname = safe_malloc(strlen(tmp_optarg)*sizeof(char*));
+				strncpy(dirname, tmp_optarg, strlen(tmp_optarg));
+				
                 break;
             }
 			case 't': {

@@ -57,6 +57,7 @@ int WriteFilefromByte(const char* name, char* text, long size, const char* dirna
 	FILE *fp1;
 	char fullpath[MAX_SIZE];
 
+	char* truename = strrchr("/");
 	sprintf(fullpath,"%s/%s", dirname, name);
 	
 	if((fp1 = fopen(fullpath, "wb")) == NULL) return -1;
