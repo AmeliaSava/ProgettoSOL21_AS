@@ -14,7 +14,7 @@ void print_tab (Table* tab)
 	{
 		printf("Printing hash bucket[%zu]\n", i);
 		printf("\n");
-		print_list(tab->bucket[i].head);
+		list_print(tab->bucket[i].head);
 	}
 }
 

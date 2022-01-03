@@ -21,6 +21,9 @@ long sleeptime = 0;
 //flag
 int isW = 0;
 int isR = 0;
+int isD = 0;
+int isd = 0;
+char* dirname;
 
 void print_h() {
 	printf("usage: ./client [option]\n");
@@ -247,6 +250,7 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 				isW = 0;
+				isD = 1;
 				break;
 			}
             case 'r': {
@@ -256,9 +260,24 @@ int main(int argc, char *argv[]) {
 				for(; optind<argc && *argv[optind] != '-'; optind++)
 				{
 					void* buf = NULL;
+					
                 	size_t sz;
                 	int r = readFile(argv[optind], &buf, &sz);
-                	if(!r) printf("Buf: %p\nSize: %zu\n", buf, sz); // qualcosa non va nel puntatore
+					/*
+					if((WriteFilefromByte(p, file.filecontents, file.size, dirname)) == -1) 
+					{
+						errno = -1;
+						perror("ERROR: writefb");
+						return -1;
+					}
+					*/
+					char* file = buf;
+                	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s", buf, sz, file); 
+					/*if((WriteFilefromByte(argv[optind], file, sz, dirname)) == -1) 
+					{
+						perror("ERROR: writefb");
+						return EXIT_FAILURE;
+					}*/
 				}
 
                 break;
@@ -281,18 +300,28 @@ int main(int argc, char *argv[]) {
                 break;
             }
 			case 'd': {
-
+				/*
 				if(!isR)
 				{
 					printf("-D option must be used with -w or -W options preceeding it.");
 					break;
 				}
 				isR = 0;
-				//optarg
+				*/
+				isd = 1;
+				printf("boo");
+				//dirname = safe_malloc(strlen(optarg)*sizeof(char*));
+				//strncpy(dirname, optarg, strlen(optarg));
+				//printf("%s\n%s\n", dirname, optarg);
                 break;
             }
 			case 't': {
                 
+				if(isd || isD) 
+				{
+					printf("-D option must be used with -w or -W options preceeding it.");
+					break;
+				}
 				if((isNumber(optarg, &sleeptime)) == 1)
 				{
 					printf("option %s is not a number\n", optarg);

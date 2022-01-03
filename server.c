@@ -9,6 +9,7 @@
 #include <sys/select.h>
 #include <assert.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include <ops.h>
 #include <conn.h>
@@ -20,7 +21,7 @@
 #define MAX_BUF 2048
 #define TAB_SIZE 10
 
-// Global Variables
+//configuration variables
 long NUM_THREAD_WORKERS;
 long MAX_MEMORY_MB; //ATTENTION da lockare?
 long MAX_MEMORY_TOT;
@@ -37,9 +38,11 @@ pthread_mutex_t max_mem_lock = PTHREAD_MUTEX_INITIALIZER;
 long EXPELLED_COUNT = 0;
 pthread_mutex_t exp_lock = PTHREAD_MUTEX_INITIALIZER;
 
+//log file
 FILE* log_file = NULL;
 pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
-// HashTable for the file memory system
+
+//HashTable for the file memory system
 Table cacheMemory;
 pthread_mutex_t cache_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -48,21 +51,40 @@ MSGlist* client_requests;
 pthread_mutex_t cli_req = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t wait_list = PTHREAD_COND_INITIALIZER;
 
+//thread array
 pthread_t* thread_ids = NULL;
 
-fd_set set; //active file descriptor set
+//active file descriptor set
+fd_set set; 
 pthread_mutex_t set_lock = PTHREAD_MUTEX_INITIALIZER;
 
-int fd_max = 0; //max fd
+//max fd
+int fd_max = 0;
 pthread_mutex_t max_lock = PTHREAD_MUTEX_INITIALIZER;
 
+//signal handling
+volatile sig_atomic_t fast_stop = 0;
+volatile sig_atomic_t slow_stop = 0;
+volatile sig_atomic_t signal_stop = 0;
+
+pthread_t signal_handler;
+
+sigset_t signal_mask;
+
+/*
+	* SERVER FUNCTIONS
+*/
+
 //makes sure the socket name is unlinked
-void unlinksock() {
+void unlinksock() 
+{
     unlink(SOCKET_NAME);
 }
 
 // returns the max index of fd
-int updateMax(fd_set set, int fdmax) {
+// ATTENTION non la stai usando
+int updateMax(fd_set set, int fdmax)
+{
     for(int i = (fdmax-1); i >= 0; i--)
     	if (FD_ISSET(i, &set)) return i;
     	assert(1 == 0);
@@ -70,8 +92,10 @@ int updateMax(fd_set set, int fdmax) {
 }
 
 //returns a response according to the result of the operation
-int report_ops(long connfd, op op_type) {
+int report_ops(long connfd, op op_type) 
+{
 
+	//ATTENTION scrivere anche il nome?
 	fprintf(log_file, "Returning result: %d\n", op_type);
 	fflush(log_file);
 
@@ -104,8 +128,10 @@ void file_to_msg(FileNode* file, msg* msg)
 
 //Handling of API operations on server side
 
-int write_file_svr(long connfd, msg file, int flag, pid_t pid){
-	fprintf(stderr, "dentro write\n");
+int write_file_svr(long connfd, msg file, int flag, pid_t pid)
+{
+
+	//fprintf(stderr, "Writing file on server memory\n");
 	
 	FileNode* current = NULL;
 
@@ -120,9 +146,13 @@ int write_file_svr(long connfd, msg file, int flag, pid_t pid){
 		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file.size)) //not enough space for new node
 		{ 
 			long removed = 0; //ATTENTION
-			Hash_LFUremove(&cacheMemory);
+			FileNode* expelled = Hash_LFUremove(&cacheMemory);
+			printf("%d", expelled->frequency);
 			if(MAX_MEMORY_MB < file.size) MAX_MEMORY_MB += file.size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
+			LOCK(&exp_lock);
+			EXPELLED_COUNT++;
+			UNLOCK(&exp_lock);
 			fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
 			return write_file_svr(connfd, file, flag, pid);
 		} else {
@@ -292,16 +322,34 @@ int append_file_svr(long connfd, msg info)
 		else {
 			if(MAX_MEMORY_MB < info.size) 
 			{
-				fprintf(stderr, "append LFU\n");
+				fprintf(stderr, "Removing a file to do an append operation\n");
+
 				long removed = 0; //ATTENTION
+
 				Hash_LFUremove(&cacheMemory);
+
 				MAX_MEMORY_MB += info.size;
+
+				LOCK(&exp_lock);
+				EXPELLED_COUNT ++;
+				UNLOCK(&exp_lock);
+
 				fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+				//retrying the operation with more memory
 				return append_file_svr(connfd, info);
 			} else 
 			{
 				fprintf(stderr, "append ok\n");
 				MAX_MEMORY_MB -= info.size;
+
+				//updating the max memory for stats
+				if((MAX_MEMORY_TOT - MAX_MEMORY_MB) > MAX_MEMORY_EVER) 
+				{
+					LOCK(&max_mem_lock);
+					MAX_MEMORY_EVER = MAX_MEMORY_TOT - MAX_MEMORY_MB;
+					UNLOCK(&max_mem_lock);
+				}
+
 				fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", info.size, MAX_MEMORY_MB);
 				node_append(current, current->frequency + 1, info.filecontents, (current->FileSize + info.size)); //file is open, enough memory, make append
 				Hash_Inc(&cacheMemory, current);
@@ -370,9 +418,10 @@ int unlock_file_srv(long connfd, msg info){
 }
 
 //WIP
-int cmd(int connfd, msg info) {
+int cmd(int connfd, msg info) 
+{
 
-	fprintf(stderr, "dentro cmd: %d\n", info.op_type);
+	//fprintf(stderr, "dentro cmd: %d\n", info.op_type);
 
 	int flag;
 
@@ -382,12 +431,13 @@ int cmd(int connfd, msg info) {
 		{
 			//int count = 0;
 			//while(1) count ++;
+			/*
 			fprintf(stderr, "openfile cmd\n");
 
 			fprintf(stderr, "Flag: %d\n", info.flag);
     		fprintf(stderr, "Name: %s\n", info.filename);
 			fprintf(stderr, "PID: %d\n", info.pid);
-
+*/
 			return open_file_svr(connfd, info.filename, info.flag, info.pid);
 
 			break;
@@ -488,22 +538,6 @@ int cmd(int connfd, msg info) {
 }
 
 /*
-	ConnessioniSelect
-		select
-			if (connessione)
-				connetti
-			else
-				prendi l'fd che è pronto
-				leggi
-				metti la richiesta in coda
-	
-	Worker
-		while (true)
-			if (!coda vuota)
-				esaudisci richiesta
-*/
-
-/*
 int getMSG(int connfd)
 {
 	msg* file = safe_malloc(sizeof(msg));
@@ -518,33 +552,113 @@ int getMSG(int connfd)
 
 void* getMSG(void* arg)
 {
-
 	fprintf(stderr, "dentro getmsg thread\n");
 
-	for(;;) 
+	while(!fast_stop)
 	{
+		if(slow_stop && client_requests->head == NULL) 
+		{
+			fprintf(stderr, "fine slow stop\n");
+			break;
+		}
+			
+
 		msg* operation;
 
 		pthread_mutex_lock(&cli_req);
 		pthread_cond_wait(&wait_list, &cli_req);
-		operation = msg_list_pop_return(client_requests);
 
-		fprintf(stderr, "prelevo coda\n");
-		pthread_mutex_unlock(&cli_req);
-
-		cmd(operation->fd_con, *operation);
-		//fprintf(stderr, "fd: %ld\n", operation->fd_con);
-		if(operation->op_type != 20)
+		if(!fast_stop && client_requests->head != NULL)
 		{
-			LOCK(&set_lock);
-			FD_SET(operation->fd_con, &set);
-			UNLOCK(&set_lock);
+			operation = msg_list_pop_return(client_requests);
+
+			//fprintf(stderr, "prelevo coda\n");
+			pthread_mutex_unlock(&cli_req);
+
+			cmd(operation->fd_con, *operation);
+			//fprintf(stderr, "fd: %ld\n", operation->fd_con);
+			if(operation->op_type != 20)
+			{
+				LOCK(&set_lock);
+				FD_SET(operation->fd_con, &set);
+				UNLOCK(&set_lock);
+			}
+			else
+			{
+				//operation is close connection
+				close(operation->fd_con);
+				if (operation->fd_con == fd_max) fd_max = updateMax(set, fd_max);
+			}
 		}
-		
+		else
+			pthread_mutex_unlock(&cli_req);
 	}
+	fprintf(stderr, "Uscita dal woker\n");
 
 	fflush(stdout);
-	return NULL;
+	pthread_exit(NULL);
+}
+
+void* signalhandler(void* arg)
+{
+	fprintf(stderr, "Signal handler activated\n");
+	
+	int signal = -1;
+
+	while(!signal_stop)
+	{
+		
+		sigwait(&signal_mask, &signal);
+		fprintf(stderr, "Recived a signal\n");
+
+		//I've recived a signal
+		signal_stop = 1;
+
+		if (signal == SIGINT || signal == SIGQUIT)
+        {
+			fprintf(stderr, "SIGINT or SIGQUIT\n");
+			//blocco i worker e l'accettazione di nuove connesioni
+			fast_stop = 1;
+			pthread_cond_broadcast(&wait_list);
+
+			//chiudo tutte le connesioni e svuoto la lista richieste
+			msg* current = client_requests->head;
+			msg* next;
+
+			while(current != NULL)
+			{
+				close(current->fd_con);
+				next = current->next;
+				free(current);
+				current = next;
+			}
+
+			for (int i=0; i<NUM_THREAD_WORKERS; i++)
+			{
+				pthread_join(thread_ids[i], NULL);
+			}
+
+			fprintf(stderr, "Spaccati di botte i thread\n");
+		}
+
+		if(signal == SIGHUP) 
+		{
+			fprintf(stderr, "SIGHUP\n");
+
+			slow_stop = 1;
+			
+			pthread_cond_broadcast(&wait_list);
+
+			//waiting for thread workers to finish
+			for(int i = 0; i < NUM_THREAD_WORKERS; i++)
+			{
+				pthread_join(thread_ids[i], NULL);
+			}
+			fprintf(stderr, "cortesemente interrotti i thread\n");
+		}
+	}
+	fprintf(stderr, "Exit sighan\n");
+	pthread_exit(NULL);
 }
 
 //ok, better clean up
@@ -598,13 +712,13 @@ void configParsing() {
 					fprintf(stderr, "wrong config.txt file format: second line must be maximum memory allocable\n");
 					free(buffer);
 					exit(EXIT_FAILURE);
-				} else {MAX_MEMORY_MB = MAX_MEMORY_MB*(1048576); MAX_MEMORY_TOT = MAX_MEMORY_MB;}
+				} else {MAX_MEMORY_TOT = MAX_MEMORY_MB;}
 			case 2:
 				if(isNumber(equals, &MAX_NUM_FILES) != 0) {
 					fprintf(stderr, "wrong config.txt file format: third line must be maximum of managable files\n");
 					free(buffer);
 					exit(EXIT_FAILURE);
-				}
+				} else {MAX_NUM_FILES_TOT = MAX_NUM_FILES;}
 			case 3:
 				while((*equals) != '\0' && isspace(*equals)) ++equals;
 				if((*equals) == '\0') {
@@ -650,10 +764,40 @@ void log_create()
 	return;
 }
 
+void print_stat()
+{
+	printf("Server Stats:\n");
+	printf("Max number of memorized files: %ld\n", MAX_FILES_MEMORIZED);
+	printf("Max memory used: %ld\n", MAX_MEMORY_EVER);
+	printf("%ld files were expelled\n", EXPELLED_COUNT);
+	printf("\n");
+	printf("Cache Memory Contenents:\n");
+	Hash_Print(&cacheMemory);
+	if(MAX_NUM_FILES == MAX_NUM_FILES_TOT)
+		printf("Memory is empty\n");
+}
+
 int main (int argc, char* argv[]) 
 {
 
-	atexit(unlinksock);  
+	fprintf(stderr, "Main pid: %ld", (long)getpid());
+
+	atexit(unlinksock);
+
+	//signal masking
+	int err = 0;
+
+    sigset_t oldmask;
+    SYSCALL_EXIT("sigemptyset", err, sigemptyset(&signal_mask), "ERROR: sigemptyset", "");
+    SYSCALL_EXIT("sigaddset", err, sigaddset(&signal_mask, SIGHUP), "ERROR: sigaddset", "");
+    SYSCALL_EXIT("sigaddset", err, sigaddset(&signal_mask, SIGINT), "ERROR: sigaddset", "");
+    SYSCALL_EXIT("sigaddset", err, sigaddset(&signal_mask, SIGQUIT), "ERROR: sigaddset", "");
+
+    //apply mask
+    SYSCALL_EXIT("pthread_sigmask", err, pthread_sigmask(SIG_SETMASK, &signal_mask, &oldmask), "ERROR: pthread_sigmask", "");
+
+    //activating signal handling thread
+    SYSCALL_EXIT("pthread_create", err, pthread_create(&signal_handler, NULL, &signalhandler, NULL), "ERROR: pthread_create", "");  
 	
 	//allocating the global socket name
 	SOCKET_NAME = safe_malloc(MAX_BUF * sizeof(char));
@@ -784,7 +928,7 @@ int main (int argc, char* argv[])
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 1;
 	
-	for(;;) 
+	while(!slow_stop && !fast_stop)  
 	{      
 		rdset = set; //saving the set in the temporary one
 
@@ -803,7 +947,6 @@ int main (int argc, char* argv[])
 			{
 				//accepting new connections
 				//fprintf(stderr, "accepting connections\n");
-
 			    if (FD_ISSET(fd_sel, &rdset))
 				{ //is it ready?
 			    	//fprintf(stderr, "ready?\n");
@@ -963,15 +1106,23 @@ int main (int argc, char* argv[])
 
     //ogni volta che si chiude la comunicazione va aggiornato il massimo
 
-	/*Stampare il riassunto:
-		Numero massimo di file memorizzati
-		dimensioni masima raggiunta
-		numero di vittime
-		lista di tutti i file
+	//waiting for signal handler thread to terminate
+	pthread_join(signal_handler, NULL);
+
+	/*Printing server stats:
+		Max number of memorized files
+		Max memory size reached
+		Numer of files expelled for memory
+		List of all files
 	*/
+	print_stat();
 
     //sezione di deallocazione di tutte le risorse
+
+
+
 	close(fd_skt);
     free(SOCKET_NAME);
-	return EXIT_SUCCESS;
+	pthread_exit(NULL);
+	//return EXIT_SUCCESS;
 }

@@ -26,13 +26,15 @@ void Hash_Insert(Table* t, int frq, char* fName, int fStat);
 
 FileNode* Hash_SearchNode(Table* tab, char* fName);
 
-void Hash_LFUremove (Table* tab);
+FileNode* Hash_LFUremove (Table* tab);
 
 void Hash_Remove(Table* tab, char* Vfile);
 
 void Hash_Inc(Table* tab, FileNode* node);
 
 void Hash_Read(Table* tab, int n, FileNode** to_send, int* tot);
+
+void Hash_Print (Table* tab);
 
 void Hash_Destroy(Table* t);
 

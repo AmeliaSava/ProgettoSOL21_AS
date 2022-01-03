@@ -36,7 +36,7 @@ long pop_tail(node* head) {
 	return return_fd;
 }
 
-/*void print_list(node* head){
+/*void list_print(node* head){
 	node* ptr = head;
 	while(ptr->next != NULL) {
 		printf("%ld -> ", ptr->client_fd);
@@ -51,8 +51,8 @@ int main(){
 	push_head(&list, 1);
 	push_head(&list, 2);
 	push_head(&list, 3);
-	print_list(list);
+	list_print(list);
 	pop_tail(list);
 	printf("\n");
-	print_list(list);
+	list_print(list);
 }*/

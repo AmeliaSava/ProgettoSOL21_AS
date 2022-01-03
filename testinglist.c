@@ -19,7 +19,7 @@ int main(){
 	node_push(list, 0, "docvimk", "01110011001000000110000101", 0, 12);
 	printf("Regular List:\n");
 	printf("\n");
-	print_list(list->head);
+	list_print(list->head);
 	
 	//FileNode* found = malloc(sizeof(FileNode));
 	//found = node_search(list->head, "prjup");
@@ -38,18 +38,18 @@ int main(){
 	node_movetofront(list, "paswfil", strlen("vid"));
 	printf("Moving paswfil:\n");
 	printf("\n");
-	print_list(list->head);
+	list_print(list->head);
 	node_movetofront(list, "vid", strlen("vid"));
 	printf("Moving vid:\n");
 	printf("\n");
-	print_list(list->head);
+	list_print(list->head);
 	node_movetofront(list, "docvimk", strlen("docvimk"));
 	//list_pop(list);
 	printf("Moving docvimk:\n");
 	printf("\n");
-	print_list(list->head);
+	list_print(list->head);
 	list_destroy(list);
-	//print_list(list->head);
+	//list_print(list->head);
 	
 	return 0;
 }

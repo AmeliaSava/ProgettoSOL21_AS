@@ -26,19 +26,19 @@ typedef struct FILE_LIST
 
 //AGGIORNARE I PUNTATORI TESTACODA
 
-static inline void print_list (FileNode* n) 
+static inline void list_print (FileNode* n) 
 {
 
 	if(n==NULL) {
-		fprintf(stdout, "NULL\n");
-		printf("\n");
+		//fprintf(stdout, "NULL\n");
+		//printf("\n");
 		return;
 	}
 	
-	printf("Nome: %s\n", n->nameFile);
-	printf("\n");
+	printf("Name: %s\n", n->nameFile);
+	//printf("\n");
 
-	print_list(n->next);	
+	list_print(n->next);	
 }
 
 //LIST functions

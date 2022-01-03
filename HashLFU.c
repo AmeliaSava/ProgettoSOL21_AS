@@ -66,7 +66,7 @@ void Hash_Inc(Table* tab, FileNode* node)
 }
 
 //ok
-void Hash_LFUremove (Table* tab)
+FileNode* Hash_LFUremove (Table* tab)
 {
 	//find tail with min freq
 	int min = MAX_INT;
@@ -81,15 +81,15 @@ void Hash_LFUremove (Table* tab)
 		
 		}
 	}
-	printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
-	printf("\n");
-	print_list(minFile->head);
+	//printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
+	//printf("\n");
+	//list_print(minFile->head);
 	//last delete
-	list_pop(minFile);
-	
+	//list_pop(minFile);
+	FileNode* expelled = list_pop_return(minFile);
 	tab->curSize--;
 
-	return;
+	return expelled;
 }
 
 //ok
@@ -97,7 +97,7 @@ void Hash_Remove(Table* tab, char* Vfile)
 {
 	fprintf(stderr, "dentro hash remove\n");
 	int index = Hash_Function(tab, Vfile);
-	print_list((tab->bucket[index].head));
+	list_print((tab->bucket[index].head));
 	node_delete(&(tab->bucket[index]), Vfile, strlen(Vfile));
 	tab->curSize--;
 	return;
@@ -125,6 +125,16 @@ void Hash_Read (Table* tab, int n, FileNode** to_send, int* tot)
 		}
 	}
 	return;
+}
+
+void Hash_Print (Table* tab)
+{
+	for(size_t i = 0; i < tab->maxSize; i++)
+	{
+		//printf("Printing hash bucket[%zu]\n", i);
+		//printf("\n");
+		list_print(tab->bucket[i].head);
+	}
 }
 
 //ok
