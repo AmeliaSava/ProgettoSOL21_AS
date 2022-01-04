@@ -14,9 +14,15 @@ Returning result: 12
 Listening to client: 5
 Returning result: 7
 Listening to client: 5
-Returning result: 7
-Connected to client: 5
+Returning result: 12
 Listening to client: 5
 Returning result: 7
 Listening to client: 5
+Returning result: 12
+Listening to client: 5
 Returning result: 7
+Listening to client: 5
+Returning result: 12
+Listening to client: 5
+Returning result: 7
+Listening to client: 5

@@ -10,11 +10,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <filelist.h>
 
 #define SOCK_NAME "./storage_sock"
 
-typedef struct ARGS {
+typedef struct ARGS 
+{
 	struct ARGS* next;
 	int opt;
 	char* args;
@@ -25,9 +25,9 @@ char* SOCKNAME = NULL;
 char* SAVE_DIR = NULL;
 long sleeptime = 0;
 
-cmd_args* cmd_args;
+cmd_args* opt_args = NULL;
 
-char* dirname;
+char* savedirname;
 
 void print_h()
 {
@@ -184,41 +184,94 @@ int write_from_dir_find (const char* dir, long* n)
 	return 1;
 }
 
-void arg_ins(cmd_args** arg, int opt, char* args)
+void arg_ins(int opt, char* args)
 {
 	cmd_args* new_arg;
 	new_arg = safe_malloc(sizeof(cmd_args));
 
 	new_arg->opt = opt;
-	new_arg->args = safe_malloc(sizeof(args));
-	strncpy((new_arg->args), args, sizeof(args)); 
+	new_arg->args = safe_malloc(strlen(args));
+	strncpy((new_arg->args), args, strlen(args));
+
+	new_arg->next = opt_args;
+	opt_args = new_arg;
+
+	return;
 }
 
-void push(node_t **val) {
-    node_t * new_node; head, int 
-    new_node = (node_t *) malloc(sizeof(node_t));
+void commandline_serve()
+{
+	cmd_args* ptr = opt_args;
+	cmd_args* next;
 
-    new_node->val = val;
-    new_node->next = *head;
-    *head = new_node;
+	while(ptr != NULL) {
+		
+		fprintf(stderr,"giro %d\n", ptr->opt);
+
+		if(ptr->opt == 0)
+		{
+			
+			int i = 0;
+			long n = -1;
+			char* dirname = NULL;
+			char* token;
+			token = strtok(ptr->args,",");
+			
+			while(token != NULL) 
+			{
+				fprintf(stderr,"tok:%s\n", token);
+				if(i==0) 
+				{
+					if(add_current_folder(&dirname, token) == -1) 
+					{
+						errno = -1; 
+						perror("ERROR: -w"); 
+						exit(EXIT_FAILURE);
+					}
+					i++;
+				}
+
+				if(i==1) isNumber(token, &n);
+
+				token = strtok(NULL, ",");
+			}
+
+			printf("tn: %ld\n", n);
+			write_from_dir_find(dirname, &n);
+		}
+
+		next = ptr->next;
+		free(ptr);
+		ptr = next;
+		fprintf(stderr,"g %d\n", ptr->opt);
+	}
 }
-int main(int argc, char *argv[]) {
+/*
+args
+0 -w
+1 -W
+2 -D
+3 -r
+4 -R
+5 -d
+6 -c
+7 -l
+6 -u
+*/
+
+int main(int argc, char *argv[]) 
+{
 
 	struct timespec abstime;
 	int opt;
 
-	cmd_args = safe_malloc(sizeof(cmd_args));
+	opt_args = safe_malloc(sizeof(opt_args));
 
 
 	while((opt = getopt(argc, argv, "hf:w:W:D:r:R::d:t:l:u:c:p")) != -1) { 
 		switch(opt) { 
             case 'h': 
 			{
-				cmd_args* arg = safe_malloc(sizeof(cmd_args));
-				arg->opt = 0;
-				arg->args = NULL;
-				arg_ins(arg);
-
             	print_h();
 				break;
             }
@@ -234,32 +287,12 @@ int main(int argc, char *argv[]) {
             }
             case 'w': 
 			{
-				isW = 1;
-            	int i = 0;
-            	long n = -1;
-            	char* dirname = NULL;
-				char* token;
-            	token = strtok(optarg,",");
-            	while(token != NULL) {
-            		if(i==0) {
-            			if(add_current_folder(&dirname, token) == -1) 
-						{
-							errno = -1; 
-							perror("ERROR: -w"); 
-							exit(EXIT_FAILURE);
-						}
-						i++;
-            		}
-            		if(i==1) isNumber(token, &n);
-            		token = strtok(NULL, ",");
-            	}
-				printf("n: %ld\n", n);
-				write_from_dir_find(dirname, &n);
+            	arg_ins(0, optarg);
+				
                 break;
             }
             case 'W': 
 			{ 
-				isW = 1;
             	optind--;
             	for(; optind < argc && *argv[optind] != '-'; optind++)
 				{
@@ -275,13 +308,12 @@ int main(int argc, char *argv[]) {
             }
 			case 'D':
 			{
-				if(!isW)
+				if(1)
 				{
 					printf("-D option must be used with -w or -W options preceeding it.");
 					break;
 				}
-				isW = 0;
-				isD = 1;
+
 				break;
 			}
             case 'r': {
@@ -304,7 +336,7 @@ int main(int argc, char *argv[]) {
 					*/
 					char* file = buf;
                 	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s", buf, sz, file); 
-					if((WriteFilefromByte(argv[optind], file, sz, dirname)) == -1) 
+					if((WriteFilefromByte(argv[optind], file, sz, savedirname)) == -1) 
 					{
 						perror("ERROR: writefb");
 						return EXIT_FAILURE;
@@ -339,20 +371,14 @@ int main(int argc, char *argv[]) {
 				}
 				isR = 0;
 				*/
-				isd = 1;
 				char* tmp_optarg = optarg;
-				dirname = safe_malloc(strlen(tmp_optarg)*sizeof(char*));
-				strncpy(dirname, tmp_optarg, strlen(tmp_optarg));
+				savedirname = safe_malloc(strlen(tmp_optarg)*sizeof(char*));
+				strncpy(savedirname, tmp_optarg, strlen(tmp_optarg));
 				
                 break;
             }
-			case 't': {
-                
-				if(isd || isD) 
-				{
-					printf("-D option must be used with -w or -W options preceeding it.");
-					break;
-				}
+			case 't': 
+			{
 				if((isNumber(optarg, &sleeptime)) == 1)
 				{
 					printf("option %s is not a number\n", optarg);
@@ -398,7 +424,7 @@ int main(int argc, char *argv[]) {
             }
 			case 'p': 
 			{
-                printf("prints activated\n");
+                printf("Prints activated\n");
                 print = 1;
                 break;
             }
@@ -416,6 +442,8 @@ int main(int argc, char *argv[]) {
 
 		usleep(sleeptime*1000);
     }
+
+	commandline_serve();
 
 	//after completing all request the connection is closed
 	closeConnection(SOCKNAME);
