@@ -10,22 +10,27 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <filelist.h>
 
 #define SOCK_NAME "./storage_sock"
+
+typedef struct ARGS {
+	struct ARGS* next;
+	int opt;
+	char* args;
+} cmd_args;
 
 int print = 1;
 char* SOCKNAME = NULL;
 char* SAVE_DIR = NULL;
 long sleeptime = 0;
 
-//flag
-int isW = 0;
-int isR = 0;
-int isD = 0;
-int isd = 0;
+cmd_args* cmd_args;
+
 char* dirname;
 
-void print_h() {
+void print_h()
+{
 	printf("usage: ./client [option]\n");
 	printf("options: \n");
 	printf("-h -> prints helper\n");
@@ -179,15 +184,41 @@ int write_from_dir_find (const char* dir, long* n)
 	return 1;
 }
 
+void arg_ins(cmd_args** arg, int opt, char* args)
+{
+	cmd_args* new_arg;
+	new_arg = safe_malloc(sizeof(cmd_args));
 
+	new_arg->opt = opt;
+	new_arg->args = safe_malloc(sizeof(args));
+	strncpy((new_arg->args), args, sizeof(args)); 
+}
+
+void push(node_t **val) {
+    node_t * new_node; head, int 
+    new_node = (node_t *) malloc(sizeof(node_t));
+
+    new_node->val = val;
+    new_node->next = *head;
+    *head = new_node;
+}
 int main(int argc, char *argv[]) {
 
 	struct timespec abstime;
 	int opt;
 
+	cmd_args = safe_malloc(sizeof(cmd_args));
+
+
 	while((opt = getopt(argc, argv, "hf:w:W:D:r:R::d:t:l:u:c:p")) != -1) { 
 		switch(opt) { 
-            case 'h': {
+            case 'h': 
+			{
+				cmd_args* arg = safe_malloc(sizeof(cmd_args));
+				arg->opt = 0;
+				arg->args = NULL;
+				arg_ins(arg);
+
             	print_h();
 				break;
             }

@@ -77,6 +77,7 @@ static inline void list_pop(FileList* list)
 	return;
 	
 }
+
 //ATTENTION non aggiorni mai la testa
 static inline FileNode* list_pop_return(FileList* list)
 {

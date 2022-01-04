@@ -10,6 +10,11 @@ I file con stato 1 sono chiusi, con stato 0 sono aperti
 
 Il file ops.h si basa sul file util.h fornito a lezione.
 
+Oltre al thread master main è presente un thread signal handler
+
+Memoria cache
+Per rappresentare la memoria cache si è utilizzata una struttura dati hash, con politica di rimozione LFU (dire come implementata)
+
 Client
 
 Quando vengono passati i file si suppon che venga passato il path assoluto del file.
