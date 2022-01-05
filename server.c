@@ -586,6 +586,7 @@ void* getMSG(void* arg)
 			else
 			{
 				//operation is close connection
+				fprintf(stderr, "Closing connection with client %ld", operation->fd_con);
 				close(operation->fd_con);
 				if (operation->fd_con == fd_max) fd_max = updateMax(set, fd_max);
 			}

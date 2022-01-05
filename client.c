@@ -22,12 +22,12 @@ typedef struct ARGS
 
 int print = 1;
 char* SOCKNAME = NULL;
-char* SAVE_DIR = NULL;
 long sleeptime = 0;
 
 cmd_args* opt_args = NULL;
 
-char* savedirname;
+char* expelled_dir;
+char* save_dir;
 
 void print_h()
 {
@@ -37,18 +37,18 @@ void print_h()
 	printf("-f filename -> used to specify the name of the socketfile\n");
 	printf("-w dirname[,n = 0]-> sends request for writing the files in the directory -dirname- in the file storage.\n");
 	printf("						if n is specified, sends n files. If n = 0 or not specified there's not limit to the number of sent files\n");
-	printf("-W file1[ file2] -> list of file pathnames to write in the server, speparated by commas.\n");
+	printf("-W file1[,file2] -> list of file pathnames to write in the server, speparated by commas.\n");
 	printf("-D dirname -> folder where the files expelled because of capacity misses will be saved in case of ‘-w’ e ‘-W’.\n");
 	printf("So it must be used with those options. If it is not specified all the files will be discarded");
-	printf("-r file1[, file2]-> list of file pathnames to read from the file storage, speparated by commas.\n");
+	printf("-r file1[,file2]-> list of file pathnames to read from the file storage, speparated by commas.\n");
 	printf("-R [n = 0] -> allows to read n files from the file storage, if n = 0 or not specified all the files are read\n");
 	printf("-d dirname -> memory folder where the file read with -r and -R are written. Must be used in addiction to those.\n");
 	printf("				If it is not specified, the read files will not be memorized\n");
 	printf("-t -> time in milliseconds that passes between sending a request from the previous to the server\n");
 	printf("		if not specified, t is assumed set to 0\n");
 	printf("-c file1[, file2]-> list of files to remove from the storage, if present.\n");
-	printf("-l file1[,file2] -> lista di nomi di file su cui acquisire la mutua esclusione;\n");
-	printf("-u file1[,file2] -> lista di nomi di file su cui rilasciare la mutua esclusione;\n");
+	printf("-l file1[,file2] -> list of files to lock\n");
+	printf("-u file1[,file2] -> list of files to unlock\n");
 	printf("-p -> enables prints throughout the code\n");
 }
 
@@ -186,6 +186,14 @@ int write_from_dir_find (const char* dir, long* n)
 
 void arg_ins(int opt, char* args)
 {
+	fprintf(stderr,"inserito1\n");
+	cmd_args* current = opt_args;
+
+	while (current->next != NULL)
+	{
+		current = current->next;
+	}
+	
 	cmd_args* new_arg;
 	new_arg = safe_malloc(sizeof(cmd_args));
 
@@ -193,71 +201,242 @@ void arg_ins(int opt, char* args)
 	new_arg->args = safe_malloc(strlen(args));
 	strncpy((new_arg->args), args, strlen(args));
 
-	new_arg->next = opt_args;
-	opt_args = new_arg;
+	current->next = new_arg;
+	new_arg->next = NULL;
 
 	return;
 }
 
-void commandline_serve()
+/*
+args
+1 -w
+2 -W
+3 -D
+4 -r
+5 -R
+6 -d
+
+Returns 0 on success, -1 otherwise
+*/
+
+int commandline_serve()
 {
 	cmd_args* ptr = opt_args;
 	cmd_args* next;
 
-	while(ptr != NULL) {
-		
+	while(ptr != NULL) 
+	{
 		fprintf(stderr,"giro %d\n", ptr->opt);
-
-		if(ptr->opt == 0)
+		
+		switch(ptr->opt)
 		{
-			
-			int i = 0;
-			long n = -1;
-			char* dirname = NULL;
-			char* token;
-			token = strtok(ptr->args,",");
-			
-			while(token != NULL) 
+			case 0:
 			{
-				fprintf(stderr,"tok:%s\n", token);
-				if(i==0) 
+				//we don't talk about this part of the code
+				//this shouldn't happen but it does
+				//so we just ignore it
+				//and pretend it doesn't exists
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+				break;
+			}
+			case 1:
+			{
+				int i = 0;
+				long n = -1;
+				char* dirname = NULL;
+				char* token;
+				token = strtok(ptr->args,",");
+				
+				while(token != NULL) 
 				{
-					if(add_current_folder(&dirname, token) == -1) 
+					fprintf(stderr,"tok:%s\n", token);
+					if(i==0) 
 					{
-						errno = -1; 
-						perror("ERROR: -w"); 
-						exit(EXIT_FAILURE);
+						if(add_current_folder(&dirname, token) == -1) 
+						return -1;
+
+						i++;
 					}
-					i++;
+
+					if(i==1) isNumber(token, &n);
+
+					token = strtok(NULL, ",");
 				}
 
-				if(i==1) isNumber(token, &n);
+				printf("tn: %ld\n", n);
+				write_from_dir_find(dirname, &n);
 
-				token = strtok(NULL, ",");
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+				
+				break;
 			}
+			case 2:
+			{
+				char* token;
+				token = strtok(ptr->args,",");
 
-			printf("tn: %ld\n", n);
-			write_from_dir_find(dirname, &n);
+            	while(token != NULL)
+				{	fprintf(stderr,"tok:%s\n", token);
+					int ret;
+            		if((ret = openFile(token, 1)) == 1) //ATTENTION errori?
+					{
+						if((ret = writeFile(token, NULL)) != 0)
+							exit(EXIT_FAILURE); //in realtà bisognerebbe usare ret per l'errore
+					}
+					else 
+						token = strtok(NULL, ",");
+					token = strtok(NULL, ",");
+                }
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+
+				break;
+			}
+			case 3:
+			{
+				//the element was already check and saved
+				//just taking it out of the list
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+
+				break;
+			}
+			case 4:
+			{
+				char* token;
+				token = strtok(ptr->args,",");
+
+				while(token != NULL)
+				{
+					void* buf = NULL;
+					
+                	size_t sz;
+
+                	int r = readFile(token, &buf, &sz);
+
+					char* file = buf;
+
+                	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s\n", buf, sz, file);
+					else return -1;
+
+					if(save_dir != NULL)
+					{
+						if((WriteFilefromByte(token, file, sz, save_dir)) == -1) 
+							return -1;
+					}
+
+					token = strtok(NULL, ",");
+				}
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+
+				break;
+
+			}
+			case 5:
+			{
+				long n;
+				n = strtol(ptr->args, NULL, 10);
+
+				//is save_dir was not specified before NULL wil be passed
+				readNfiles(n, save_dir);
+
+				break;
+			}
+			case 6:
+			{
+				//the element was already check and saved
+				//just taking it out of the list
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
+int commandline_check()
+{
+	int isW = 0;
+	int isR = 0;
+	int isd = 0;
+	int isD = 0;
+
+	cmd_args* ptr = opt_args;
+	char* dir1;
+	char* dir2;
+
+	while(ptr != NULL) 
+	{
+		if(ptr->opt == 1 || ptr->opt == 2)
+			isW = 1;
+
+		if(ptr->opt == 4 || ptr->opt == 5)
+			isR = 1;
+
+		if(ptr->opt == 3)
+		{
+			isD = 1;
+			dir1 = safe_malloc(strlen(ptr->args));
+			strncpy(dir1, ptr->args, strlen(ptr->args));
 		}
 
-		next = ptr->next;
-		free(ptr);
-		ptr = next;
-		fprintf(stderr,"g %d\n", ptr->opt);
+		if(ptr->opt == 6)
+		{
+			isd = 1;
+			dir2 = safe_malloc(strlen(ptr->args));
+			strncpy(dir2, ptr->args, strlen(ptr->args));
+		}
+
+		ptr = ptr->next;
 	}
+
+	if(!isW && isD)
+	{
+		fprintf(stderr,"-D option must be used with -w or -W\n");
+		//resetting string if it was set without the other options
+		return -1;
+	}
+
+	if(!isR && isd)
+	{
+		fprintf(stderr,"-d option must be used with -r or -R\n");
+		//resetting string if it was set without the other options
+		return -1;
+	}
+
+	if(isD)
+	{
+		expelled_dir = safe_malloc(strlen(dir1));
+		strncpy(expelled_dir, dir1, strlen(dir1));
+
+		fprintf(stderr,"Expelled files will be saved into:\n%s\n", expelled_dir);
+	}
+			
+	if(isd)
+	{
+		save_dir = safe_malloc(strlen(dir2));
+		strncpy(save_dir, dir2, strlen(dir2));
+
+		fprintf(stderr,"Read files will be saved into:\n%s\n", save_dir);
+	}
+
+	return 0;
 }
-/*
-args
-0 -w
-1 -W
-2 -D
-3 -r
-4 -R
-5 -d
-6 -c
-7 -l
-6 -u
-*/
 
 int main(int argc, char *argv[]) 
 {
@@ -287,65 +466,29 @@ int main(int argc, char *argv[])
             }
             case 'w': 
 			{
-            	arg_ins(0, optarg);
+            	arg_ins(1, optarg);
 				
                 break;
             }
             case 'W': 
 			{ 
-            	optind--;
-            	for(; optind < argc && *argv[optind] != '-'; optind++)
-				{
-					int ret;
-            		if((ret = openFile(argv[optind], 1)) == 1) 
-					{
-						if((ret = writeFile(argv[optind], NULL)) != 0)
-							exit(EXIT_FAILURE); //in realtà bisognerebbe usare ret per l'errore
-					}
-					else continue;
-                }
+				arg_ins(2, optarg);
+            	
                 break;
             }
 			case 'D':
 			{
-				if(1)
-				{
-					printf("-D option must be used with -w or -W options preceeding it.");
-					break;
-				}
-
+				arg_ins(3, optarg);
 				break;
 			}
-            case 'r': {
-
-				optind--;
-
-				for(; optind<argc && *argv[optind] != '-'; optind++)
-				{
-					void* buf = NULL;
-					
-                	size_t sz;
-                	int r = readFile(argv[optind], &buf, &sz);
-					/*
-					if((WriteFilefromByte(p, file.filecontents, file.size, dirname)) == -1) 
-					{
-						errno = -1;
-						perror("ERROR: writefb");
-						return -1;
-					}
-					*/
-					char* file = buf;
-                	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s", buf, sz, file); 
-					if((WriteFilefromByte(argv[optind], file, sz, savedirname)) == -1) 
-					{
-						perror("ERROR: writefb");
-						return EXIT_FAILURE;
-					}
-				}
-
+            case 'r': 
+			{
+				arg_ins(4, optarg);
                 break;
             }
-			case 'R': {
+			case 'R': 
+			{
+				
 				char *tmp_optarg = optarg;
 				long r = 0;
 				// if `optarg` isn't set and argv[optind] isn't another option,
@@ -357,24 +500,17 @@ int main(int argc, char *argv[])
 				// else nothing happens and r stays 0, as if no argument was given
 				if (tmp_optarg) isNumber(tmp_optarg, &r);
 
-				//is SAVE_DIR was not specified before NULL wil be passed
-				readNfiles(r, SAVE_DIR);
+				char* cur_arg = safe_malloc(sizeof(long));
+				sprintf(cur_arg, "%ld", r);
+
+				fprintf(stderr, "%s\n", cur_arg);
+				arg_ins(5, cur_arg);
 
                 break;
             }
-			case 'd': {
-				/*
-				if(!isR)
-				{
-					printf("-D option must be used with -w or -W options preceeding it.");
-					break;
-				}
-				isR = 0;
-				*/
-				char* tmp_optarg = optarg;
-				savedirname = safe_malloc(strlen(tmp_optarg)*sizeof(char*));
-				strncpy(savedirname, tmp_optarg, strlen(tmp_optarg));
-				
+			case 'd': 
+			{
+				arg_ins(6, optarg);
                 break;
             }
 			case 't': 
@@ -443,10 +579,22 @@ int main(int argc, char *argv[])
 		usleep(sleeptime*1000);
     }
 
-	commandline_serve();
+	if(commandline_check() != 0)
+	{
+		errno = -1;
+		perror("ERROR: Wrong command line usage");
+		exit(EXIT_FAILURE);
+	}
+	
+	if(commandline_serve() != 0)
+	{
+		errno = -1;
+		perror("ERROR: Unable to serve command line requests");
+		exit(EXIT_FAILURE);
+	}
 
 	//after completing all request the connection is closed
 	closeConnection(SOCKNAME);
-
+	
 	return 0;
 }
