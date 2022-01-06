@@ -155,12 +155,12 @@ int write_from_dir_find (const char* dir, long* n)
 					if (buf == NULL) return -1;
 
 					//printf("n: %ld", *n);
-					//printf("%s\n", buf);
+					fprintf(stderr,"buf before open:%s\n", buf);
 
 					
 					if((openFile(buf, 1)) == 1) 
 					{ 
-						printf("%s\n", buf);
+						fprintf(stderr,"after open:%s\n", buf);
 						if((writeFile(buf, NULL)) == 0) 
 						{
 							*n = *n - 1;
@@ -208,14 +208,6 @@ void arg_ins(int opt, char* args)
 }
 
 /*
-args
-1 -w
-2 -W
-3 -D
-4 -r
-5 -R
-6 -d
-
 Returns 0 on success, -1 otherwise
 */
 
@@ -226,7 +218,7 @@ int commandline_serve()
 
 	while(ptr != NULL) 
 	{
-		fprintf(stderr,"giro %d\n", ptr->opt);
+		//fprintf(stderr,"giro %d\n", ptr->opt);
 		
 		switch(ptr->opt)
 		{
@@ -241,22 +233,23 @@ int commandline_serve()
 				ptr = next;
 				break;
 			}
-			case 1:
+			case 1: //-w
 			{
 				int i = 0;
 				long n = -1;
-				char* dirname = NULL;
+				char* dirname;
 				char* token;
 				token = strtok(ptr->args,",");
 				
 				while(token != NULL) 
 				{
-					fprintf(stderr,"tok:%s\n", token);
+					//fprintf(stderr,"tok:%s\n", token);
+
 					if(i==0) 
 					{
-						if(add_current_folder(&dirname, token) == -1) 
-						return -1;
-
+						dirname = safe_malloc(strlen(token));
+						strncpy(dirname, token, strlen(token));
+						//fprintf(stderr,"dn:%s\n", dirname);
 						i++;
 					}
 
@@ -265,7 +258,7 @@ int commandline_serve()
 					token = strtok(NULL, ",");
 				}
 
-				printf("tn: %ld\n", n);
+				//printf("tn: %ld\n", n);
 				write_from_dir_find(dirname, &n);
 
 				next = ptr->next;
@@ -274,18 +267,29 @@ int commandline_serve()
 				
 				break;
 			}
-			case 2:
+			case 2: //-W
 			{
 				char* token;
+				char* buf;
 				token = strtok(ptr->args,",");
 
             	while(token != NULL)
-				{	fprintf(stderr,"tok:%s\n", token);
-					int ret;
-            		if((ret = openFile(token, 1)) == 1) //ATTENTION errori?
+				{	
+					//if the path was given with shortened current directory
+					if(token[0] == '.' && token[1] == '/')
 					{
-						if((ret = writeFile(token, NULL)) != 0)
-							exit(EXIT_FAILURE); //in realtà bisognerebbe usare ret per l'errore
+						token += 2;
+						buf = cwd();
+						buf = strncat(buf, "/", 2);
+						buf = strncat(buf, token, strlen(token));
+					}
+					
+					int ret;
+            		if((ret = openFile(buf, 1)) == 1) //ATTENTION errori?
+					{
+						//if expelled_dir was earlier defined it is used, otherwise it remains NULL
+						if((ret = writeFile(buf, expelled_dir)) != 0)
+							return -1;
 					}
 					else 
 						token = strtok(NULL, ",");
@@ -298,7 +302,7 @@ int commandline_serve()
 
 				break;
 			}
-			case 3:
+			case 3: //-D
 			{
 				//the element was already check and saved
 				//just taking it out of the list
@@ -309,7 +313,7 @@ int commandline_serve()
 
 				break;
 			}
-			case 4:
+			case 4: //-r
 			{
 				char* token;
 				token = strtok(ptr->args,",");
@@ -317,10 +321,20 @@ int commandline_serve()
 				while(token != NULL)
 				{
 					void* buf = NULL;
+					char* dirbuf;
 					
                 	size_t sz;
 
-                	int r = readFile(token, &buf, &sz);
+					//if the path was given with shortened current directory
+					if(token[0] == '.' && token[1] == '/')
+					{
+						token += 2;
+						dirbuf = cwd();
+						dirbuf = strncat(dirbuf, "/", 2);
+						dirbuf = strncat(dirbuf, token, strlen(token));
+					}
+
+                	int r = readFile(dirbuf, &buf, &sz);
 
 					char* file = buf;
 
@@ -343,7 +357,7 @@ int commandline_serve()
 				break;
 
 			}
-			case 5:
+			case 5: //-R
 			{
 				long n;
 				n = strtol(ptr->args, NULL, 10);
@@ -353,7 +367,7 @@ int commandline_serve()
 
 				break;
 			}
-			case 6:
+			case 6: //-d
 			{
 				//the element was already check and saved
 				//just taking it out of the list
@@ -363,6 +377,105 @@ int commandline_serve()
 				ptr = next;
 
 				break;
+			}
+			case 7: //-l
+			{
+				char* token;
+				token = strtok(ptr->args,",");
+				char* dirbuf;
+
+				while(token != NULL)
+				{
+					//if the path was given with shortened current directory
+					if(token[0] == '.' && token[1] == '/')
+					{
+						token += 2;
+						dirbuf = cwd();
+						dirbuf = strncat(dirbuf, "/", 2);
+						dirbuf = strncat(dirbuf, token, strlen(token));
+					}
+
+					lockFile(dirbuf);
+
+					printf("Locked file: %s\n", dirbuf);
+
+					token = strtok(NULL, ",");
+				}
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;	
+
+				break;
+			}
+			case 8: //-u
+			{
+				char* token;
+				token = strtok(ptr->args,",");
+				char* dirbuf;
+
+				while(token != NULL)
+				{
+					//if the path was given with shortened current directory
+					if(token[0] == '.' && token[1] == '/')
+					{
+						token += 2;
+						dirbuf = cwd();
+						dirbuf = strncat(dirbuf, "/", 2);
+						dirbuf = strncat(dirbuf, token, strlen(token));
+					}
+
+					unlockFile(dirbuf);
+
+					printf("Unlocked file: %s\n", dirbuf);
+
+					token = strtok(NULL, ",");
+				}
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;	
+
+				break;
+			}
+			case 9: //-c
+			{
+				char* token;
+				token = strtok(ptr->args,",");
+				char* dirbuf;
+
+				while(token != NULL)
+				{
+					//if the path was given with shortened current directory
+					if(token[0] == '.' && token[1] == '/')
+					{
+						token += 2;
+						dirbuf = cwd();
+						dirbuf = strncat(dirbuf, "/", 2);
+						dirbuf = strncat(dirbuf, token, strlen(token));
+					}
+
+					removeFile(dirbuf);
+					printf("Deleted file: %s\n", dirbuf);
+
+					token = strtok(NULL, ",");
+				}
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+
+				break;
+			}
+			case ':': 
+			{
+				printf("option needs a value\n"); 
+				break;
+			}
+			case '?': 
+			{
+				printf("unknown option: %c\n", optopt);
+				break; 
 			}
 		}
 	}
@@ -525,37 +638,17 @@ int main(int argc, char *argv[])
             }
 			case 'l':
 			{
-				optind--;
-
-				for(; optind<argc && *argv[optind] != '-'; optind++)
-				{
-					lockFile(argv[optind]);
-					printf("filename: %s\n", argv[optind]);
-				}				
+				arg_ins(7, optarg);				
 				break;
 			}
 			case 'u':
 			{
-				optind--;
-
-				for(; optind<argc && *argv[optind] != '-'; optind++)
-				{
-					unlockFile(argv[optind]);
-					printf("filename: %s\n", argv[optind]);
-				}
-
+				arg_ins(8, optarg);
 				break;
 			}
 			case 'c': 
 			{
-				optind--;
-
-				for(; optind<argc && *argv[optind] != '-'; optind++)
-				{
-					removeFile(argv[optind]);
-					printf("filename: %s\n", argv[optind]);
-				}
-	 
+				arg_ins(9, optarg);
                 break;
             }
 			case 'p': 
@@ -564,20 +657,20 @@ int main(int argc, char *argv[])
                 print = 1;
                 break;
             }
-            case ':': 
+			case ':': 
 			{
-                printf("option needs a value\n"); 
-                break;
+				printf("option needs a value\n"); 
+				break;
 			}
 			case '?': 
 			{
 				printf("unknown option: %c\n", optopt);
 				break; 
 			}
-        }
+		}
 
 		usleep(sleeptime*1000);
-    }
+	}
 
 	if(commandline_check() != 0)
 	{

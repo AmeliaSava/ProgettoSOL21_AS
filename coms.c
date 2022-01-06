@@ -434,19 +434,60 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
+	//are there expelled files to recieve?
+
+	int exp_recieve;
+
+	if (readn(sockfd, &exp_recieve, sizeof(int)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read recieving expelled files");
+		return -1;
+	}
+
+	while (exp_recieve > 0)
+	{
+		msg* cur_msg = safe_malloc(sizeof(msg));
+
+		if (readn(sockfd, cur_msg, sizeof(msg)) <= 0) 
+		{
+			errno = -1; 
+			perror("ERROR: read recieving expelled");
+			return -1;
+		}
+
+		if(dirname)
+		{
+			char* p;
+			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
+			++p;
+			printf("name: %s\n", p);
+			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
+			{
+				errno = -1;
+				perror("ERROR: writefb");
+				return -1;
+			}
+		}
+
+		free(cur_msg);
+
+		exp_recieve--;
+	}
+	
 	//recieving outcome of operation
-fprintf(stderr, "response\n");
+	fprintf(stderr, "response\n");
 	op response;
 
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read recieving response");
 		return -1;
 	}
 
 	print_op(response);
-fprintf(stderr, "recieved\n");
+	fprintf(stderr, "recieved\n");
 	if(response == SRV_OK) return 0;
 
 	return -1;

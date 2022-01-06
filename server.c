@@ -42,9 +42,17 @@ pthread_mutex_t exp_lock = PTHREAD_MUTEX_INITIALIZER;
 FILE* log_file = NULL;
 pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
-//HashTable for the file memory system
+//table for the file memory system
 Table cacheMemory;
 pthread_mutex_t cache_lock = PTHREAD_MUTEX_INITIALIZER;
+
+//list of expelled file
+MSGlist* expelled_files;
+pthread_mutex_t expelled_lock = PTHREAD_MUTEX_INITIALIZER;
+//flag to let the report operation know a successfully terminated write happened...
+int ok_write = 0;
+//...and if there are any, and how many, files in the expelled list to send back to client
+int exp_to_send = 0;
 
 //list to handle client requests
 MSGlist* client_requests;
@@ -71,9 +79,9 @@ pthread_t signal_handler;
 
 sigset_t signal_mask;
 
-/*
-	* SERVER FUNCTIONS
-*/
+/** 
+ * SERVER FUNCTIONS 
+ */
 
 //makes sure the socket name is unlinked
 void unlinksock() 
@@ -91,6 +99,24 @@ int updateMax(fd_set set, int fdmax)
     	return -1;
 }
 
+//converts a file into a msg
+void file_to_msg(FileNode* file, msg* msg)
+{
+	fprintf(stderr,"file to msg\n");
+	//ATTENTION
+	memcpy(msg->filecontents, file->textFile, file->FileSize);
+	fprintf(stderr,"contents\n");
+	//msg->filecontents[(file->FileSize) + 1] = '\0';
+	strncpy(msg->filename, file->nameFile, strlen(file->nameFile));
+	fprintf(stderr,"name\n");
+	msg->filename[(strlen(file->nameFile)) + 1] = '\0';
+	fprintf(stderr,"termination\n");
+	msg->size = file->FileSize;
+	msg->namelenght = strlen(file->nameFile);
+
+	return;
+}
+
 //returns a response according to the result of the operation
 int report_ops(long connfd, op op_type) 
 {
@@ -98,6 +124,33 @@ int report_ops(long connfd, op op_type)
 	//ATTENTION scrivere anche il nome?
 	fprintf(log_file, "Returning result: %d\n", op_type);
 	fflush(log_file);
+
+	if(ok_write)
+	{
+		fprintf(stderr,"Sending:%d", exp_to_send);
+		if (writen(connfd, &exp_to_send, sizeof(int)) <= 0)
+		{ 
+			perror("ERROR: write sending expelled files"); 
+			return -1;
+		}
+
+		while (exp_to_send > 0)
+		{
+			LOCK(&expelled_lock)
+			msg* cur_msg = msg_list_pop_return(expelled_files);
+			UNLOCK(&expelled_lock);
+
+			if (writen(connfd, cur_msg, sizeof(msg)) <= 0)
+			{
+				perror("ERROR: write sending expelled files"); 
+				return -1;
+			}
+
+			exp_to_send--;
+
+		}
+		
+	}
 
 	if (writen(connfd, &op_type, sizeof(op)) <= 0)
 	{ 
@@ -108,36 +161,19 @@ int report_ops(long connfd, op op_type)
 	return 0;
 }
 
-//converts a file into a msg
-void file_to_msg(FileNode* file, msg* msg)
-{
-	fprintf(stderr,"file to msg");
-	//ATTENTION
-	memcpy(msg->filecontents, file->textFile, file->FileSize);
-	fprintf(stderr,"contents");
-	//msg->filecontents[(file->FileSize) + 1] = '\0';
-	strncpy(msg->filename, file->nameFile, strlen(file->nameFile));
-	fprintf(stderr,"name");
-	msg->filename[(strlen(file->nameFile)) + 1] = '\0';
-	fprintf(stderr,"termination");
-	msg->size = file->FileSize;
-	msg->namelenght = strlen(file->nameFile);
-
-	return;
-}
-
 //Handling of API operations on server side
 
 int write_file_svr(long connfd, msg file, int flag, pid_t pid)
 {
 
-	//fprintf(stderr, "Writing file on server memory\n");
+	fprintf(stderr, "Writing file on server memory\n");
 	
 	FileNode* current = NULL;
 
 	if((current = Hash_SearchNode(&cacheMemory, file.filename)) == NULL) return report_ops(connfd, SRV_FILE_NOT_FOUND);
 	else
 	{
+		
 		if(current->lock == 1 && current->lock_pid != pid) return report_ops(connfd, SRV_FILE_LOCKED); //file is locked by some other process	
 		if(current->FileSize > 0) return report_ops(connfd, SRV_FILE_ALREADY_PRESENT); //node exists but has content inside, can't over write
 		if(current->status == 1) return report_ops(connfd, SRV_FILE_CLOSED); //node exists but is closed
@@ -146,13 +182,26 @@ int write_file_svr(long connfd, msg file, int flag, pid_t pid)
 		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file.size)) //not enough space for new node
 		{ 
 			long removed = 0; //ATTENTION
+			//saving the expelled file
 			FileNode* expelled = Hash_LFUremove(&cacheMemory);
-			printf("%d", expelled->frequency);
+			msg* expelled_msg = safe_malloc(sizeof(msg));
+
+			file_to_msg(expelled, expelled_msg);
+
+			//updating stats
 			if(MAX_MEMORY_MB < file.size) MAX_MEMORY_MB += file.size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
 			LOCK(&exp_lock);
 			EXPELLED_COUNT++;
 			UNLOCK(&exp_lock);
+
+			//inserting expelled node in a list to send it back to the client
+			LOCK(&expelled_lock);
+			msg_push_head(expelled_msg, expelled_files);
+			UNLOCK(&expelled_lock);
+
+			exp_to_send++;
+
 			fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
 			return write_file_svr(connfd, file, flag, pid);
 		} else {
@@ -178,6 +227,8 @@ int write_file_svr(long connfd, msg file, int flag, pid_t pid)
 					Hash_Inc(&cacheMemory, current);
 				} 				
 	}
+	
+	ok_write = 1;
 	return report_ops(connfd, SRV_OK);
 }
 
@@ -359,7 +410,8 @@ int append_file_svr(long connfd, msg info)
 	return report_ops(connfd, SRV_OK);
 }
 
-int remove_file_svr(long connfd, msg info) {
+int remove_file_svr(long connfd, msg info) 
+{
 	fprintf(stderr, "dentro remove\n");
 	FileNode* current = NULL;
 	
@@ -378,7 +430,8 @@ int remove_file_svr(long connfd, msg info) {
 	return report_ops(connfd, SRV_OK);
 }
 
-int lock_file_srv(long connfd, msg info){
+int lock_file_srv(long connfd, msg info)
+{
 	fprintf(stderr, "dentro lock\n");
 	FileNode* current = NULL;
 	
@@ -398,7 +451,8 @@ int lock_file_srv(long connfd, msg info){
 	return 0;
 }
 
-int unlock_file_srv(long connfd, msg info){
+int unlock_file_srv(long connfd, msg info)
+{
 	fprintf(stderr, "dentro unlock\n");
 	FileNode* current = NULL;
 	
@@ -572,11 +626,11 @@ void* getMSG(void* arg)
 		{
 			operation = msg_list_pop_return(client_requests);
 
-			//fprintf(stderr, "prelevo coda\n");
+			fprintf(stderr, "prelevo coda\n");
 			pthread_mutex_unlock(&cli_req);
 
 			cmd(operation->fd_con, *operation);
-			//fprintf(stderr, "fd: %ld\n", operation->fd_con);
+			fprintf(stderr, "fd: %ld\n", operation->fd_con);
 			if(operation->op_type != 20)
 			{
 				LOCK(&set_lock);
@@ -594,7 +648,6 @@ void* getMSG(void* arg)
 		else
 			pthread_mutex_unlock(&cli_req);
 	}
-	fprintf(stderr, "Uscita dal woker\n");
 
 	fflush(stdout);
 	pthread_exit(NULL);
@@ -663,7 +716,8 @@ void* signalhandler(void* arg)
 }
 
 //ok, better clean up
-void configParsing() {
+void configParsing() 
+{
 	FILE *config_input = NULL;
 	
 	char* buffer = NULL;
@@ -821,6 +875,9 @@ int main (int argc, char* argv[])
 	//ATTENTION list init
 	client_requests = safe_malloc(sizeof(MSGlist));
 	msg_list_init(client_requests);
+
+	expelled_files = safe_malloc(sizeof(MSGlist));
+	msg_list_init(expelled_files);
 
 	//Accepting connections
 	unlinksock();
