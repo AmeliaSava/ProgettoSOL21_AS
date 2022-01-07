@@ -41,6 +41,34 @@ static inline void list_print (FileNode* n)
 	list_print(n->next);	
 }
 
+static inline void filecpy(FileNode* destination, FileNode* source)
+{
+	destination->frequency = source->frequency;
+	destination->FileSize = source->FileSize;
+	destination->status = source->status;
+	//fprintf(stderr, "source:%s\n", source->nameFile);
+	//fprintf(stderr, "%zu\n", strlen(source->nameFile));
+	destination->nameFile = safe_malloc(sizeof((strlen(source->nameFile)) + 1));
+	strncpy(destination->nameFile, source->nameFile, (strlen(source->nameFile)) + 1);
+	destination->nameFile[(strlen(source->nameFile)) + 1] = '\0';
+
+	fprintf(stderr, "source:%s\n", source->textFile);
+	size_t size = source->FileSize;
+	
+
+	//destination->textFile = realloc(destination->textFile, size);
+	fprintf(stderr, "%zu\n%zu\n", source->FileSize, size);
+	destination->textFile = safe_malloc(size + 1);
+	memset(destination->textFile, '\0', size + 1);
+	memcpy(destination->textFile, source->textFile, size);
+	//destination->textFile[(source->FileSize) + 1] = '\0';
+
+	fprintf(stderr, "dest:%s\n", destination->textFile);
+	destination->lock = source->lock;
+	destination->lock_pid = source->lock_pid;
+	destination->next = NULL;
+}
+
 //LIST functions
 
 //ok
@@ -84,12 +112,15 @@ static inline FileNode* list_pop_return(FileList* list)
 	if(list->head == NULL)	return NULL;
 
 	FileNode* current = list->head;
-	FileNode* toReturn;
+	FileNode* toReturn = safe_malloc(sizeof(FileNode));
 
 	if(current->next == NULL) {
-		toReturn = current;
+		fprintf(stderr, "current:%s\n", current->textFile);
+		filecpy(toReturn, current);
+		fprintf(stderr, "toreturn:%s\n", toReturn->textFile);
 		free(current);
 		list->head = NULL;
+		list->size = list->size - 1;
 		return toReturn;
 	}
 
@@ -98,10 +129,11 @@ static inline FileNode* list_pop_return(FileList* list)
 		current = current->next;
 	}
 
-	toReturn = current->next;
+	filecpy(toReturn, current->next);
 	free(current->next);
 	current->next = NULL;
 	list->last = current;
+	list->size = list->size - 1;
 
 	return toReturn;
 	

@@ -34,6 +34,18 @@ typedef struct MSG_LIST
 
 } MSGlist;
 
+static inline void msgcpy(msg* destination, msg* source) 
+{
+	destination->namelenght = source->namelenght;
+	destination->size = source->size;
+	destination->op_type = source->op_type;
+	memcpy(destination->filename, source->filename, strlen(source->filename));
+	memcpy(destination->filecontents, source->filecontents, source->size);
+	destination->pid = source->pid;
+	destination->fd_con = source->fd_con;
+	destination->flag = source->flag;
+	destination->next = NULL;
+}
 
 static inline void msg_list_init(MSGlist* list) 
 {
@@ -47,24 +59,30 @@ static inline msg* msg_list_pop_return(MSGlist* list)
 	if(list->head == NULL)	return NULL;
 
 	msg* current = list->head;
-	msg* toReturn;
-
+	msg* toReturn = safe_malloc(sizeof(msg));
+	
 	if(current->next == NULL) {
-		toReturn = current;
+
+		msgcpy(toReturn, current);
+		//fprintf(stderr, "toreturn:%s\n", toReturn->filename);
 		free(current);
 		list->head = NULL;
+		list->size = list->size - 1;
+		//fprintf(stderr, "toreturn2:%s\n", toReturn->filename);
 		return toReturn;
 	}
 
 	while (current->next->next != NULL)
 	{
+		//fprintf(stderr, "current:%s\n", current->filename);
 		current = current->next;
 	}
 
-	toReturn = current->next;
+	msgcpy(toReturn, current->next);
 	free(current->next);
 	current->next = NULL;
 	list->last = current;
+	list->size = list->size - 1;
 
 	return toReturn;
 	
@@ -82,6 +100,7 @@ static inline void msg_push_head(msg* head, MSGlist* list) {
 		head->next = list->head;
 		list->head = head;
 	}
+
 	list->size++;
 	return;
 }

@@ -161,7 +161,7 @@ int write_from_dir_find (const char* dir, long* n)
 					if((openFile(buf, 1)) == 1) 
 					{ 
 						fprintf(stderr,"after open:%s\n", buf);
-						if((writeFile(buf, NULL)) == 0) 
+						if((writeFile(buf, expelled_dir)) == 0) 
 						{
 							*n = *n - 1;
 						} 
@@ -288,11 +288,19 @@ int commandline_serve()
             		if((ret = openFile(buf, 1)) == 1) //ATTENTION errori?
 					{
 						//if expelled_dir was earlier defined it is used, otherwise it remains NULL
+						
+						fprintf(stderr,"expdir:%s\n", expelled_dir);
+						
+		fprintf(stderr,"\n");
 						if((ret = writeFile(buf, expelled_dir)) != 0)
+						{
+							fprintf(stderr, "%s", strerror(errno));
 							return -1;
+						}
+							
 					}
 					else 
-						token = strtok(NULL, ",");
+						token = strtok(NULL, ","); //if failed to open file go to the next
 					token = strtok(NULL, ",");
                 }
 
@@ -679,7 +687,8 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
-	if(commandline_serve() != 0)
+	//if there was a severe error and not memory expected one
+	if(commandline_serve() == -1 && errno != 0)
 	{
 		errno = -1;
 		perror("ERROR: Unable to serve command line requests");

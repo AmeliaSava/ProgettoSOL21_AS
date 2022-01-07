@@ -81,12 +81,14 @@ FileNode* Hash_LFUremove (Table* tab)
 		
 		}
 	}
-	//printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
+	printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
 	//printf("\n");
-	//list_print(minFile->head);
+	list_print(minFile->head);
 	//last delete
 	//list_pop(minFile);
+	fprintf(stderr, "prima expelled cache\n");
 	FileNode* expelled = list_pop_return(minFile);
+	fprintf(stderr, "expf:%s\n", expelled->textFile);
 	tab->curSize--;
 
 	return expelled;

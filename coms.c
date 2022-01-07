@@ -434,47 +434,6 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
-	//are there expelled files to recieve?
-
-	int exp_recieve;
-
-	if (readn(sockfd, &exp_recieve, sizeof(int)) <= 0) 
-	{
-		errno = -1; 
-		perror("ERROR: read recieving expelled files");
-		return -1;
-	}
-
-	while (exp_recieve > 0)
-	{
-		msg* cur_msg = safe_malloc(sizeof(msg));
-
-		if (readn(sockfd, cur_msg, sizeof(msg)) <= 0) 
-		{
-			errno = -1; 
-			perror("ERROR: read recieving expelled");
-			return -1;
-		}
-
-		if(dirname)
-		{
-			char* p;
-			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
-			++p;
-			printf("name: %s\n", p);
-			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
-			{
-				errno = -1;
-				perror("ERROR: writefb");
-				return -1;
-			}
-		}
-
-		free(cur_msg);
-
-		exp_recieve--;
-	}
-	
 	//recieving outcome of operation
 	fprintf(stderr, "response\n");
 	op response;
@@ -488,9 +447,56 @@ int writeFile(const char* pathname, const char* dirname)
 
 	print_op(response);
 	fprintf(stderr, "recieved\n");
-	if(response == SRV_OK) return 0;
 
-	return -1;
+	if(response != SRV_OK) return -1;
+	//are there expelled files to recieve?
+
+	int exp_recieve = 0;
+
+	if (readn(sockfd, &exp_recieve, sizeof(int)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read recieving expelled files");
+		return -1;
+	}
+
+	fprintf(stderr, "exp:%d\n", exp_recieve);
+
+	while (exp_recieve > 0)
+	{
+		msg* cur_msg = safe_malloc(sizeof(msg));
+
+		if (readn(sockfd, cur_msg, sizeof(msg)) <= 0) 
+		{
+			errno = -1; 
+			perror("ERROR: read recieving expelled");
+			return -1;
+		}
+
+		
+		if(dirname)
+		{
+			fprintf(stderr, "filename:%s\n", cur_msg->filename);
+			char* p;
+			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
+			++p;
+			printf("name: %s\n", p);
+			fprintf(stderr, "filecont:%s\n", cur_msg->filecontents);
+			fprintf(stderr, "dirname:%s\n", dirname);
+			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
+			{
+				errno = -1;
+				perror("ERROR: writefb");
+				return -1;
+			}
+		}
+
+		free(cur_msg);
+
+		exp_recieve--;
+	}
+
+	return 0;
 }
 
 /*

@@ -5,7 +5,7 @@
 #include <ops.h>
 #include "HashLFU.h"
 #define INT_MAX 2147483647
-#define MAX_SIZE 2048
+#define MAX_SIZE 900000
 
 
 void print_tab (Table* tab)

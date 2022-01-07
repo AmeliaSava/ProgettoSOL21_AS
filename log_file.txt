@@ -1,9 +1,9 @@
 LOG FILE
 Server created
 Max number of thread workers: 4
-Max memory available: 1000
-Currently available memory: 1000
-Max Number of files: 1000
+Max memory available: 10000
+Currently available memory: 10000
+Max Number of files: 3
 Socket Name: storage_sock
 Log file name: log_file
 Hash memory initialized successfully
@@ -12,4 +12,15 @@ Connected to client: 5
 Listening to client: 5
 Returning result: 12
 Listening to client: 5
-Returning result: 11
+Returning result: 7
+Listening to client: 5
+Returning result: 12
+Listening to client: 5
+Returning result: 7
+Listening to client: 5
+Returning result: 12
+Listening to client: 5
+Returning result: 7
+Listening to client: 5
+Returning result: 12
+Listening to client: 5

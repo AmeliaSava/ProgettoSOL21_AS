@@ -1,0 +1,696 @@
+==1842== Memcheck, a memory error detector
+==1842== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==1842== Using Valgrind-3.15.0-608cb11914-20190413 and LibVEX; rerun with -h for copyright info
+==1842== Command: ./server
+==1842== Parent PID: 9
+==1842== 
+--1842-- 
+--1842-- Valgrind options:
+--1842--    --leak-check=full
+--1842--    --show-leak-kinds=all
+--1842--    --track-origins=yes
+--1842--    --verbose
+--1842--    --log-file=valgrind-out.txt
+--1842-- Contents of /proc/version:
+--1842--   Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) (gcc version 5.4.0 (GCC) ) #1237-Microsoft Sat Sep 11 14:32:00 PST 2021
+--1842-- 
+--1842-- Arch and hwcaps: AMD64, LittleEndian, amd64-cx16-lzcnt-rdtscp-sse3-ssse3-avx-avx2-bmi-f16c-rdrand
+--1842-- Page sizes: currently 4096, max supported 4096
+--1842-- Valgrind library directory: /usr/lib/x86_64-linux-gnu/valgrind
+--1842-- Reading syms from /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/server
+--1842-- Reading syms from /usr/lib/x86_64-linux-gnu/ld-2.31.so
+--1842--   Considering /usr/lib/x86_64-linux-gnu/ld-2.31.so ..
+--1842--   .. CRC mismatch (computed 975d0390 wanted 30bd717f)
+--1842--   Considering /lib/x86_64-linux-gnu/ld-2.31.so ..
+--1842--   .. CRC mismatch (computed 975d0390 wanted 30bd717f)
+--1842--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.31.so ..
+--1842--   .. CRC is valid
+--1842-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux
+--1842--    object doesn't have a symbol table
+--1842--    object doesn't have a dynamic symbol table
+--1842-- Scheduler: using generic scheduler lock implementation.
+--1842-- Reading suppressions file: /usr/lib/x86_64-linux-gnu/valgrind/default.supp
+==1842== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-1842-by-ameliasava-on-???
+==1842== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-1842-by-ameliasava-on-???
+==1842== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-1842-by-ameliasava-on-???
+==1842== 
+==1842== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==1842== don't want to do, unless you know exactly what you're doing,
+==1842== or are doing some strange experiment):
+==1842==   /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=1842 ...command...
+==1842== 
+==1842== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==1842==   /path/to/gdb ./server
+==1842== and then give GDB the following command
+==1842==   target remote | /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=1842
+==1842== --pid is optional if only one valgrind process is running
+==1842== 
+==1842== error calling PR_SET_PTRACER, vgdb might block
+--1842-- REDIR: 0x4022e10 (ld-linux-x86-64.so.2:strlen) redirected to 0x580c9ce2 (???)
+--1842-- REDIR: 0x4022be0 (ld-linux-x86-64.so.2:index) redirected to 0x580c9cfc (???)
+--1842-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_core-amd64-linux.so
+--1842--    object doesn't have a symbol table
+--1842-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so
+--1842--    object doesn't have a symbol table
+==1842== WARNING: new redirection conflicts with existing -- ignoring it
+--1842--     old: 0x04022e10 (strlen              ) R-> (0000.0) 0x580c9ce2 ???
+--1842--     new: 0x04022e10 (strlen              ) R-> (2007.0) 0x0483f060 strlen
+--1842-- REDIR: 0x401f5f0 (ld-linux-x86-64.so.2:strcmp) redirected to 0x483ffd0 (strcmp)
+--1842-- REDIR: 0x4023370 (ld-linux-x86-64.so.2:mempcpy) redirected to 0x4843a20 (mempcpy)
+--1842-- Reading syms from /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+--1842--   Considering /usr/lib/debug/.build-id/e5/4761f7b554d0fcc1562959665d93dffbebdaf0.debug ..
+--1842--   .. build-id is valid
+--1842-- Reading syms from /usr/lib/x86_64-linux-gnu/libc-2.31.so
+--1842--   Considering /usr/lib/x86_64-linux-gnu/libc-2.31.so ..
+--1842--   .. CRC mismatch (computed 86b78530 wanted e380f01c)
+--1842--   Considering /lib/x86_64-linux-gnu/libc-2.31.so ..
+--1842--   .. CRC mismatch (computed 86b78530 wanted e380f01c)
+--1842--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/libc-2.31.so ..
+--1842--   .. CRC is valid
+--1842-- REDIR: 0x4918600 (libc.so.6:memmove) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917900 (libc.so.6:strncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918930 (libc.so.6:strcasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917220 (libc.so.6:strcat) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917960 (libc.so.6:rindex) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4919dd0 (libc.so.6:rawmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4934e60 (libc.so.6:wmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49349a0 (libc.so.6:wcscmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918760 (libc.so.6:mempcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918590 (libc.so.6:bcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917890 (libc.so.6:strncmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49172d0 (libc.so.6:strcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49186c0 (libc.so.6:memset) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4934960 (libc.so.6:wcschr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49177f0 (libc.so.6:strnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49173b0 (libc.so.6:strcspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918980 (libc.so.6:strncasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917350 (libc.so.6:strcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918ad0 (libc.so.6:memcpy@@GLIBC_2.14) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49360d0 (libc.so.6:wcsnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49349e0 (libc.so.6:wcscpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49179a0 (libc.so.6:strpbrk) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917280 (libc.so.6:index) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49177b0 (libc.so.6:strlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4920d20 (libc.so.6:memrchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49189d0 (libc.so.6:strcasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918550 (libc.so.6:memchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4934ab0 (libc.so.6:wcslen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917c60 (libc.so.6:strspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x49188d0 (libc.so.6:stpncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918870 (libc.so.6:stpcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4919e10 (libc.so.6:strchrnul) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4918a20 (libc.so.6:strncasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4917830 (libc.so.6:strncat) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--1842-- REDIR: 0x4a00490 (libc.so.6:__strrchr_avx2) redirected to 0x483ea10 (rindex)
+--1842-- REDIR: 0x4a002a0 (libc.so.6:__strchrnul_avx2) redirected to 0x4843540 (strchrnul)
+--1842-- REDIR: 0x4913c90 (libc.so.6:calloc) redirected to 0x483dce0 (calloc)
+--1842-- REDIR: 0x4912260 (libc.so.6:malloc) redirected to 0x483b780 (malloc)
+--1842-- REDIR: 0x4918120 (libc.so.6:__GI_strstr) redirected to 0x4843ca0 (__strstr_sse2)
+--1842-- REDIR: 0x49fc4c0 (libc.so.6:__memchr_avx2) redirected to 0x4840050 (memchr)
+--1842-- REDIR: 0x4a03670 (libc.so.6:__memcpy_avx_unaligned_erms) redirected to 0x48429f0 (memmove)
+--1842-- REDIR: 0x4a00070 (libc.so.6:__strchr_avx2) redirected to 0x483ebf0 (index)
+--1842-- REDIR: 0x4a01f30 (libc.so.6:__strncpy_avx2) redirected to 0x483f230 (strncpy)
+--1842-- REDIR: 0x4912850 (libc.so.6:free) redirected to 0x483c9d0 (free)
+--1842-- REDIR: 0x4a00660 (libc.so.6:__strlen_avx2) redirected to 0x483ef40 (strlen)
+==1842== Invalid write of size 1
+==1842==    at 0x490A2B4: _IO_default_xsputn (genops.c:394)
+==1842==    by 0x490A2B4: _IO_default_xsputn (genops.c:370)
+==1842==    by 0x48EF165: __vfprintf_internal (vfprintf-internal.c:1719)
+==1842==    by 0x48FD278: __vsprintf_internal (iovsprintf.c:95)
+==1842==    by 0x48DA047: sprintf (sprintf.c:30)
+==1842==    by 0x10D747: log_create (server.c:807)
+==1842==    by 0x10DB32: main (server.c:862)
+==1842==  Address 0x526ceba is 0 bytes after a block of size 10 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10D724: log_create (server.c:806)
+==1842==    by 0x10DB32: main (server.c:862)
+==1842== 
+==1842== Invalid write of size 1
+==1842==    at 0x48FD27E: __vsprintf_internal (iovsprintf.c:97)
+==1842==    by 0x48DA047: sprintf (sprintf.c:30)
+==1842==    by 0x10D747: log_create (server.c:807)
+==1842==    by 0x10DB32: main (server.c:862)
+==1842==  Address 0x526cebe is 4 bytes after a block of size 10 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10D724: log_create (server.c:806)
+==1842==    by 0x10DB32: main (server.c:862)
+==1842== 
+==1842== Syscall param openat(filename) points to unaddressable byte(s)
+==1842==    at 0x4985F24: open (open64.c:48)
+==1842==    by 0x4908195: _IO_file_open (fileops.c:189)
+==1842==    by 0x4908459: _IO_file_fopen@@GLIBC_2.2.5 (fileops.c:281)
+==1842==    by 0x48FAB0D: __fopen_internal (iofopen.c:75)
+==1842==    by 0x48FAB0D: fopen@@GLIBC_2.2.5 (iofopen.c:86)
+==1842==    by 0x10D75A: log_create (server.c:809)
+==1842==    by 0x10DB32: main (server.c:862)
+==1842==  Address 0x526ceba is 0 bytes after a block of size 10 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10D724: log_create (server.c:806)
+==1842==    by 0x10DB32: main (server.c:862)
+==1842== 
+--1842-- REDIR: 0x4a03650 (libc.so.6:__mempcpy_avx_unaligned_erms) redirected to 0x4843660 (mempcpy)
+--1842-- REDIR: 0x4a03af0 (libc.so.6:__memset_avx2_unaligned_erms) redirected to 0x48428e0 (memset)
+==1842== Thread 3:
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10EDE2: Hash_Function (HashLFU.c:27)
+==1842==    by 0x10EE99: Hash_SearchNode (HashLFU.c:51)
+==1842==    by 0x10BA00: open_file_svr (server.c:239)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10EDE2: Hash_Function (HashLFU.c:27)
+==1842==    by 0x10EE2C: Hash_Insert (HashLFU.c:38)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E882: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E89E: node_push (filelist.h:168)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E8CC: node_push (filelist.h:169)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid write of size 1
+==1842==    at 0x10E8D0: node_push (filelist.h:169)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Thread 4:
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10EDE2: Hash_Function (HashLFU.c:27)
+==1842==    by 0x10EE99: Hash_SearchNode (HashLFU.c:51)
+==1842==    by 0x10B3C9: write_file_svr (server.c:168)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+--1842-- REDIR: 0x49fbfa0 (libc.so.6:__strncmp_avx2) redirected to 0x483f670 (strncmp)
+==1842== Invalid read of size 1
+==1842==    at 0x483F685: strncmp (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E9C4: node_search (filelist.h:213)
+==1842==    by 0x10EECB: Hash_SearchNode (HashLFU.c:53)
+==1842==    by 0x10B3C9: write_file_svr (server.c:168)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483F68C: strncmp (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E9C4: node_search (filelist.h:213)
+==1842==    by 0x10EECB: Hash_SearchNode (HashLFU.c:53)
+==1842==    by 0x10B3C9: write_file_svr (server.c:168)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x48F0E94: __vfprintf_internal (vfprintf-internal.c:1688)
+==1842==    by 0x48F2021: buffered_vfprintf (vfprintf-internal.c:2377)
+==1842==    by 0x48EEEA3: __vfprintf_internal (vfprintf-internal.c:1346)
+==1842==    by 0x48D9DE9: fprintf (fprintf.c:32)
+==1842==    by 0x10B40E: write_file_svr (server.c:171)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x10B419: write_file_svr (server.c:172)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E85F: node_push (filelist.h:163)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid read of size 1
+==1842==    at 0x483EF54: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10EDE2: Hash_Function (HashLFU.c:27)
+==1842==    by 0x10EF00: Hash_Inc (HashLFU.c:60)
+==1842==    by 0x10B993: write_file_svr (server.c:227)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid read of size 1
+==1842==    at 0x483EF54: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10EF1F: Hash_Inc (HashLFU.c:63)
+==1842==    by 0x10B993: write_file_svr (server.c:227)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AE58: node_update (filelist.h:201)
+==1842==    by 0x10B980: write_file_svr (server.c:226)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x483EF58: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AE74: node_update (filelist.h:202)
+==1842==    by 0x10B980: write_file_svr (server.c:226)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10ABD2: msg_list_pop_return (conn.h:62)
+==1842==    by 0x10CDFB: getMSG (server.c:625)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Thread 6:
+==1842== Invalid read of size 1
+==1842==    at 0x483EF54: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x48F0E94: __vfprintf_internal (vfprintf-internal.c:1688)
+==1842==    by 0x48D9EBE: printf (printf.c:33)
+==1842==    by 0x10F053: Hash_LFUremove (HashLFU.c:84)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid read of size 1
+==1842==    at 0x483EF54: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x48F0E94: __vfprintf_internal (vfprintf-internal.c:1688)
+==1842==    by 0x48D9EBE: printf (printf.c:33)
+==1842==    by 0x10E4A1: list_print (filelist.h:38)
+==1842==    by 0x10F062: Hash_LFUremove (HashLFU.c:86)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x10E484: list_print (filelist.h:32)
+==1842==    by 0x10E4B1: list_print (filelist.h:41)
+==1842==    by 0x10F062: Hash_LFUremove (HashLFU.c:86)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E85F: node_push (filelist.h:163)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Conditional jump or move depends on uninitialised value(s)
+==1842==    at 0x10E6D3: list_pop_return (filelist.h:112)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Uninitialised value was created by a heap allocation
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E85F: node_push (filelist.h:163)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid read of size 1
+==1842==    at 0x483EF54: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x48F0E94: __vfprintf_internal (vfprintf-internal.c:1688)
+==1842==    by 0x48F2021: buffered_vfprintf (vfprintf-internal.c:2377)
+==1842==    by 0x48EEEA3: __vfprintf_internal (vfprintf-internal.c:1346)
+==1842==    by 0x48D9DE9: fprintf (fprintf.c:32)
+==1842==    by 0x10E6FB: list_pop_return (filelist.h:113)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x5271f48 is 0 bytes after a block of size 8 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10AA57: safe_malloc (ops.h:126)
+==1842==    by 0x10AE60: node_update (filelist.h:201)
+==1842==    by 0x10B980: write_file_svr (server.c:226)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid read of size 1
+==1842==    at 0x483EF54: strlen (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E513: filecpy (filelist.h:52)
+==1842==    by 0x10E70E: list_pop_return (filelist.h:114)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid write of size 1
+==1842==    at 0x483F260: strncpy (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E532: filecpy (filelist.h:52)
+==1842==    by 0x10E70E: list_pop_return (filelist.h:114)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x527eb18 is 0 bytes after a block of size 8 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E4FB: filecpy (filelist.h:51)
+==1842==    by 0x10E70E: list_pop_return (filelist.h:114)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+==1842== Invalid read of size 1
+==1842==    at 0x483F269: strncpy (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E532: filecpy (filelist.h:52)
+==1842==    by 0x10E70E: list_pop_return (filelist.h:114)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842==  Address 0x526fc3b is 0 bytes after a block of size 75 alloc'd
+==1842==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E43F: safe_malloc (ops.h:126)
+==1842==    by 0x10E88A: node_push (filelist.h:167)
+==1842==    by 0x10EE5E: Hash_Insert (HashLFU.c:40)
+==1842==    by 0x10BB70: open_file_svr (server.c:261)
+==1842==    by 0x10C8A5: cmd (server.c:493)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+==1842== 
+
+valgrind: m_mallocfree.c:305 (get_bszB_as_is): Assertion 'bszB_lo == bszB_hi' failed.
+valgrind: Heap block lo/hi size mismatch: lo = 80, hi = 8387223609404305250.
+This is probably caused by your program erroneously writing past the
+end of a heap block and corrupting heap metadata.  If you fix any
+invalid writes reported by Memcheck, this assertion failure will
+probably go away.  Please try that before reporting this as a bug.
+
+
+host stacktrace:
+==1842==    at 0x58046FFA: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x58047127: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x580472CB: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x580514B4: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x5803DE9A: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x5803CD9F: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x58041F04: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x5803C1D8: ??? (in /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux)
+==1842==    by 0x1008DE13A2: ???
+==1842==    by 0x100C497F1F: ???
+==1842==    by 0x100C497F07: ???
+==1842==    by 0x100C497F1F: ???
+==1842==    by 0x100C497F2F: ???
+==1842==    by 0x5: ???
+==1842==    by 0x119D8: ???
+==1842==    by 0x592C7BBF: ???
+==1842==    by 0x100ACDCFFF: ???
+==1842==    by 0x165CB: ???
+
+sched status:
+  running_tid=6
+
+Thread 1: status = VgTs_WaitSys syscall 23 (lwpid 1842)
+==1842==    at 0x498D12B: select (select.c:41)
+==1842==    by 0x10E064: main (server.c:992)
+client stack range: [0x1FFEFFD000 0x1FFF000FFF] client SP: 0x1FFEFFFF90
+valgrind stack range: [0x1008BAE000 0x1008CADFFF] top usage: 9480 of 1048576
+
+Thread 2: status = VgTs_WaitSys syscall 128 (lwpid 1843)
+==1842==    at 0x48BC322: sigtimedwait (sigtimedwait.c:29)
+==1842==    by 0x4866F6B: sigwait (sigwait.c:28)
+==1842==    by 0x10D0E3: signalhandler (server.c:663)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+client stack range: [0x4A6B000 0x5269FFF] client SP: 0x5269DD0
+valgrind stack range: [0x100B033000 0x100B132FFF] top usage: 3320 of 1048576
+
+Thread 3: status = VgTs_WaitSys syscall 202 (lwpid 1844)
+==1842==    at 0x4862376: futex_wait_cancelable (futex-internal.h:183)
+==1842==    by 0x4862376: __pthread_cond_wait_common (pthread_cond_wait.c:508)
+==1842==    by 0x4862376: pthread_cond_wait@@GLIBC_2.3.2 (pthread_cond_wait.c:638)
+==1842==    by 0x10CDCB: getMSG (server.c:621)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+client stack range: [0x566C000 0x5E6AFFF] client SP: 0x5E6AE00
+valgrind stack range: [0x100B84B000 0x100B94AFFF] top usage: 3400 of 1048576
+
+Thread 4: status = VgTs_WaitSys syscall 202 (lwpid 1845)
+==1842==    at 0x4862376: futex_wait_cancelable (futex-internal.h:183)
+==1842==    by 0x4862376: __pthread_cond_wait_common (pthread_cond_wait.c:508)
+==1842==    by 0x4862376: pthread_cond_wait@@GLIBC_2.3.2 (pthread_cond_wait.c:638)
+==1842==    by 0x10CDCB: getMSG (server.c:621)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+client stack range: [0x5E6D000 0x666BFFF] client SP: 0x666BE00
+valgrind stack range: [0x100BD90000 0x100BE8FFFF] top usage: 3272 of 1048576
+
+Thread 5: status = VgTs_WaitSys syscall 202 (lwpid 1846)
+==1842==    at 0x4862376: futex_wait_cancelable (futex-internal.h:183)
+==1842==    by 0x4862376: __pthread_cond_wait_common (pthread_cond_wait.c:508)
+==1842==    by 0x4862376: pthread_cond_wait@@GLIBC_2.3.2 (pthread_cond_wait.c:638)
+==1842==    by 0x10CDCB: getMSG (server.c:621)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+client stack range: [0x666E000 0x6E6CFFF] client SP: 0x6E6CE00
+valgrind stack range: [0x100C094000 0x100C193FFF] top usage: 2696 of 1048576
+
+Thread 6: status = VgTs_Runnable (lwpid 1847)
+==1842==    at 0x483F2A4: strncpy (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==1842==    by 0x10E532: filecpy (filelist.h:52)
+==1842==    by 0x10E70E: list_pop_return (filelist.h:114)
+==1842==    by 0x10F08E: Hash_LFUremove (HashLFU.c:90)
+==1842==    by 0x10B549: write_file_svr (server.c:183)
+==1842==    by 0x10CBBC: cmd (server.c:550)
+==1842==    by 0x10CE60: getMSG (server.c:630)
+==1842==    by 0x485B608: start_thread (pthread_create.c:477)
+==1842==    by 0x4997292: clone (clone.S:95)
+client stack range: [0x6E6F000 0x766DFFF] client SP: 0x766BDA0
+valgrind stack range: [0x100C398000 0x100C497FFF] top usage: 4696 of 1048576
+
+
+Note: see also the FAQ in the source distribution.
+It contains workarounds to several common problems.
+In particular, if Valgrind aborted or crashed after
+identifying problems in your program, there's a good chance
+that fixing those problems will prevent Valgrind aborting or
+crashing, especially if it happened in m_mallocfree.c.
+
+If that doesn't help, please report this bug to: www.valgrind.org
+
+In the bug report, send all the above text, the valgrind
+version, and what OS and version you are using.  Thanks.
+
