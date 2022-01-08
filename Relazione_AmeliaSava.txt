@@ -20,3 +20,7 @@ Client
 Quando vengono passati i file si suppon che venga passato il path assoluto del file.
 
 isdot cwd e write_from_dir_find sono basate su funzioni viste a lezione.
+
+API
+
+OpenFile ritorna un risultato aggiuntivo 1, per implementare il controllo sulla write file successiva

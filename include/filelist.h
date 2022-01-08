@@ -169,9 +169,10 @@ static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 
 	newNode->frequency = frq;
 	newNode->status = fStat;
-	newNode->nameFile = safe_malloc(strlen(fName)*sizeof(char));
-	strncpy(newNode->nameFile, fName, strlen(fName));
-	newNode->nameFile[strlen(fName)] = '\0';
+
+	newNode->nameFile = safe_malloc(strlen(fName) + 1);
+	strncpy(newNode->nameFile, fName, strlen(fName) + 1);
+
 	newNode->FileSize = 0;
 
 	if(list->size == 0) list->head = newNode;
@@ -235,7 +236,7 @@ static inline void node_append(FileNode* node, int freq, char* append, long newS
 		free(node->textFile);
 		exit(EXIT_FAILURE);
 	}
-
+	
 	strncat(node->textFile, append, strlen(append));
 	node->FileSize += newSize;
 }

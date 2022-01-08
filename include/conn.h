@@ -105,6 +105,25 @@ static inline void msg_push_head(msg* head, MSGlist* list) {
 	return;
 }
 
+static inline void msg_list_destroy(MSGlist* list)
+{
+	msg* current = list->head;
+	msg* next;
+
+	while (current != NULL)
+	{
+		next = current->next;
+		free(current);
+		current = next;
+	}
+
+	list->head = NULL;
+	list->last = NULL;
+
+	free(list);
+
+	return;
+}
 
 /** Evita letture parziali
  *

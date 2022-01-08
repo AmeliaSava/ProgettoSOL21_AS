@@ -37,9 +37,9 @@ char* readFileBytes(const char *name, long* filelen)
 	*filelen = len; //assigning the lenght to external value
 
 	char* ret = NULL; //return string
-	if((ret = malloc(len * sizeof(char))) == NULL) { perror("ERROR: malloc"); fclose(file);	free(ret);
-		exit(EXIT_FAILURE);
-	}
+	
+	ret = safe_malloc(len);
+
 	if(fseek(file, 0, SEEK_SET) == -1) { perror("ERROR: fseek"); fclose(file); free(ret);
 		exit(EXIT_FAILURE);
 	} 
@@ -59,6 +59,7 @@ int WriteFilefromByte(const char* name, char* text, long size, const char* dirna
 	
 	sprintf(fullpath,"%s/%s", dirname, name);
 	fullpath[strlen(dirname) + strlen(name) + 1] = '\0';
+	fprintf(stderr, "%s", fullpath);
 	errno = 0;
 	if((fp1 = fopen(fullpath, "wb")) == NULL) {
 		fprintf(stderr, "errno:%d\n", errno);
@@ -72,16 +73,16 @@ int WriteFilefromByte(const char* name, char* text, long size, const char* dirna
 	return 0;
 }
 
-//API
-/*
- * Apre una connesione AF_UNIX al socket file sockname. Se il server non accetta immediatamente la richiesta di connessione,
- * la connessione da parte del client ripetur dopo 'msec' millisecondi e fino allo scadere del tempo assoluto 'abstime' specificato
- * come terzo argomento. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
- */
+/**
+ * API FUNCTIONS
+ **/
+
 int openConnection(const char* sockname, int msec, const struct timespec abstime) {
 
 	errno = 0;
 	int result = 0;
+	
+	//checking if parameters are correct
 	if(sockname == NULL || msec < 0) { errno = EINVAL; return -1;}
 	
 	struct sockaddr_un serv_addr;
@@ -89,7 +90,6 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 	serv_addr.sun_family = AF_UNIX;    
 	strncpy(serv_addr.sun_path, sockname, strlen(sockname)+1);
 	
-
 	if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) { errno = -1; return -1;}
 
 	struct timespec current_time;
@@ -105,11 +105,10 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 	return result;
 }
 
-/*
- * chiude la connessione AF_UNIX associata al socket file sockname. Ritorna 0 in caso di successo, -1 in caso di fallimento, 
- * errno viene settato opportunamente.
- */
-int closeConnection(const char* sockname) {
+int closeConnection(const char* sockname) 
+{
+
+	errno = 0;
 
 	msg* close_connection = safe_malloc(sizeof(msg));
 	close_connection->op_type = 20;
@@ -117,7 +116,7 @@ int closeConnection(const char* sockname) {
 	if(writen(sockfd, close_connection, sizeof(msg)) <= 0)
 	{
 		errno = -1;
-		perror("ERROR: write openFile");
+		perror("ERROR: write closeConnection");
 		return -1;
 	}
 
@@ -130,62 +129,16 @@ int closeConnection(const char* sockname) {
 		return -1;
 	}
 
+	close(sockfd);
+
 	if(response == SRV_OK) return 0;
 
-	close(sockfd);
-	return 0;
+	return -1;
 }
 
-/** TESTING
-
-int FileSend(const char* pathname) 
-{
-	fprintf(stderr, "Sending file\n");
-
-	msg* fileC = safe_malloc(sizeof(msg));
-	errno = 0;
-
-	//copying pathname
-	int nameL = strlen(pathname)+1;
-
-	fprintf(stderr, "%d\n", nameL);
-
-	strncpy(fileC->filename, pathname, nameL);
-	fileC->filename[nameL] = '\0';
-
-	fprintf(stderr, "%s\n", fileC->filename);
-
-	fileC->namelenght = nameL;
-	fileC->op_type = 0;
-	fileC->size = 0;
-
-	fprintf(stderr, "prima write\n");
-	if(writen(sockfd, fileC, sizeof(msg)) <= 0) return -1;
-	
-	//recivieng outcome of operation
-	int buflen;
-	fprintf(stderr, "read\n");
-	if(readn(sockfd, &buflen, sizeof(int)) <= 0) return -1;
-	char* buf = NULL;
-	if((buf = malloc((buflen)*sizeof(char))) == NULL) return -1; 
-	if (readn(sockfd, buf, (buflen)*sizeof(char)) <= 0)	return -1;
-	buf[buflen] = '\0';
-	
-	fprintf(stderr, "buf2: %s\n", buf);
-	
-	if(buf) free(buf);
-	return 0;
-	
-}
-*/
-
-/*
- * Richiede di apertura o di creazione di un file. 
- * I flag possono essere 0 = NONE, 1 = O_CREATE, 2 = O_LOCK, 3 = O_CREATE && O_LOCK
- */
 int openFile(const char* pathname, int flags)
 {
-	fprintf(stderr, "dentro openFile API\n");
+	//fprintf(stderr, "dentro openFile API\n");
 
 	msg* open_file = safe_malloc(sizeof(msg));
 	open_file->op_type = 0;
@@ -207,8 +160,7 @@ int openFile(const char* pathname, int flags)
 	fprintf(stderr, "%d\n", getppid());
 
 	open_file->flag = flags;
-	
-	
+		
 	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -217,10 +169,6 @@ int openFile(const char* pathname, int flags)
 	}
 	
 	//recivieng outcome of operation
-
-	//int count = 0;
-	//while(1) count ++;
-
 	op response;
 
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
@@ -230,7 +178,7 @@ int openFile(const char* pathname, int flags)
 		return -1;
 	}
 
-		print_op(response);
+	print_op(response);
 
 	if(response == SRV_READY_FOR_WRITE)	return 1;
 
@@ -475,7 +423,7 @@ int writeFile(const char* pathname, const char* dirname)
 		}
 
 		
-		if(dirname)
+		if(dirname[0] != 0)
 		{
 			fprintf(stderr, "filename:%s\n", cur_msg->filename);
 			char* p;
@@ -524,7 +472,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 
 	//copying append in msg contents and size
 	append_file->size = size;
-	memcpy(append_file->filecontents, buf, size);;
+	memcpy(append_file->filecontents, buf, size);
 
 	//passing the process' pid
 	append_file->pid = getpid();
@@ -532,11 +480,11 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	if(writen(sockfd, append_file, sizeof(msg)) <= 0) 
 	{
 		errno = -1;
-		perror("ERROR: write1");
+		perror("ERROR: append API");
 		return -1;
 	} 
 
-	fprintf(stderr, "recivieng result\n");
+	fprintf(stderr, "response\n");
 	
 	op response;
 
@@ -547,9 +495,57 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 		return -1;
 	}
 
-	if(response == SRV_OK) return 0;
+	print_op(response);
+	fprintf(stderr, "recieved\n");
 
-	return -1;
+	if(response != SRV_OK) return -1;
+	//are there expelled files to recieve?
+	int exp_recieve = 0;
+
+	if (readn(sockfd, &exp_recieve, sizeof(int)) <= 0) 
+	{
+		errno = -1; 
+		perror("ERROR: read recieving expelled files");
+		return -1;
+	}
+
+	fprintf(stderr, "exp:%d\n", exp_recieve);
+
+	while (exp_recieve > 0)
+	{
+		msg* cur_msg = safe_malloc(sizeof(msg));
+
+		if (readn(sockfd, cur_msg, sizeof(msg)) <= 0) 
+		{
+			errno = -1; 
+			perror("ERROR: read recieving expelled");
+			return -1;
+		}
+
+
+		if(dirname)
+		{
+			fprintf(stderr, "filename:%s\n", cur_msg->filename);
+			char* p;
+			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
+			++p;
+			printf("name: %s\n", p);
+			fprintf(stderr, "filecont:%s\n", cur_msg->filecontents);
+			fprintf(stderr, "dirname:%s\n", dirname);
+			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
+			{
+				errno = -1;
+				perror("ERROR: writefb");
+				return -1;
+			}
+		}
+
+		free(cur_msg);
+
+		exp_recieve--;
+	}
+
+	return 0;
 }
 
 /*

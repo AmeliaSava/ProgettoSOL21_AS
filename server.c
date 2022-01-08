@@ -15,10 +15,8 @@
 #include <conn.h>
 #include <coms.h>
 #include <HashLFU.h>
-//#include <clientlist.h>
 
 #define CONFIG_FL "./config.txt"
-#define MAX_BUF 2048
 #define TAB_SIZE 10
 
 //configuration variables
@@ -178,16 +176,18 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 
 		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file->size)) //not enough space for new node
 		{ 
-			long removed = 0; //ATTENTION
+			long removed = 0;
+
 			//saving the expelled file
-			fprintf(stderr,"prima ret\n");
+
 			LOCK(&cache_lock);
 			FileNode* expelled = Hash_LFUremove(&cacheMemory);
 			UNLOCK(&cache_lock);
+
 			msg* expelled_msg = safe_malloc(sizeof(msg));
-			fprintf(stderr, "expf:%s\n", expelled->textFile);
+			
 			file_to_msg(expelled, expelled_msg);
-			fprintf(stderr, "exphead:%s\n", expelled_msg->filecontents);
+			
 			//updating stats
 			if(MAX_MEMORY_MB < file->size) MAX_MEMORY_MB += file->size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
@@ -201,9 +201,12 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 			UNLOCK(&expfiles_lock);
 			
 			removed = expelled_msg->size;
-			
-			//fprintf(stderr, "expsize:%zu\n", expelled_files->size);
-			fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+
+			LOCK(&log_lock);
+			fprintf(log_file, "Capacity Miss\nBytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+			fflush(log_file);
+			UNLOCK(&log_lock);
+
 			return write_file_svr(connfd, file, pid);
 		} else {
 					MAX_MEMORY_MB -= file->size;
@@ -235,20 +238,28 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 
 int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 {
-	fprintf(stderr, "dentro open\n");
+	fprintf(stderr, "Opening file %s\n", name);
+
 	FileNode* current = NULL;
 
 	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL) // file already exists
-	{	//file is either unlocked or locked by the same client
+	{	//tried to create an already present file
+		if(!flag) return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0);
+		//file is either unlocked or locked by the same client
 		if(current->lock == 0 || (current->lock == 1 && current->lock_pid == pid))
 		{	// if the file is closed, open file
 			if(current->status == 1)
 			{ 
-				fprintf(stderr, "found closed file\n");
-				fprintf(stderr, "Stato: %d\n", current->status);
+				fprintf(stderr, "Found closed file\n");
+				fprintf(stderr, "Status: %d\n", current->status);
+				LOCK(&cache_lock);
 				Hash_Inc(&cacheMemory, current);
+				UNLOCK(&cache_lock);
+
 				current->status = 0; //opening file
-				fprintf(stderr, "Stato Updated: %d\n", current->status);
+
+				fprintf(stderr, "Status Updated: %d\n", current->status);
+				
 				//O_LOCK flag set, lock the file.
 				//if O_LOCK is tryied on already locked file nothing happens
 				if(flag == 2 && current->lock != 1) node_lock(current, pid);
@@ -373,13 +384,20 @@ int append_file_svr(long connfd, msg* info)
 		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
 		if(current->status == 1) return report_ops(connfd, SRV_FILE_CLOSED, 0); // file is closed
 		else {
+			//not enough space for append
 			if(MAX_MEMORY_MB < info->size) 
 			{
 				fprintf(stderr, "Removing a file to do an append operation\n");
 
 				long removed = 0; //ATTENTION
 
-				Hash_LFUremove(&cacheMemory);
+				LOCK(&cache_lock);
+				FileNode* expelled = Hash_LFUremove(&cacheMemory);
+				UNLOCK(&cache_lock);
+
+				msg* expelled_msg = safe_malloc(sizeof(msg));
+			
+				file_to_msg(expelled, expelled_msg);
 
 				MAX_MEMORY_MB += info->size;
 
@@ -387,7 +405,18 @@ int append_file_svr(long connfd, msg* info)
 				EXPELLED_COUNT ++;
 				UNLOCK(&exp_lock);
 
-				fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+				//inserting expelled node in a list to send it back to the client
+				LOCK(&expfiles_lock);
+				msg_push_head(expelled_msg, expelled_files);
+				UNLOCK(&expfiles_lock);
+
+				removed = expelled_msg->size;
+
+				LOCK(&log_lock);
+				fprintf(log_file, "Capacity Miss\nBytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+				fflush(log_file);
+				UNLOCK(&log_lock);
+
 				//retrying the operation with more memory
 				return append_file_svr(connfd, info);
 			} else 
@@ -409,7 +438,7 @@ int append_file_svr(long connfd, msg* info)
 			}	
 		}
 	} else return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
-	return report_ops(connfd, SRV_OK, 0);
+	return report_ops(connfd, SRV_OK, 1);
 }
 
 int remove_file_svr(long connfd, msg* info) 
@@ -591,18 +620,6 @@ int cmd(int connfd, msg* info)
 	return 0;
 }
 
-/*
-int getMSG(int connfd)
-{
-	msg* file = safe_malloc(sizeof(msg));
-	
-	if (readn(connfd, file, sizeof(msg))<=0) return -1;
-
-	fprintf(stderr, "Nome: %s\n", file->filename);
-
-	return cmd(connfd, *file);
-}
-*/
 
 void* getMSG(void* arg)
 {
@@ -720,7 +737,7 @@ void configParsing()
 {
 	FILE *config_input = NULL;
 	
-	char* buffer = NULL;
+	char* buffer = safe_malloc(MAX_BUF);
 
 	if ((config_input = fopen(CONFIG_FL, "r")) == NULL) 
 	{
@@ -728,8 +745,6 @@ void configParsing()
 		fclose(config_input);
 		exit(EXIT_FAILURE);
 	} 
-
-	CHECK_EQ_EXIT((buffer = malloc(MAX_BUF * sizeof(char))), NULL, "ERROR: malloc buffer");
 
 	int count = 0;
 
@@ -816,6 +831,8 @@ void log_create()
 		fflush(log_file);
 	}
 	
+	free(log_path);
+
 	return;
 }
 
@@ -855,15 +872,15 @@ int main (int argc, char* argv[])
     SYSCALL_EXIT("pthread_create", err, pthread_create(&signal_handler, NULL, &signalhandler, NULL), "ERROR: pthread_create", "");  
 	
 	//allocating the global socket name
-	SOCKET_NAME = safe_malloc(MAX_BUF * sizeof(char));
-	LOG_NAME = safe_malloc(MAX_BUF * sizeof(char));
+	SOCKET_NAME = safe_malloc(MAX_BUF);
+	LOG_NAME = safe_malloc(MAX_BUF);
 
 	// parsing the config file
 	configParsing();
 
 	log_create(LOG_NAME);
 
-	fprintf(log_file, "Server created\nMax number of thread workers: %ld\nMax memory available: %ld\nCurrently available memory: %ld\nMax Number of files: %ld\nSocket Name: %s\nLog file name: %s\n", 
+	fprintf(log_file, "\nServer created\nMax number of thread workers: %ld\nMax memory available: %ld\nCurrently available memory: %ld\nMax Number of files: %ld\nSocket Name: %s\nLog file name: %s\n\n", 
 		NUM_THREAD_WORKERS, MAX_MEMORY_MB, MAX_MEMORY_TOT, MAX_NUM_FILES, SOCKET_NAME, LOG_NAME);
 	fflush(log_file);
 
@@ -872,7 +889,7 @@ int main (int argc, char* argv[])
 
 	fprintf(log_file, "Hash memory initialized successfully\n");
 
-	//ATTENTION list init
+	//list init
 	client_requests = safe_malloc(sizeof(MSGlist));
 	msg_list_init(client_requests);
 
@@ -926,61 +943,6 @@ int main (int argc, char* argv[])
     FD_ZERO(&set);
     FD_ZERO(&rdset);
     FD_SET(fd_skt, &set);
-
-	/**
-	 * Working single thread socket communication
-	for(;;) 
-	{      
-		rdset = set; //saving the set in the temporary one
-
-		//+1 because I need the number of active file descriptors, not the max index
-		if (select(fd_max + 1, &rdset, NULL, NULL, NULL) == -1)
-		{
-		    perror("ERROR: select");
-			return EXIT_FAILURE;
-		} 
-		else { 
-			//select ok
-			fprintf(stderr, "select ok\n");
-			fprintf(stderr, "max bef for: %d\n", fd_max);
-
-			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++)
-			{
-				//accepting new connections
-				fprintf(stderr, "accepting connections\n");
-
-			    if (FD_ISSET(fd_sel, &rdset))
-				{ //is it ready?
-			    	fprintf(stderr, "ready?\n");
-
-					if (fd_sel == fd_skt)
-					{ // sock connect ready
-						fprintf(stderr, "sock ready\n");
-						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
-						FD_SET(fd_con, &set);  // adding fd to starting set
-						
-						// updating max
-						if(fd_con > fd_max) fd_max = fd_con;  
-						fprintf(stderr, "max after connection:%d\n", fd_max);
-						//fprintf(stderr, "Client fd: %d\n", fd_con);
-						continue;
-					} 
-					fd_con = fd_sel;
-
-					//fprintf(stderr, "Client da ascoltare: %d\n", fd_con);
-					if(getMSG(fd_con) < 0) 
-					{
-						close(fd_con); 
-						FD_CLR(fd_con, &set);
-
-						if (fd_con == fd_max) fd_max = updateMax(set, fd_max);
-					}
-		   		}
-			}
-		}
-    }
-	*
-	**/
 
 	struct timeval timeout;
 	timeout.tv_sec = 0;
@@ -1058,112 +1020,6 @@ int main (int argc, char* argv[])
 		}
     }
 
-	//DOSEN'T WORK
-	/*
-    fprintf(stderr, "Max fd at start: %d\n", fd_max);
-	for(;;)
-	{   
-
-		LOCK(&set_lock);  
-		rdset = set; //saving the set in the temporary one
-		UNLOCK(&set_lock);
-
-		int connected = client_connected.lenght;
-
-		if(connected != 0) {
-			struct timeval timeout;
-			timeout.tv_sec = 0;
-			timeout.tv_usec = 1;
-			//+1 because I need the number of active file descriptors, not the max index
-			if (select(fd_max + 1, &rdset, NULL, NULL, &timeout) == -1) 
-			{
-				perror("ERROR: select");
-				return EXIT_FAILURE;
-			} 
-			
-		}
-		
-		//select ok
-		printf("QUI\n");
-		fprintf(stderr, "select ok\n");
-
-		long fd_con; // I/O socket with a client
-
-		fprintf(stderr, "max bef for: %d\n", fd_max);
-
-		for(fd_sel = 0; fd_sel <= fd_max; fd_sel++) 
-		{
-			//accepting new connections
-			fprintf(stderr, "accepting connections\n");
-
-			if (FD_ISSET(fd_sel, &rdset)) { //is it ready?
-				fprintf(stderr, "ready?\n");
-
-				if (fd_sel == fd_skt)
-				{	// sock connect ready
-					fprintf(stderr, "sock ready, accept\n");
-
-					SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
-
-					LOCK(&set_lock);
-					FD_SET(fd_con, &set);  // adding fd to starting set
-					UNLOCK(&set_lock);
-						
-					// updating max
-					LOCK(&max_lock);
-					if(fd_con > fd_max) fd_max = fd_con;
-					UNLOCK(&mac_lock);
-
-					fprintf(stderr, "Max after accept:%d\n", fd_max);
-				} else {
-					//request
-		   			fprintf(stderr, "handling request\n");
-
-		   			long client;
-		   			op rep;
-
-					if (readn(pipe_m[0], &client, sizeof(long)) > 0) 
-						{ //read something
-							if (readn(pipe_m[0], &rep, sizeof(op))<=0) {
-								perror("reading pipe 2"); exit(EXIT_FAILURE);
-							}
-							if (rep == END_COMMUNICATION) 
-							{
-								fprintf(stderr, "interrmpo com client: %ld\n", client);
-								FD_CLR(client, &set);
-								fprintf(stderr, "max prima agg:%d\n", fd_max);
-								if (client == fd_max) fd_max = updateMax(set, fd_max);
-									fprintf(stderr, "max dopo agg:%d\n", fd_max);
-									close(client);
-							}
-							else
-							{
-								FD_SET(client, &set);
-								if(client > fd_max) fd_max = client;
-							}
-						} 
-						else 
-						{ 
-							perror("reading pipe");
-							 exit(EXIT_FAILURE); 
-						}	
-			   		
-						fprintf(stderr, "adding request to list\n");
-						pthread_mutex_lock(&cli_req);
-						push_head(&client_requests, fd_sel);
-						pthread_cond_signal(&wait_list);
-						pthread_mutex_unlock(&cli_req);
-						FD_CLR(fd_sel, &set);
-					
-		   		}
-		   	}
-		}
-		
-    }
-	*/
-
-    //ogni volta che si chiude la comunicazione va aggiornato il massimo
-
 	//waiting for signal handler thread to terminate
 	pthread_join(signal_handler, NULL);
 
@@ -1175,12 +1031,18 @@ int main (int argc, char* argv[])
 	*/
 	print_stat();
 
-    //sezione di deallocazione di tutte le risorse
-
-
+    //cleanup section
 
 	close(fd_skt);
+
     free(SOCKET_NAME);
+	free(LOG_NAME);
+
+	msg_list_destroy(client_requests);
+	msg_list_destroy(expelled_files);
+
+	//Hash_Destroy(&cacheMemory);
+
 	pthread_exit(NULL);
 	//return EXIT_SUCCESS;
 }

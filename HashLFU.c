@@ -8,7 +8,7 @@
 //ok
 void Hash_Init(Table* tab, int size)
 {
-	tab->bucket = malloc(sizeof(FileList) * size);
+	tab->bucket = safe_malloc(sizeof(FileList) * size);
 	tab->maxSize = size;
 	tab->curSize = 0;
 	

@@ -52,13 +52,14 @@ void print_h()
 	printf("-p -> enables prints throughout the code\n");
 }
 
+// adds "./" to a file name
 int add_current_folder(char** pathname, char* name)
 {
-	char* folder = NULL;
-	if((folder = malloc((strlen(name) + 2)*sizeof(char))) == NULL) return -1;
-	if((*pathname = malloc(2*sizeof(char))) == NULL) return -1;
+	char* folder = safe_malloc(strlen(name) + 1);
+	*pathname = safe_malloc(4 + strlen(name));
+
 	strncpy(*pathname, "./", 3);
-	strncpy(folder, name, strlen(name));
+	strncpy(folder, name, strlen(name) + 1);
 	strncat(*pathname, folder, strlen(folder));
 	free(folder);
 	return 0;
@@ -288,10 +289,6 @@ int commandline_serve()
             		if((ret = openFile(buf, 1)) == 1) //ATTENTION errori?
 					{
 						//if expelled_dir was earlier defined it is used, otherwise it remains NULL
-						
-						fprintf(stderr,"expdir:%s\n", expelled_dir);
-						
-		fprintf(stderr,"\n");
 						if((ret = writeFile(buf, expelled_dir)) != 0)
 						{
 							fprintf(stderr, "%s", strerror(errno));
@@ -351,7 +348,11 @@ int commandline_serve()
 
 					if(save_dir != NULL)
 					{
-						if((WriteFilefromByte(token, file, sz, save_dir)) == -1) 
+						char* p;
+						p = strrchr(token, '/'); //ATTENTION306
+						++p;
+						printf("name: %s\n", p);
+						if((WriteFilefromByte(p, file, sz, save_dir)) == -1) 
 							return -1;
 					}
 
@@ -475,6 +476,54 @@ int commandline_serve()
 
 				break;
 			}
+			case 10: //-a
+			{
+				char* token;
+				char* buf;
+				char* append_buf;
+
+				int c = 0;
+
+				token = strtok(ptr->args,",");
+
+            	while(token != NULL)
+				{	
+					if(!c)
+					{
+						//if the path was given with shortened current directory
+						if(token[0] == '.' && token[1] == '/')
+						{
+							token += 2;
+							buf = cwd();
+							buf = strncat(buf, "/", 2);
+							buf = strncat(buf, token, strlen(token));
+						}
+						
+						token = strtok(NULL, ",");
+						c++;
+					}
+					else
+					{
+						append_buf = safe_malloc(strlen(token));
+						strncpy(append_buf, token, strlen(token));
+
+						if(appendToFile(buf, &append_buf, strlen(token), expelled_dir) != 0)
+						{
+							perror("ERROR: append to file");
+							exit(EXIT_FAILURE);
+						}
+
+						token = strtok(NULL, ",");
+					}
+					
+                }
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
+
+				break;
+			}
 			case ':': 
 			{
 				printf("option needs a value\n"); 
@@ -503,7 +552,8 @@ int commandline_check()
 
 	while(ptr != NULL) 
 	{
-		if(ptr->opt == 1 || ptr->opt == 2)
+		fprintf(stderr, "%d\n", ptr->opt);
+		if(ptr->opt == 1 || ptr->opt == 2 || ptr->opt == 10)
 			isW = 1;
 
 		if(ptr->opt == 4 || ptr->opt == 5)
@@ -570,8 +620,8 @@ int commandline_check()
 			dirbuf2 = strncat(dirbuf2, dir2, strlen(dir2));
 		}
 		
-		save_dir = safe_malloc(strlen(dir2));
-		strncpy(save_dir, dir2, strlen(dir2));
+		save_dir = safe_malloc(strlen(dirbuf2));
+		strncpy(save_dir, dirbuf2, strlen(dirbuf2));
 
 		fprintf(stderr,"Read files will be saved into:\n%s\n", save_dir);
 	}
@@ -588,7 +638,7 @@ int main(int argc, char *argv[])
 	opt_args = safe_malloc(sizeof(opt_args));
 
 
-	while((opt = getopt(argc, argv, "hf:w:W:D:r:R::d:t:l:u:c:p")) != -1) { 
+	while((opt = getopt(argc, argv, "hf:w:W:a:D:r:R::d:t:l:u:c:p")) != -1) { 
 		switch(opt) { 
             case 'h': 
 			{
@@ -598,11 +648,11 @@ int main(int argc, char *argv[])
             case 'f': 
 			{
 				if(add_current_folder(&SOCKNAME, optarg) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
-				if(print) printf("Socket file pathname: %s\n", SOCKNAME);
 				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
 				abstime.tv_sec += 2;
+				if(print) printf("Opening connection to: %s\n", SOCKNAME);
             	if((openConnection(SOCKNAME, 1000, abstime)) == -1){errno = ECONNREFUSED; perror("openConnection"); exit(EXIT_FAILURE);}
-            	else fprintf(stderr, "Connected\n");
+            	else if(print) printf("Connected to socket\n");
             	break;
             }
             case 'w': 
@@ -617,6 +667,11 @@ int main(int argc, char *argv[])
             	
                 break;
             }
+			case 'a': //addtional option to test append, usage: -a file,append
+			{
+				arg_ins(10, optarg);
+				break;
+			}
 			case 'D':
 			{
 				arg_ins(3, optarg);
@@ -715,8 +770,16 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	if(print) printf("All requests served, closing connection\n");
+
 	//after completing all request the connection is closed
-	closeConnection(SOCKNAME);
+	if(closeConnection(SOCKNAME) != 0)
+	{
+		perror("ERROR: Unable to close connection correctly with server");
+		exit(EXIT_FAILURE);
+	}
+
+	if(print) printf("Connection closed\n");
 	
 	return 0;
 }
