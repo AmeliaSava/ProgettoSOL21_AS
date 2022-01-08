@@ -141,13 +141,15 @@ int report_ops(long connfd, op op_type, int ok_write)
 		
 		while (expelled_files->size > 0)
 		{	fprintf(stderr, "list head before return:%s\n", expelled_files->head->filecontents);
-			msg* cur_msg = msg_list_pop_return(expelled_files);
+			msg* cur_msg = safe_malloc(sizeof(msg));
+			msg_list_pop_return(expelled_files, &cur_msg);
 			fprintf(stderr, "return:%s\n", cur_msg->filecontents);
 			if (writen(connfd, cur_msg, sizeof(msg)) <= 0)
 			{
 				perror("ERROR: write sending expelled files"); 
 				return -1;
 			}
+			free(cur_msg);
 
 		}
 		UNLOCK(&expfiles_lock);
@@ -158,23 +160,23 @@ int report_ops(long connfd, op op_type, int ok_write)
 
 //Handling of API operations on server side
 
-int write_file_svr(long connfd, msg file, pid_t pid)
+int write_file_svr(long connfd, msg* file, pid_t pid)
 {
 
 	fprintf(stderr, "Writing file on server memory\n");
 	
 	FileNode* current = NULL;
 
-	if((current = Hash_SearchNode(&cacheMemory, file.filename)) == NULL) return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
+	if((current = Hash_SearchNode(&cacheMemory, file->filename)) == NULL) return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
 	else
 	{
-		fprintf(stderr,"Found file: %s\n", file.filename);
+		fprintf(stderr,"Found file: %s\n", file->filename);
 		if(current->lock == 1 && current->lock_pid != pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process	
 		if(current->FileSize > 0) return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0); //node exists but has content inside, can't over write
 		if(current->status == 1) return report_ops(connfd, SRV_FILE_CLOSED, 0); //node exists but is closed
-		if(MAX_MEMORY_TOT < file.size) return report_ops(connfd, SRV_MEM_FULL, 0); //the file is bigger than the whole available memory
+		if(MAX_MEMORY_TOT < file->size) return report_ops(connfd, SRV_MEM_FULL, 0); //the file is bigger than the whole available memory
 
-		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file.size)) //not enough space for new node
+		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file->size)) //not enough space for new node
 		{ 
 			long removed = 0; //ATTENTION
 			//saving the expelled file
@@ -187,7 +189,7 @@ int write_file_svr(long connfd, msg file, pid_t pid)
 			file_to_msg(expelled, expelled_msg);
 			fprintf(stderr, "exphead:%s\n", expelled_msg->filecontents);
 			//updating stats
-			if(MAX_MEMORY_MB < file.size) MAX_MEMORY_MB += file.size;
+			if(MAX_MEMORY_MB < file->size) MAX_MEMORY_MB += file->size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
 			LOCK(&exp_lock);
 			EXPELLED_COUNT++;
@@ -204,7 +206,7 @@ int write_file_svr(long connfd, msg file, pid_t pid)
 			fprintf(stdout, "Bytes removed: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
 			return write_file_svr(connfd, file, pid);
 		} else {
-					MAX_MEMORY_MB -= file.size;
+					MAX_MEMORY_MB -= file->size;
 					MAX_NUM_FILES--;
 
 					if((MAX_NUM_FILES_TOT - MAX_NUM_FILES) > MAX_FILES_MEMORIZED) 
@@ -221,9 +223,9 @@ int write_file_svr(long connfd, msg file, pid_t pid)
 						UNLOCK(&max_mem_lock);
 					}
 					 
-					fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", file.size, MAX_MEMORY_MB);
+					fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", file->size, MAX_MEMORY_MB);
 					//ATTENTION frequency set to one to erease max freq from open
-					node_update(current, 1, file.filecontents, file.size);
+					node_update(current, 1, file->filecontents, file->size);
 					Hash_Inc(&cacheMemory, current);
 				} 				
 	}
@@ -272,14 +274,14 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
-int close_file_svr(long connfd, msg info, char* name)
+int close_file_svr(long connfd, msg* info, char* name)
 {
 	fprintf(stderr, "dentro close\n");
 	FileNode* current = NULL;
 
 	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL)
 	{ // file already exists
-		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
+		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
 		if(current->status == 0)
 		{ // is open
 			fprintf(stderr, "chiudo il nodo\n");
@@ -291,17 +293,17 @@ int close_file_svr(long connfd, msg info, char* name)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
-int read_file_svr(long connfd, msg info, char** tmp, size_t* size) 
+int read_file_svr(long connfd, msg* info, char** tmp, size_t* size) 
 {
-	fprintf(stderr, "Reading file: %s\n", info.filename);
+	fprintf(stderr, "Reading file: %s\n", info->filename);
 
 	FileNode* current = NULL;
 
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) 
+	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL) 
 	{	// file found
 		fprintf(stderr, "Found file: %s\n", current->nameFile);
 
-		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
+		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
 
 		if(current->status == 1) return 13; // file is closed, cannot read
 
@@ -321,23 +323,23 @@ int read_file_svr(long connfd, msg info, char** tmp, size_t* size)
 	return 9; //file not found
 }
 
-int read_n_file_svr(long connfd, msg info) {
+int read_n_file_svr(long connfd, msg* info) {
 
 	fprintf(stderr, "dentro read n\n");
 	FileNode* to_send = NULL;
 	int tot = 0;
 
-	Hash_Read(&cacheMemory, info.namelenght, &to_send, &tot);
+	Hash_Read(&cacheMemory, info->namelenght, &to_send, &tot);
 
 	fprintf(stderr, "tot:%d\n", tot);
 
-	msg send[tot];
+	msg* send[tot];
 	FileNode* current = to_send;
 	
 	for(int i = 0; i < tot; i++)
 	{
-		file_to_msg(current, &send[i]);
-		printf("file %d: %s\n",i,send[i].filename);
+		file_to_msg(current, send[i]);
+		printf("file %d: %s\n",i,send[i]->filename);
 		current = current->next;
 	}
 
@@ -351,7 +353,7 @@ int read_n_file_svr(long connfd, msg info) {
 
 		int ret = 0;
 
-		if((ret = writen(connfd, &(send[j]), sizeof(msg))) <= 0)
+		if((ret = writen(connfd, send[j], sizeof(msg))) <= 0)
 		{
 			perror("ERROR: write read file");
 			return -1;
@@ -362,16 +364,16 @@ int read_n_file_svr(long connfd, msg info) {
 	return 0;
 }
 
-int append_file_svr(long connfd, msg info) 
+int append_file_svr(long connfd, msg* info) 
 {
 	fprintf(stderr, "dentro append\n");
 	FileNode* current = NULL;
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) 
+	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL) 
 	{ // file already exists
-		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
+		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
 		if(current->status == 1) return report_ops(connfd, SRV_FILE_CLOSED, 0); // file is closed
 		else {
-			if(MAX_MEMORY_MB < info.size) 
+			if(MAX_MEMORY_MB < info->size) 
 			{
 				fprintf(stderr, "Removing a file to do an append operation\n");
 
@@ -379,7 +381,7 @@ int append_file_svr(long connfd, msg info)
 
 				Hash_LFUremove(&cacheMemory);
 
-				MAX_MEMORY_MB += info.size;
+				MAX_MEMORY_MB += info->size;
 
 				LOCK(&exp_lock);
 				EXPELLED_COUNT ++;
@@ -391,7 +393,7 @@ int append_file_svr(long connfd, msg info)
 			} else 
 			{
 				fprintf(stderr, "append ok\n");
-				MAX_MEMORY_MB -= info.size;
+				MAX_MEMORY_MB -= info->size;
 
 				//updating the max memory for stats
 				if((MAX_MEMORY_TOT - MAX_MEMORY_MB) > MAX_MEMORY_EVER) 
@@ -401,8 +403,8 @@ int append_file_svr(long connfd, msg info)
 					UNLOCK(&max_mem_lock);
 				}
 
-				fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", info.size, MAX_MEMORY_MB);
-				node_append(current, current->frequency + 1, info.filecontents, (current->FileSize + info.size)); //file is open, enough memory, make append
+				fprintf(stdout, "Bytes added: %ld\nMemory left:%ld\nInserting file...\n", info->size, MAX_MEMORY_MB);
+				node_append(current, current->frequency + 1, info->filecontents, (current->FileSize + info->size)); //file is open, enough memory, make append
 				Hash_Inc(&cacheMemory, current);
 			}	
 		}
@@ -410,40 +412,40 @@ int append_file_svr(long connfd, msg info)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
-int remove_file_svr(long connfd, msg info) 
+int remove_file_svr(long connfd, msg* info) 
 {
 	fprintf(stderr, "dentro remove\n");
 	FileNode* current = NULL;
 	
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL) 
+	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL) 
 	{ // file already exists
-		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
+		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process
 		if(current->status == 1) return report_ops(connfd, SRV_FILE_CLOSED, 0); // file is closed
 		else
 		{ //removing the node
 			MAX_MEMORY_MB += current->FileSize;
 			MAX_NUM_FILES++;
 			fprintf(stdout, "Bytes freed: %ld\nMemory left:%ld\n", current->FileSize, MAX_MEMORY_MB);
-			Hash_Remove(&cacheMemory, info.filename);
+			Hash_Remove(&cacheMemory, info->filename);
 		} 
 	} else return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
 	return report_ops(connfd, SRV_OK, 0);
 }
 
-int lock_file_srv(long connfd, msg info)
+int lock_file_srv(long connfd, msg* info)
 {
 	fprintf(stderr, "dentro lock\n");
 	FileNode* current = NULL;
 	
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL)
+	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL)
 	{ // file already exists
-		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process	
+		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process	
 		if(current->lock == 0) //file is not already locked
 		{
 			fprintf(stderr, "locking\n");
 			Hash_Inc(&cacheMemory, current);
 			current->lock = 1; // lock file
-			current->lock_pid = info.pid;
+			current->lock_pid = info->pid;
 		}	
 		else return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0); // file already locked by the same process
 	} else return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
@@ -451,15 +453,15 @@ int lock_file_srv(long connfd, msg info)
 	return 0;
 }
 
-int unlock_file_srv(long connfd, msg info)
+int unlock_file_srv(long connfd, msg* info)
 {
 	fprintf(stderr, "dentro unlock\n");
 	FileNode* current = NULL;
 	
-	if((current = Hash_SearchNode(&cacheMemory, info.filename)) != NULL)
+	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL)
 	{ // file already exists
-		if(current->lock == 1 && current->lock_pid != info.pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process	
-		if(current->lock == 1 && current->lock_pid == info.pid) //file is not already locked
+		if(current->lock == 1 && current->lock_pid != info->pid) return report_ops(connfd, SRV_FILE_LOCKED, 0); //file is locked by some other process	
+		if(current->lock == 1 && current->lock_pid == info->pid) //file is not already locked
 		{
 			fprintf(stderr, "unlocking\n");
 			Hash_Inc(&cacheMemory, current);
@@ -472,41 +474,41 @@ int unlock_file_srv(long connfd, msg info)
 }
 
 //WIP
-int cmd(int connfd, msg info) 
+int cmd(int connfd, msg* info) 
 {
 
 	//fprintf(stderr, "dentro cmd: %d\n", info.op_type);
 
-	switch(info.op_type) 
+	switch(info->op_type) 
 	{
 		case OPEN_FILE: 
 		{
 			//int count = 0;
 			//while(1) count ++;
-			/*
+			
 			fprintf(stderr, "openfile cmd\n");
 
-			fprintf(stderr, "Flag: %d\n", info.flag);
-    		fprintf(stderr, "Name: %s\n", info.filename);
-			fprintf(stderr, "PID: %d\n", info.pid);
-*/
-			return open_file_svr(connfd, info.filename, info.flag, info.pid);
+			fprintf(stderr, "Flag: %d\n", info->flag);
+    		fprintf(stderr, "Name: %s\n", info->filename);
+			fprintf(stderr, "PID: %d\n", info->pid);
+
+			return open_file_svr(connfd, info->filename, info->flag, info->pid);
 
 			break;
 		}
 		case CLOSE_FILE: 
 		{
 			fprintf(stderr, "closefile cmd\n");
-			fprintf(stderr, "%s\n", info.filename);
+			fprintf(stderr, "%s\n", info->filename);
 
-			return close_file_svr(connfd, info, info.filename);
+			return close_file_svr(connfd, info, info->filename);
 			break;
 		}
 
 		case READ_FILE:	
 		{
 			fprintf(stderr, "dentro cmd read\n");
-			fprintf(stderr, "Requested file: %s\n", info.filename);
+			fprintf(stderr, "Requested file: %s\n", info->filename);
 			fprintf(stderr, "prima chiamata read\n");
 
 			char* tmp_buf = NULL;
@@ -547,7 +549,7 @@ int cmd(int connfd, msg info)
 		case WRITE_FILE:
 		{
 			fprintf(stderr, "write cmd\n");
-			return write_file_svr(connfd, info, info.pid);
+			return write_file_svr(connfd, info, info->pid);
 			break;
 		}
 		case APPEND_FILE:
@@ -558,7 +560,7 @@ int cmd(int connfd, msg info)
 		}
 		case REMOVE_FILE:
     	{
-			fprintf(stderr, "%s\n", info.filename);
+			fprintf(stderr, "%s\n", info->filename);
 			return remove_file_svr(connfd, info);
 			break;
 		}
@@ -615,19 +617,19 @@ void* getMSG(void* arg)
 		}
 			
 
-		msg* operation;
+		msg* operation = safe_malloc(sizeof(msg));
 
 		pthread_mutex_lock(&cli_req);
 		pthread_cond_wait(&wait_list, &cli_req);
 
 		if(!fast_stop && client_requests->head != NULL)
 		{
-			operation = msg_list_pop_return(client_requests);
+			msg_list_pop_return(client_requests, &operation);
 
 			fprintf(stderr, "prelevo coda\n");
 			pthread_mutex_unlock(&cli_req);
 
-			cmd(operation->fd_con, *operation);
+			cmd(operation->fd_con, operation);
 			fprintf(stderr, "fd: %ld\n", operation->fd_con);
 			if(operation->op_type != 20)
 			{
@@ -803,7 +805,7 @@ void configParsing()
 void log_create()
 {
 	
-	char* log_path = safe_malloc(2 + strlen(LOG_NAME));
+	char* log_path = safe_malloc(7 + strlen(LOG_NAME));
 	sprintf(log_path, "./%s.txt", LOG_NAME);
 	
 	log_file = fopen(log_path, "w");

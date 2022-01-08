@@ -54,22 +54,22 @@ static inline void msg_list_init(MSGlist* list)
 	list->size = 0;
 }
 
-static inline msg* msg_list_pop_return(MSGlist* list)
+static inline void msg_list_pop_return(MSGlist* list, msg** toReturn)
 {
-	if(list->head == NULL)	return NULL;
+	if(list->head == NULL)	return;
 
 	msg* current = list->head;
-	msg* toReturn = safe_malloc(sizeof(msg));
+	//msg* toReturn = safe_malloc(sizeof(msg));
 	
 	if(current->next == NULL) {
 
-		msgcpy(toReturn, current);
+		msgcpy(*toReturn, current);
 		//fprintf(stderr, "toreturn:%s\n", toReturn->filename);
 		free(current);
 		list->head = NULL;
 		list->size = list->size - 1;
 		//fprintf(stderr, "toreturn2:%s\n", toReturn->filename);
-		return toReturn;
+		return;
 	}
 
 	while (current->next->next != NULL)
@@ -78,13 +78,13 @@ static inline msg* msg_list_pop_return(MSGlist* list)
 		current = current->next;
 	}
 
-	msgcpy(toReturn, current->next);
+	msgcpy(*toReturn, current->next);
 	free(current->next);
 	current->next = NULL;
 	list->last = current;
 	list->size = list->size - 1;
 
-	return toReturn;
+	return;
 	
 }
 
