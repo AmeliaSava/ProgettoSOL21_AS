@@ -542,14 +542,34 @@ int commandline_check()
 
 	if(isD)
 	{
-		expelled_dir = safe_malloc(strlen(dir1));
-		strncpy(expelled_dir, dir1, strlen(dir1));
+		char* dirbuf1;
+
+		if(dir1[0] == '.' && dir1[1] == '/')
+		{
+			dir1 += 2;
+			dirbuf1 = cwd();
+			dirbuf1 = strncat(dirbuf1, "/", 2);
+			dirbuf1 = strncat(dirbuf1, dir1, strlen(dir1));
+		}
+		
+		expelled_dir = safe_malloc(strlen(dirbuf1));
+		strncpy(expelled_dir, dirbuf1, strlen(dirbuf1));
 
 		fprintf(stderr,"Expelled files will be saved into:\n%s\n", expelled_dir);
 	}
 			
 	if(isd)
 	{
+		char* dirbuf2;
+
+		if(dir2[0] == '.' && dir2[1] == '/')
+		{
+			dir2 += 2;
+			dirbuf2 = cwd();
+			dirbuf2 = strncat(dirbuf2, "/", 2);
+			dirbuf2 = strncat(dirbuf2, dir2, strlen(dir2));
+		}
+		
 		save_dir = safe_malloc(strlen(dir2));
 		strncpy(save_dir, dir2, strlen(dir2));
 

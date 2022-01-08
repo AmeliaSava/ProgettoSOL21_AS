@@ -55,14 +55,15 @@ char* readFileBytes(const char *name, long* filelen)
 int WriteFilefromByte(const char* name, char* text, long size, const char* dirname) 
 {
 	FILE *fp1;
-	char fullpath[MAX_SIZE];
-
-	char* truename = strrchr(name, '/');
-	truename++;
+	char* fullpath = safe_malloc(strlen(dirname) + strlen(name) + 1);
 	
-	sprintf(fullpath,"%s/%s", dirname, truename);
-
-	if((fp1 = fopen(fullpath, "wb")) == NULL) return -1;
+	sprintf(fullpath,"%s/%s", dirname, name);
+	fullpath[strlen(dirname) + strlen(name) + 1] = '\0';
+	errno = 0;
+	if((fp1 = fopen(fullpath, "wb")) == NULL) {
+		fprintf(stderr, "errno:%d\n", errno);
+		return -1;
+	}
 
 	if((fwrite(text, sizeof(char), size, fp1)) != size) return -1;
 
@@ -125,7 +126,7 @@ int closeConnection(const char* sockname) {
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: reading response closeConnection");
 		return -1;
 	}
 
@@ -225,7 +226,7 @@ int openFile(const char* pathname, int flags)
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read response openFile");
 		return -1;
 	}
 
@@ -281,7 +282,7 @@ int readFile(const char* pathname, void** buf, size_t* size)
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read response ReadFile");
 		return -1;
 	}
 
@@ -303,7 +304,7 @@ int readFile(const char* pathname, void** buf, size_t* size)
 		if(readn(sockfd, tmp_buf, (*size)*sizeof(char)) <= 0) 
 		{ 
 			errno = -1;
-			perror("ERROR: read2");
+			perror("ERROR: read response readFile");
 			return -1;
 		}  //reciveing byte file
 
@@ -346,7 +347,7 @@ int readNfiles(int N, const char* dirname)
 	if (readn(sockfd, &result, sizeof(int)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read response readNFiles");
 		return -1;
 	}
 
@@ -542,7 +543,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read appendToFile");
 		return -1;
 	}
 
@@ -593,7 +594,7 @@ int lockFile(const char* pathname)
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read response lockFile");
 		return -1;
 	}
 
@@ -644,7 +645,7 @@ int unlockFile(const char* pathname)
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read unlockFile");
 		return -1;
 	}
 
@@ -691,7 +692,7 @@ int closeFile(const char* pathname)
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read closeFile");
 		return -1;
 	}
 
@@ -732,7 +733,7 @@ int removeFile(const char* pathname) {
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
-		perror("ERROR: read2");
+		perror("ERROR: read response removeFile");
 		return -1;
 	}
 

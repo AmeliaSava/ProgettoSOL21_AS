@@ -48,7 +48,7 @@ static inline void filecpy(FileNode* destination, FileNode* source)
 	destination->status = source->status;
 	//fprintf(stderr, "source:%s\n", source->nameFile);
 	//fprintf(stderr, "%zu\n", strlen(source->nameFile));
-	destination->nameFile = safe_malloc(sizeof((strlen(source->nameFile)) + 1));
+	destination->nameFile = safe_malloc((strlen(source->nameFile) + 1));
 	strncpy(destination->nameFile, source->nameFile, (strlen(source->nameFile)) + 1);
 	destination->nameFile[(strlen(source->nameFile)) + 1] = '\0';
 

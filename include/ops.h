@@ -20,7 +20,7 @@
 #define EXTRA_LEN_PRINT_ERROR   512
 #endif
 
-#define MAX_SIZE 2024
+#define MAX_SIZE 9000
 
 #define SYSCALL_EXIT(name, r, sc, str, ...) \
     if ((r=sc) == -1) {                     \
@@ -125,6 +125,7 @@ static inline void* safe_malloc (size_t size)
 {
   void* alloc = malloc(size);
   CHECK_EQ_EXIT(alloc, NULL, ERROR: malloc);
+  memset(alloc,'\0',size);
   return alloc;
 }
 

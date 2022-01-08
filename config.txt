@@ -6,6 +6,6 @@
 # 
 Number of thread workers = 4;
 Max Memory available in bytes = 10000;
-Max number of file server can handle = 3;
+Max number of file server can handle = 10;
 Socket file name = storage_sock;
 Log file name = log_file;
