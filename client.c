@@ -296,6 +296,8 @@ int commandline_serve()
 						buf = strncat(buf, token, strlen(token));
 					}
 					
+					if(print) fprintf(stderr,"Writing file:%s\n", buf);
+
 					int ret;
             		if((ret = openFile(buf, 1)) == 1) //ATTENTION errori?
 					{
@@ -337,7 +339,7 @@ int commandline_serve()
 				while(token != NULL)
 				{
 					void* buf = NULL;
-					char* dirbuf;
+					char* dirbuf = safe_malloc(MAX_SIZE);
 					
                 	size_t sz;
 
@@ -350,19 +352,20 @@ int commandline_serve()
 						dirbuf = strncat(dirbuf, token, strlen(token));
 					}
 
+					fprintf(stdout, "Reading file: %s\n", dirbuf);
                 	int r = readFile(dirbuf, &buf, &sz);
 
 					char* file = buf;
 
-                	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s\n", buf, sz, file);
-					else continue;
+                	if(!r) printf("Bytes read: %zu\n\n", sz);
+					else token = strtok(NULL, ",");
 
 					if(save_dir != NULL)
 					{
 						char* p;
 						p = strrchr(token, '/'); //ATTENTION306
 						++p;
-						printf("name: %s\n", p);
+						//printf("name: %s\n", p);
 						if((WriteFilefromByte(p, file, sz, save_dir)) == -1) 
 							return -1;
 					}
@@ -385,7 +388,7 @@ int commandline_serve()
 				//is save_dir was not specified before NULL wil be passed
 				if((ret = readNfiles(n, save_dir)) > 0)
 				{
-					if(print) fprintf(stdout, "Read %ld files\n", ret);
+					if(print) fprintf(stdout, "Read %ld files\n\n", ret);
 				} else if(print) fprintf(stdout, "Error while reading memory");
 
 				next = ptr->next;
@@ -410,7 +413,7 @@ int commandline_serve()
 				char* token;
 				token = strtok(ptr->args,",");
 				char* dirbuf;
-
+fprintf(stdout, "Locked file: %s\n\n", token);
 				while(token != NULL)
 				{
 					//if the path was given with shortened current directory
@@ -424,7 +427,7 @@ int commandline_serve()
 
 					if(lockFile(dirbuf) == 0)
 					{
-						if(print) fprintf(stdout, "Locked file: %s", dirbuf);
+						if(print) fprintf(stdout, "Locked file: %s\n\n", dirbuf);
 					}
 
 					token = strtok(NULL, ",");
@@ -455,7 +458,7 @@ int commandline_serve()
 
 					if(unlockFile(dirbuf) == 0)
 					{
-						if(print) fprintf(stdout, "Unlocked file: %s\n", dirbuf);
+						if(print) fprintf(stdout, "Unlocked file: %s\n\n", dirbuf);
 					}
 
 					token = strtok(NULL, ",");
@@ -483,10 +486,15 @@ int commandline_serve()
 						dirbuf = strncat(dirbuf, "/", 2);
 						dirbuf = strncat(dirbuf, token, strlen(token));
 					}
+					else
+					{
+						dirbuf = safe_malloc(81);
+						strncpy(dirbuf, "/mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/clientlist.h", 81);
+					}
 
 					if(removeFile(dirbuf) == 0)
 					{
-						if(print) fprintf(stdout, "Deleted file: %s\n", dirbuf);
+						if(print) fprintf(stdout, "Deleted file: %s\n\n", dirbuf);
 					}
 
 					token = strtok(NULL, ",");
@@ -600,14 +608,14 @@ int commandline_check()
 
 	if(!isW && isD)
 	{
-		fprintf(stderr,"-D option must be used with -w or -W\n");
+		fprintf(stderr,"-D option must be used with -w or -W\n\n");
 		//resetting string if it was set without the other options
 		return -1;
 	}
 
 	if(!isR && isd)
 	{
-		fprintf(stderr,"-d option must be used with -r or -R\n");
+		fprintf(stderr,"-d option must be used with -r or -R\n\n");
 		//resetting string if it was set without the other options
 		return -1;
 	}
@@ -627,7 +635,7 @@ int commandline_check()
 		expelled_dir = safe_malloc(strlen(dirbuf1));
 		strncpy(expelled_dir, dirbuf1, strlen(dirbuf1));
 
-		fprintf(stderr,"Expelled files will be saved into:\n%s\n", expelled_dir);
+		fprintf(stderr,"Expelled files will be saved into:\n%s\n\n", expelled_dir);
 	}
 			
 	if(isd)
@@ -645,7 +653,7 @@ int commandline_check()
 		save_dir = safe_malloc(strlen(dirbuf2));
 		strncpy(save_dir, dirbuf2, strlen(dirbuf2));
 
-		fprintf(stderr,"Read files will be saved into:\n%s\n", save_dir);
+		fprintf(stderr,"Read files will be saved into:\n%s\n\n", save_dir);
 	}
 
 	return 0;
@@ -739,7 +747,7 @@ int main(int argc, char *argv[])
 					printf("option %s is not a number\n", optarg);
 					return EXIT_FAILURE;
 				}
-				
+				if(print) fprintf(stdout, "Timeout between requests set to %ld\n", sleeptime);
                 break;
             }
 			case 'l':

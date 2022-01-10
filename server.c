@@ -1020,15 +1020,21 @@ void log_create()
 void print_stat()
 {
 	printf("\n");
-	printf("Server Stats:\n");
+	printf("/-------------------------/\n");
+	printf("      Server Stats:\n");
+	printf("/-------------------------/\n");
+	printf("\n");
 	printf("Max number of memorized files: %ld\n", MAX_FILES_MEMORIZED);
 	printf("Max memory used: %ld\n", MAX_MEMORY_EVER);
 	printf("%ld files were expelled\n", EXPELLED_COUNT);
 	printf("\n");
-	printf("Cache Memory Contenents:\n");
-	Hash_Print(&cacheMemory);
+	printf("/-------------------------/\n");
+	printf("  Cache Memory Contenents:\n");
+	printf("/-------------------------/\n");
+	printf("\n");
 	if(cacheMemory.curSize == 0)
-		printf("Memory is empty\n");
+		printf("   Memory is empty\n");
+	Hash_Print(&cacheMemory);
 }
 
 int main (int argc, char* argv[]) 

@@ -284,7 +284,7 @@ int readNfiles(int N, const char* dirname)
 	readN_file->namelenght = N; //using namelenght field to store N
 	errno = 0;
 
-	fprintf(stderr, "dentro readNFile API\n");
+	//fprintf(stderr, "dentro readNFile API\n");
 
 	if(writen(sockfd, readN_file, sizeof(msg)) <= 0)
 	{
@@ -302,28 +302,31 @@ int readNfiles(int N, const char* dirname)
 		return -1;
 	}
 
-	fprintf(stderr, "Files Read: %d\n", result);
+	//fprintf(stderr, "Files Read: %d\n", result);
 
 	if(result > 0) {
 		for(int i = 0; i < result; i++)
 		{		
 			msg* file = safe_malloc(sizeof(msg));
 			int ret = 0;
+
 			if((ret = readn(sockfd, file, sizeof(msg))) <= 0) 
 			{
 				errno = -1;
 				perror("ERROR: read1");
 				exit(EXIT_FAILURE);
-			} else fprintf(stderr, "Read: %d\n", ret);
+			}
 
-			fprintf(stderr, "File Name: %s\n", file->filename); 
+			fprintf(stderr, "Read file: %s\n", file->filename); 
+			fprintf(stderr, "%ld bytes read\n\n", file->size);
+
 			if(dirname)
 			{
 				//questa parte funziona
 				char* p;
 				p = strrchr(file->filename, '/'); //ATTENTION306
 				++p;
-				printf("name: %s\n", p);
+				//printf("name: %s\n", p);
 				if((WriteFilefromByte(p, file->filecontents, file->size, dirname)) == -1) 
 				{
 					errno = -1;
@@ -396,7 +399,7 @@ int writeFile(const char* pathname, const char* dirname)
 	print_op(response);
 	
 	if(response != SRV_OK) return -1;
-	if(response == SRV_OK) fprintf(stdout, "%ld bytes written\n", file_lenght);
+	if(response == SRV_OK) fprintf(stdout, "%ld bytes written\n\n", file_lenght);
 	//are there expelled files to recieve?
 	int exp_recieve = 0;
 

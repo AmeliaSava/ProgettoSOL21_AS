@@ -174,13 +174,13 @@ static inline void print_op(op op_type)
 	{
 		case SRV_OK:
 		{
-			printf("Operation completed successfully\n");
+			printf("Operation completed successfully\n\n");
 			break;
 		}
 		
 		case SRV_NOK: 
     {
-      printf("Error while executing operation\n");
+      printf("Error while executing operation\n\n");
       break;
 		}
 
@@ -191,36 +191,36 @@ static inline void print_op(op op_type)
     }
 		case SRV_FILE_NOT_FOUND:
     {
-			printf("File not found\n");
+			printf("File not found\n\n");
       break;
 		}
 
 		case SRV_FILE_ALREADY_PRESENT: 
     {
-			printf("File already present\n");
+			printf("File already present\n\n");
       break;
 		}
 
 		case SRV_MEM_FULL: 
     {
-      printf("File too big for memory\n");
+      printf("File too big for memory\n\n");
       break;
 		}
 		
 		case SRV_FILE_CLOSED:
     {
-			printf("File is closed\n");
+			printf("File is closed\n\n");
       break;
 		}
 
     case SRV_FILE_LOCKED:
     {
-      printf("File is locked\n");
+      printf("File is locked\n\n");
       break;
     }
 		
 		default: {
-			fprintf(stderr, "command not found OPS\n");
+			fprintf(stderr, "command not found OPS\n\n");
 			break;
 		}
 	}
