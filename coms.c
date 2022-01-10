@@ -19,7 +19,7 @@ int sockfd;
 //EXTRA FUNCTIONS
 char* readFileBytes(const char *name, long* filelen) 
 {
-	fprintf(stderr, "dentro readbyte\n");
+	//fprintf(stderr, "dentro readbyte\n");
 	FILE *file = NULL;
 
 	if ((file = fopen(name, "rb")) == NULL) 
@@ -27,26 +27,43 @@ char* readFileBytes(const char *name, long* filelen)
 		perror("ERROR: opening file");
 		fclose(file);
 		exit(EXIT_FAILURE);
-	} 
+	}
+
 	//go to end of file
-	if(fseek(file, 0, SEEK_END) == -1) { perror("ERROR: fseek"); fclose(file);
+	if(fseek(file, 0, SEEK_END) == -1) 
+	{
+		perror("ERROR: fseek"); 
+		fclose(file);
 		exit(EXIT_FAILURE);
 	} 
 
 	long len = ftell(file); //current byte offset
 	*filelen = len; //assigning the lenght to external value
 
-	char* ret = NULL; //return string
+	char* ret; //return string
 	
 	ret = safe_malloc(len);
 
-	if(fseek(file, 0, SEEK_SET) == -1) { perror("ERROR: fseek"); fclose(file); free(ret);
+	//starting at the beginning of the file
+	if(fseek(file, 0, SEEK_SET) != 0) 
+	{
+		perror("ERROR: fseek");
+		fclose(file); 
+		free(ret);
 		exit(EXIT_FAILURE);
-	} 
-	fread(ret, 1, len, file); //ERROR CHECK
-	/*La funzione fread() ritorna il numero di elementi letti.
-	In caso di errore o di raggiungimento della fine file viene restituito un numero minore di nmemb.
-	E' necessario chiamare le funzioni feof() e/o ferror() in caso venga restituito un numero minore di nmemb*/
+	}
+
+	int err;
+
+	//fread must return the same number as the size passed
+	if((err = fread(ret, 1, len, file)) != len)
+	{
+		perror("ERROR: fread");
+		fclose(file); 
+		free(ret);
+		exit(EXIT_FAILURE);
+	}
+
 	fclose(file);
 	return ret;
 }
@@ -156,8 +173,8 @@ int openFile(const char* pathname, int flags)
 
 	//passing the process' pid
 	open_file->pid = getpid();
-	fprintf(stderr, "%d\n", open_file->pid);
-	fprintf(stderr, "%d\n", getppid());
+	//fprintf(stderr, "%d\n", open_file->pid);
+	//fprintf(stderr, "%d\n", getppid());
 
 	open_file->flag = flags;
 		
@@ -178,6 +195,7 @@ int openFile(const char* pathname, int flags)
 		return -1;
 	}
 
+	//fprintf(stdout,"Open File:\n");
 	print_op(response);
 
 	if(response == SRV_READY_FOR_WRITE)	return 1;
@@ -187,16 +205,9 @@ int openFile(const char* pathname, int flags)
 	return -1;
 }
 
-
-/*
- * Legge tutto il contenuto del file server (se esiste) ritornando un puntatore ad un'area allocatata sullo heap nel parametro 'buf', 
- * mentre 'size' conterrà la dimensione del buffer dati (ossia la dimensione in bytes del file letto). In caso di errore, 'buf' e 
- * 'size' non sono validi. Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene viene settato opportunamente.
- */
-
 int readFile(const char* pathname, void** buf, size_t* size)
 {
-	fprintf(stderr, "dentro readFile API\n");
+	//fprintf(stderr, "dentro readFile API\n");
 
 	msg* read_file = safe_malloc(sizeof(msg));
 	read_file->op_type = 2;
@@ -246,18 +257,18 @@ int readFile(const char* pathname, void** buf, size_t* size)
 			return -1;
 		}  //reciveing file len
 
-		fprintf(stderr, "Recived size: %zu\n", *size);
-		tmp_buf = safe_malloc((*size)*sizeof(char));
+		//fprintf(stderr, "Recived size: %zu\n", *size);
+		tmp_buf = safe_malloc((*size));
 
-		if(readn(sockfd, tmp_buf, (*size)*sizeof(char)) <= 0) 
+		if(readn(sockfd, tmp_buf, (*size)) <= 0) 
 		{ 
 			errno = -1;
 			perror("ERROR: read response readFile");
 			return -1;
 		}  //reciveing byte file
 
-		fprintf(stderr, "Recived text: %s\n", tmp_buf);
-		fprintf(stderr, "Stored at %p\n", (void*)tmp_buf);
+		//fprintf(stderr, "Recived text: %s\n", tmp_buf);
+		//fprintf(stderr, "Stored at %p\n", (void*)tmp_buf);
 
 		*buf = (void*)tmp_buf;
 
@@ -265,14 +276,6 @@ int readFile(const char* pathname, void** buf, size_t* size)
 
 	return 0;
 }
-
-/*
- * Richiede al server la lettura di ‘N’ files qualsiasi da memorizzare nella directory ‘dirname’ lato client.
- * Se il server ha meno di ‘N’ file disponibili, li invia tutti. Se N <= 0 la richiesta al server è quella di
- * leggere tutti i file memorizzati al suo interno. Ritorna un valore maggiore o uguale a 0 in caso di
- * successo (cioè ritorna il n. di file effettivamente letti), -1 in caso di fallimento, errno viene settato opportunamente.
- */
-
 
 int readNfiles(int N, const char* dirname) 
 {
@@ -304,44 +307,40 @@ int readNfiles(int N, const char* dirname)
 	if(result > 0) {
 		for(int i = 0; i < result; i++)
 		{		
-			msg file;
+			msg* file = safe_malloc(sizeof(msg));
 			int ret = 0;
-			if((ret = readn(sockfd, &file, sizeof(msg))) <= 0) 
+			if((ret = readn(sockfd, file, sizeof(msg))) <= 0) 
 			{
 				errno = -1;
 				perror("ERROR: read1");
-				return -1;
+				exit(EXIT_FAILURE);
 			} else fprintf(stderr, "Read: %d\n", ret);
 
-			fprintf(stderr, "File Name: %s\n", file.filename); 
-
-			//questa parte funziona
-			char* p;
-			p = strrchr(file.filename, '/'); //ATTENTION306
-			++p;
-			printf("name: %s\n", p);
-			if((WriteFilefromByte(p, file.filecontents, file.size, dirname)) == -1) 
+			fprintf(stderr, "File Name: %s\n", file->filename); 
+			if(dirname)
 			{
-				errno = -1;
-				perror("ERROR: writefb");
-				return -1;
+				//questa parte funziona
+				char* p;
+				p = strrchr(file->filename, '/'); //ATTENTION306
+				++p;
+				printf("name: %s\n", p);
+				if((WriteFilefromByte(p, file->filecontents, file->size, dirname)) == -1) 
+				{
+					errno = -1;
+					perror("ERROR: writefb");
+					return -1;
+				}
+				//fine parte che funziona
 			}
-			//fine parte che funziona
 		}	
 	} else return -1;
 	
-	return 0;
+	return result;
 }
 
-/*
- * Scrive tutto il file puntato da pathname nel file server. Ritorna successo solo se la precedente operazione,
- * terminata con successo, è stata openFile. Se ‘dirname’ è diverso da NULL, il file eventualmente spedito dal 
- * server perchè espulso dalla cache per far posto al file ‘pathname’ dovrà essere  scritto in ‘dirname’;
- * Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
- */
 int writeFile(const char* pathname, const char* dirname) 
 {
-	fprintf(stderr, "dentro writeFile API\n");
+	// fprintf(stderr, "dentro writeFile API\n");
 
 	msg* write_file = safe_malloc(sizeof(msg));
 	write_file->op_type = 4;
@@ -358,7 +357,7 @@ int writeFile(const char* pathname, const char* dirname)
 
 	//reading file
 	long file_lenght;
-	char* buf = NULL;
+	char* buf;
 	if((buf = readFileBytes(pathname, &file_lenght)) == NULL) 
 	{ 
 		errno = -1;
@@ -374,7 +373,7 @@ int writeFile(const char* pathname, const char* dirname)
 	//fprintf(stderr, "%d\n", write_file->pid);
 	//fprintf(stderr, "%d\n", getppid());
 
-	fprintf(stderr, "sending\n");
+	//fprintf(stderr, "sending\n");
 	//sending
 	if(writen(sockfd, write_file, sizeof(msg)) <= 0) 
 	{
@@ -384,7 +383,6 @@ int writeFile(const char* pathname, const char* dirname)
 	}
 
 	//recieving outcome of operation
-	fprintf(stderr, "response\n");
 	op response;
 
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
@@ -394,12 +392,12 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
+	fprintf(stderr, "Write File:\n");
 	print_op(response);
-	fprintf(stderr, "recieved\n");
-
+	
 	if(response != SRV_OK) return -1;
+	if(response == SRV_OK) fprintf(stdout, "%ld bytes written\n", file_lenght);
 	//are there expelled files to recieve?
-
 	int exp_recieve = 0;
 
 	if (readn(sockfd, &exp_recieve, sizeof(int)) <= 0) 
@@ -408,8 +406,6 @@ int writeFile(const char* pathname, const char* dirname)
 		perror("ERROR: read recieving expelled files");
 		return -1;
 	}
-
-	fprintf(stderr, "exp:%d\n", exp_recieve);
 
 	while (exp_recieve > 0)
 	{
@@ -425,13 +421,11 @@ int writeFile(const char* pathname, const char* dirname)
 		
 		if(dirname[0] != 0)
 		{
-			fprintf(stderr, "filename:%s\n", cur_msg->filename);
+			//getting only the file name
 			char* p;
 			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
 			++p;
-			printf("name: %s\n", p);
-			fprintf(stderr, "filecont:%s\n", cur_msg->filecontents);
-			fprintf(stderr, "dirname:%s\n", dirname);
+			//wrting the file
 			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
 			{
 				errno = -1;
@@ -448,16 +442,10 @@ int writeFile(const char* pathname, const char* dirname)
 	return 0;
 }
 
-/*
- * Richiesta di scrivere in append al file ‘pathname‘ i ‘size‘ bytes contenuti nel buffer ‘buf’. L’operazione di append
- * nel file è garantita essere atomica dal file server. Se ‘dirname’ è diverso da NULL, il file eventualmente spedito
- * dal server perchè espulso dalla cache per far posto ai nuovi dati di ‘pathname’ dovrà essere scritto in ‘dirname’;
- * Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
- */
 int appendToFile(const char* pathname, void* buf, size_t size, const char* dirname) 
 {
-	fprintf(stderr, "dentro appendToFile API\n");
-	fprintf(stderr, "%s\n", (char*)buf);
+	//fprintf(stderr, "dentro appendToFile API\n");
+	//fprintf(stderr, "%s\n", (char*)buf);
 
 	msg* append_file = safe_malloc(sizeof(msg));
 	append_file->op_type = 5;
@@ -481,10 +469,8 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	{
 		errno = -1;
 		perror("ERROR: append API");
-		return -1;
+		exit(EXIT_FAILURE);
 	} 
-
-	fprintf(stderr, "response\n");
 	
 	op response;
 
@@ -492,13 +478,14 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	{
 		errno = -1; 
 		perror("ERROR: read appendToFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
 	print_op(response);
 	fprintf(stderr, "recieved\n");
 
 	if(response != SRV_OK) return -1;
+
 	//are there expelled files to recieve?
 	int exp_recieve = 0;
 
@@ -525,13 +512,11 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 
 		if(dirname)
 		{
-			fprintf(stderr, "filename:%s\n", cur_msg->filename);
+			//fprintf(stderr, "filename:%s\n", cur_msg->filename);
 			char* p;
 			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
 			++p;
-			printf("name: %s\n", p);
-			fprintf(stderr, "filecont:%s\n", cur_msg->filecontents);
-			fprintf(stderr, "dirname:%s\n", dirname);
+		
 			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
 			{
 				errno = -1;
@@ -548,16 +533,9 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	return 0;
 }
 
-/*
-*In caso di successo setta il flag O_LOCK al file. Se il file era stato aperto/creato con il flag O_LOCK e la
-*richiesta proviene dallo stesso processo, oppure se il file non ha il flag O_LOCK settato, l’operazione termina
-*immediatamente con successo, altrimenti l’operazione non viene completata fino a quando il flag O_LOCK non
-*viene resettato dal detentore della lock. L’ordine di acquisizione della lock sul file non è specificato. Ritorna 0 in
-*caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
-*/
 int lockFile(const char* pathname)
 {
-	fprintf(stderr, "dentro lockFile API\n");
+	//fprintf(stderr, "dentro lockFile API\n");
 
 	msg* lock_file = safe_malloc(sizeof(msg));
 	lock_file->op_type = 14;
@@ -580,7 +558,7 @@ int lockFile(const char* pathname)
 	{
 		errno = -1;
 		perror("ERROR: write openFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
 	//recivieng outcome of operation
@@ -591,9 +569,10 @@ int lockFile(const char* pathname)
 	{
 		errno = -1; 
 		perror("ERROR: read response lockFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
+	fprintf(stdout, "Lock file:\n");
 	print_op(response);
 
 	if(response == SRV_OK) return 0;
@@ -601,15 +580,9 @@ int lockFile(const char* pathname)
 	return -1;
 }
 
-/*
-* Resetta il flag O_LOCK sul file ‘pathname’. L’operazione ha successo solo se l’owner della lock è il processo che
-* ha richiesto l’operazione, altrimenti l’operazione termina con errore. Ritorna 0 in caso di successo, -1 in caso di
-* fallimento, errno viene settato opportunamente.
-*/
-
 int unlockFile(const char* pathname) 
 {
-	fprintf(stderr, "dentro unlockFile API\n");
+	//fprintf(stderr, "dentro unlockFile API\n");
 
 	msg* unlock_file = safe_malloc(sizeof(msg));
 	unlock_file->op_type = 15;
@@ -631,7 +604,7 @@ int unlockFile(const char* pathname)
 	{
 		errno = -1;
 		perror("ERROR: write openFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
 	//recivieng outcome of operation
@@ -642,9 +615,10 @@ int unlockFile(const char* pathname)
 	{
 		errno = -1; 
 		perror("ERROR: read unlockFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
+	fprintf(stdout,"Unlock file:");
 	print_op(response);
 
 	if(response == SRV_OK) return 0;
@@ -652,14 +626,9 @@ int unlockFile(const char* pathname)
 	return -1;
 }
 
-
-/*
- * Richiesta di chiusura del file puntato da ‘pathname’. Eventuali operazioni sul file dopo la closeFile falliscono.
- * Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
- */
 int closeFile(const char* pathname) 
 {
-	fprintf(stderr, "dentro closeFile API\n");
+	//fprintf(stderr, "dentro closeFile API\n");
 
 	msg* close_file = safe_malloc(sizeof(msg));
 	close_file->op_type = 1;
@@ -679,7 +648,7 @@ int closeFile(const char* pathname)
 	{
 		errno = -1;
 		perror("ERROR: write openFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
 	//recivieng outcome of operation
@@ -689,9 +658,10 @@ int closeFile(const char* pathname)
 	{
 		errno = -1; 
 		perror("ERROR: read closeFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
+	fprintf(stdout,"Close File:\n");
 	print_op(response);
 
 	if(response == SRV_OK) return 0;
@@ -699,12 +669,9 @@ int closeFile(const char* pathname)
 	return -1;
 }
 
-/*
- * Rimuove il file cancellandolo dal file storage server.
- */
 int removeFile(const char* pathname) {
 
-	fprintf(stderr, "dentro removeFile API\n");
+	//fprintf(stderr, "dentro removeFile API\n");
 
 	msg* remove_file = safe_malloc(sizeof(msg));
 	remove_file->op_type = 6;
@@ -720,7 +687,7 @@ int removeFile(const char* pathname) {
 	{
 		errno = -1; 
 		perror("ERROR: write1");
-		return -1;
+		exit(EXIT_FAILURE);
 	}  //sending operation type
 	
 	//recivieng outcome of operation
@@ -730,9 +697,10 @@ int removeFile(const char* pathname) {
 	{
 		errno = -1; 
 		perror("ERROR: read response removeFile");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
+	fprintf(stdout, "Remove file:\n");
 	print_op(response);
 
 	if(response == SRV_OK) return 0;

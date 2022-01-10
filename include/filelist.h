@@ -250,7 +250,7 @@ static inline void node_incrfreq (FileNode* file)
 
 static inline void node_lock (FileNode* file, pid_t pid)
 {
-	fprintf(stderr, "Node is locked\n");
+	//fprintf(stderr, "Node is locked\n");
 	file->lock = 1;
 	file->lock_pid = pid;
 	return;

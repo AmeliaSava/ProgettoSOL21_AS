@@ -88,7 +88,7 @@ FileNode* Hash_LFUremove (Table* tab)
 	//list_pop(minFile);
 	fprintf(stderr, "prima expelled cache\n");
 	FileNode* expelled = list_pop_return(minFile);
-	fprintf(stderr, "expf:%s\n", expelled->textFile);
+	//fprintf(stderr, "expf:%s\n", expelled->textFile);
 	tab->curSize--;
 
 	return expelled;
@@ -117,7 +117,7 @@ void Hash_Read (Table* tab, int n, FileNode** to_send, int* tot)
 		FileNode* current = tab->bucket[i].head;
 			
 		if(current == NULL) continue;
-		//Sono tutte null???
+		//ATTENTION Sono tutte null???
 		while (current != NULL && n != 0)
 		{
 			node_insert(to_send, current);

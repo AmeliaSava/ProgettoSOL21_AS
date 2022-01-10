@@ -21,6 +21,9 @@ Quando vengono passati i file si suppon che venga passato il path assoluto del f
 
 isdot cwd e write_from_dir_find sono basate su funzioni viste a lezione.
 
+il client prevede un socket nella sua directory corrente
+
 API
 
 OpenFile ritorna un risultato aggiuntivo 1, per implementare il controllo sulla write file successiva
+se -w fallisce a scrivere un file passa al prossimo per completare la quantita di files richiesta

@@ -20,7 +20,7 @@ typedef struct ARGS
 	char* args;
 } cmd_args;
 
-int print = 1;
+int print = 0;
 char* SOCKNAME = NULL;
 long sleeptime = 0;
 
@@ -156,12 +156,12 @@ int write_from_dir_find (const char* dir, long* n)
 					if (buf == NULL) return -1;
 
 					//printf("n: %ld", *n);
-					fprintf(stderr,"buf before open:%s\n", buf);
+					if(print) fprintf(stderr,"Writing file:%s\n", buf);
 
 					
 					if((openFile(buf, 1)) == 1) 
 					{ 
-						fprintf(stderr,"after open:%s\n", buf);
+						//fprintf(stderr,"after open:%s\n", buf);
 						if((writeFile(buf, expelled_dir)) == 0) 
 						{
 							*n = *n - 1;
@@ -187,7 +187,7 @@ int write_from_dir_find (const char* dir, long* n)
 
 void arg_ins(int opt, char* args)
 {
-	fprintf(stderr,"inserito1\n");
+	//fprintf(stderr,"inserito1\n");
 	cmd_args* current = opt_args;
 
 	while (current->next != NULL)
@@ -259,9 +259,20 @@ int commandline_serve()
 					token = strtok(NULL, ",");
 				}
 
-				//printf("tn: %ld\n", n);
-				write_from_dir_find(dirname, &n);
+				if(print)
+				{
+					if(n > 0) fprintf(stdout, "Writing %ld file(s) ", n);
+					else fprintf(stdout,"Writing all file(s) ");
+					fprintf(stdout,"from folder %s\n", dirname);
+				}
 
+				//0 counts as a request of reading all the files
+				if(n == 0) n = -1;
+
+				if(write_from_dir_find(dirname, &n) < 0)
+					return -1;
+
+				//go to the next request
 				next = ptr->next;
 				free(ptr);
 				ptr = next;
@@ -344,7 +355,7 @@ int commandline_serve()
 					char* file = buf;
 
                 	if(!r) printf("Buf: %p\nSize: %zu\nFile:%s\n", buf, sz, file);
-					else return -1;
+					else continue;
 
 					if(save_dir != NULL)
 					{
@@ -368,11 +379,18 @@ int commandline_serve()
 			}
 			case 5: //-R
 			{
-				long n;
-				n = strtol(ptr->args, NULL, 10);
-
+				long n = strtol(ptr->args, NULL, 10);
+				//fprintf(stdout, "n:%ld\n", n);
+				long ret;
 				//is save_dir was not specified before NULL wil be passed
-				readNfiles(n, save_dir);
+				if((ret = readNfiles(n, save_dir)) > 0)
+				{
+					if(print) fprintf(stdout, "Read %ld files\n", ret);
+				} else if(print) fprintf(stdout, "Error while reading memory");
+
+				next = ptr->next;
+				free(ptr);
+				ptr = next;
 
 				break;
 			}
@@ -404,9 +422,10 @@ int commandline_serve()
 						dirbuf = strncat(dirbuf, token, strlen(token));
 					}
 
-					lockFile(dirbuf);
-
-					printf("Locked file: %s\n", dirbuf);
+					if(lockFile(dirbuf) == 0)
+					{
+						if(print) fprintf(stdout, "Locked file: %s", dirbuf);
+					}
 
 					token = strtok(NULL, ",");
 				}
@@ -434,9 +453,10 @@ int commandline_serve()
 						dirbuf = strncat(dirbuf, token, strlen(token));
 					}
 
-					unlockFile(dirbuf);
-
-					printf("Unlocked file: %s\n", dirbuf);
+					if(unlockFile(dirbuf) == 0)
+					{
+						if(print) fprintf(stdout, "Unlocked file: %s\n", dirbuf);
+					}
 
 					token = strtok(NULL, ",");
 				}
@@ -464,8 +484,10 @@ int commandline_serve()
 						dirbuf = strncat(dirbuf, token, strlen(token));
 					}
 
-					removeFile(dirbuf);
-					printf("Deleted file: %s\n", dirbuf);
+					if(removeFile(dirbuf) == 0)
+					{
+						if(print) fprintf(stdout, "Deleted file: %s\n", dirbuf);
+					}
 
 					token = strtok(NULL, ",");
 				}
@@ -535,6 +557,7 @@ int commandline_serve()
 				break; 
 			}
 		}
+		usleep(sleeptime*1000);
 	}
 	return 0;
 }
@@ -552,7 +575,6 @@ int commandline_check()
 
 	while(ptr != NULL) 
 	{
-		fprintf(stderr, "%d\n", ptr->opt);
 		if(ptr->opt == 1 || ptr->opt == 2 || ptr->opt == 10)
 			isW = 1;
 
@@ -638,21 +660,21 @@ int main(int argc, char *argv[])
 	opt_args = safe_malloc(sizeof(opt_args));
 
 
-	while((opt = getopt(argc, argv, "hf:w:W:a:D:r:R::d:t:l:u:c:p")) != -1) { 
+	while((opt = getopt(argc, argv, "hf:w:W:a:D:r:R::d:t:l:u:c:q:p")) != -1) { 
 		switch(opt) { 
             case 'h': 
 			{
             	print_h();
-				break;
+				exit(EXIT_SUCCESS);
             }
             case 'f': 
 			{
 				if(add_current_folder(&SOCKNAME, optarg) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
 				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
 				abstime.tv_sec += 2;
-				if(print) printf("Opening connection to: %s\n", SOCKNAME);
+				if(print) fprintf(stdout, "Opening connection to: %s\n", SOCKNAME);
             	if((openConnection(SOCKNAME, 1000, abstime)) == -1){errno = ECONNREFUSED; perror("openConnection"); exit(EXIT_FAILURE);}
-            	else if(print) printf("Connected to socket\n");
+            	else if(print) fprintf(stdout, "Connected successfully to socket\n\n");
             	break;
             }
             case 'w': 
@@ -689,17 +711,18 @@ int main(int argc, char *argv[])
 				long r = 0;
 				// if `optarg` isn't set and argv[optind] isn't another option,
 				// then it's the arg and overtly modify optind to compensate.
-				if( !optarg && NULL != argv[optind] && '-' != argv[optind][0] ) {
+				if( !optarg && NULL != argv[optind] && '-' != argv[optind][0] ) 
+				{
 					tmp_optarg = argv[optind++];
 				}
 				// if the argument is a number it will be assigned to r
 				// else nothing happens and r stays 0, as if no argument was given
 				if (tmp_optarg) isNumber(tmp_optarg, &r);
-
-				char* cur_arg = safe_malloc(sizeof(long));
+				
+				char* cur_arg = safe_malloc(sizeof(long) + 1);
 				sprintf(cur_arg, "%ld", r);
 
-				fprintf(stderr, "%s\n", cur_arg);
+				fprintf(stdout, "arg string:%s\n", cur_arg);
 				arg_ins(5, cur_arg);
 
                 break;
@@ -736,10 +759,15 @@ int main(int argc, char *argv[])
             }
 			case 'p': 
 			{
-                printf("Prints activated\n");
+                printf("Prints activated\n\n");
                 print = 1;
                 break;
             }
+			case 'q': 
+			{
+				//used for extra tests
+				break;
+			}
 			case ':': 
 			{
 				printf("option needs a value\n"); 
