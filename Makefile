@@ -39,3 +39,6 @@ cleanall	: clean
 
 test1: all
 	./scripts/test1.sh
+
+test2: all
+	./scripts/test2.sh

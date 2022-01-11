@@ -50,9 +50,7 @@ static inline void filecpy(FileNode* destination, FileNode* source)
 	//fprintf(stderr, "%zu\n", strlen(source->nameFile));
 	destination->nameFile = safe_malloc((strlen(source->nameFile) + 1));
 	strncpy(destination->nameFile, source->nameFile, (strlen(source->nameFile)) + 1);
-	destination->nameFile[(strlen(source->nameFile)) + 1] = '\0';
 
-	fprintf(stderr, "source:%s\n", source->textFile);
 	size_t size = source->FileSize;
 	
 
@@ -61,9 +59,7 @@ static inline void filecpy(FileNode* destination, FileNode* source)
 	destination->textFile = safe_malloc(size + 1);
 	memset(destination->textFile, '\0', size + 1);
 	memcpy(destination->textFile, source->textFile, size);
-	//destination->textFile[(source->FileSize) + 1] = '\0';
-
-	fprintf(stderr, "dest:%s\n", destination->textFile);
+	
 	destination->lock = source->lock;
 	destination->lock_pid = source->lock_pid;
 	destination->next = NULL;
@@ -148,6 +144,8 @@ static inline void list_destroy(FileList* list)
 	while (current != NULL)
 	{
 		next = current->next;
+		free(current->nameFile);
+		free(current->textFile);
 		free(current);
 		current = next;
 	}
@@ -161,8 +159,7 @@ static inline void list_destroy(FileList* list)
 }
 
 //NODE functions
-//ok
-//ATTENTION! Text is useless here...
+
 static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 {
 	FileNode* newNode = safe_malloc(sizeof(FileNode));
@@ -184,7 +181,8 @@ static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 static inline void node_insert(FileNode** node, FileNode* ins)
 {
 	if(*node == NULL) {
-		*node = ins;
+		*node = safe_malloc(sizeof(FileNode));
+		filecpy(*node, ins);
 		return;
 	}
 
@@ -194,7 +192,8 @@ static inline void node_insert(FileNode** node, FileNode* ins)
 		current = current->next;
 	}
 
-	current->next = ins;
+	current->next =  safe_malloc(sizeof(FileNode));
+	filecpy(current->next, ins);
 
 	return;
 }
@@ -204,8 +203,8 @@ static inline void node_update(FileNode* node, int frq, char* fText, long fSize)
 {
 
 	node->frequency = frq;
-	node->textFile = safe_malloc(strlen(fText)*sizeof(char));
-	memcpy(node->textFile, fText, strlen(fText));
+	node->textFile = safe_malloc(fSize);
+	memcpy(node->textFile, fText, fSize);
 	node->FileSize = fSize;
 
 }
@@ -268,9 +267,12 @@ static inline void node_delete(FileList* list, char* fileName, size_t len)
 	FileNode* next;
 
 	if(current->next == NULL) 
-	{fprintf(stderr, "dentro head remove\n");
+	{
 		if(strncmp(current->nameFile, fileName, len) == 0)
 		{
+			free(current->nameFile);
+			free(current->textFile);
+			free(current->next);
 			free(current);
 			list->head = NULL;
 			return;
@@ -282,6 +284,8 @@ static inline void node_delete(FileList* list, char* fileName, size_t len)
 		if(strncmp(current->next->nameFile, fileName, len) == 0)
 		{
 			next = current->next->next;
+			free(current->next->nameFile);
+			free(current->next->textFile);
 			free(current->next);
 			current->next = next;
 			return;
@@ -294,6 +298,8 @@ static inline void node_delete(FileList* list, char* fileName, size_t len)
 	if(strncmp(current->next->nameFile, fileName, len) == 0)
 	{
 		next = current->next->next;
+		free(current->next->nameFile);
+		free(current->next->textFile);
 		free(current->next);
 		current->next = next;
 		list->last = current;

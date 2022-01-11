@@ -81,12 +81,6 @@ sigset_t signal_mask;
  * SERVER FUNCTIONS 
  */
 
-//makes sure the socket name is unlinked
-void unlinksock() 
-{
-    unlink(SOCKET_NAME);
-}
-
 // returns the max index of fd
 // ATTENTION non la stai usando
 int updateMax(fd_set set, int fdmax)
@@ -476,6 +470,19 @@ int read_n_file_svr(long connfd, msg* info) {
 		current = current->next;
 	}
 
+	FileNode* delete = to_send;
+	FileNode* next;
+
+	while (delete != NULL)
+	{
+		next = delete->next;
+		free(delete->nameFile);
+		free(delete->textFile);
+		free(delete);
+		delete = next;
+	}
+	
+
 	return 0;
 }
 
@@ -717,7 +724,7 @@ int cmd(int connfd, msg* info)
 			//fprintf(stderr, "Name: %s\n", info->filename);
 		
 			char* tmp_buf;
-			size_t tmp_size;
+			size_t tmp_size = 0;
 			int ret = read_file_svr(connfd, info, &tmp_buf, &tmp_size);
 
 			fprintf(stderr, "Read file\n");
@@ -740,9 +747,15 @@ int cmd(int connfd, msg* info)
 					perror("ERROR: write read file");
 					return -1;
 				}
+
+				free(tmp_buf);
 			}
-			else 
+			else
+			{
+				free(tmp_buf);
 				return report_ops(connfd, ret, 0);
+			}
+				
 			break;
 		}
 		case READ_FILE_N: 
@@ -828,7 +841,7 @@ void* getMSG(void* arg)
 			else
 			{
 				//operation is close connection
-				fprintf(stderr, "Closing connection with client %ld", operation->fd_con);
+				//fprintf(stderr, "Closing connection with client %ld", operation->fd_con);
 				close(operation->fd_con);
 				if (operation->fd_con == fd_max) fd_max = updateMax(set, fd_max);
 			}
@@ -836,7 +849,7 @@ void* getMSG(void* arg)
 		else
 			pthread_mutex_unlock(&cli_req);
 	}
-
+	free(operation);
 	fflush(stdout);
 	pthread_exit(NULL);
 }
@@ -1032,8 +1045,6 @@ int main (int argc, char* argv[])
 
 	fprintf(stderr, "Main PID: %ld\n", (long)getpid());
 
-	atexit(unlinksock);
-
 	//signal masking
 	int err = 0;
 
@@ -1076,7 +1087,7 @@ int main (int argc, char* argv[])
 	msg_list_init(expelled_files);
 
 	//Accepting connections
-	unlinksock();
+	unlink(SOCKET_NAME);
 
 	int fd_skt; //connection socket
 	int fd_sel; //index to verify select results
@@ -1207,6 +1218,7 @@ int main (int argc, char* argv[])
     //cleanup section
 
 	close(fd_skt);
+	unlink(SOCKET_NAME);
 
     free(SOCKET_NAME);
 	free(LOG_NAME);
@@ -1214,7 +1226,9 @@ int main (int argc, char* argv[])
 	msg_list_destroy(client_requests);
 	msg_list_destroy(expelled_files);
 
-	//Hash_Destroy(&cacheMemory);
+	free(thread_ids);
+
+	Hash_Destroy(&cacheMemory);
 
 	pthread_exit(NULL);
 	//return EXIT_SUCCESS;

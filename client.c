@@ -830,7 +830,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if(print) printf("All requests served, closing connection\n");
+	if(print) printf("All requests served, closing connection\n\n");
 
 	//after completing all request the connection is closed
 	if(closeConnection(SOCKNAME) != 0)

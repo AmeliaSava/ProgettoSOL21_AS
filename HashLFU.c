@@ -109,8 +109,8 @@ void Hash_Read (Table* tab, int n, FileNode** to_send, int* tot)
 {
 	if(n == 0) n = tab->curSize;
 
-	fprintf(stderr, "%d\n", n);
-	fprintf(stderr, "%d\n", tab->maxSize);
+	//fprintf(stderr, "%d\n", n);
+	//fprintf(stderr, "%d\n", tab->maxSize);
 
 	for(int i = 0; i < tab->maxSize && n != 0; i++)
 	{
