@@ -1,11 +1,5 @@
-# Formato file config.txt
-# Commentare con '#'
-# Nome variabile = valore;
-# Non lasciare righe vuote
-# Commenti solo su nuova riga
-# 
 Number of thread workers = 4;
-Max Memory available in bytes = 100000;
-Max number of file server can handle = 1000;
-Socket file name = storage_sock;
+Max Memory available in bytes = 128000000;
+Max number of file server can handle = 10000;
+Socket file name = storage_sock.sk;
 Log file name = log_file;

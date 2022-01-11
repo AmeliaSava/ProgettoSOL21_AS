@@ -225,10 +225,6 @@ int commandline_serve()
 		{
 			case 0:
 			{
-				//we don't talk about this part of the code
-				//this shouldn't happen but it does
-				//so we just ignore it
-				//and pretend it doesn't exists
 				next = ptr->next;
 				free(ptr);
 				ptr = next;
@@ -295,6 +291,11 @@ int commandline_serve()
 						buf = strncat(buf, "/", 2);
 						buf = strncat(buf, token, strlen(token));
 					}
+					else
+					{
+						buf = safe_malloc(strlen(token));
+						strncpy(buf, token, strlen(token));
+					}
 					
 					if(print) fprintf(stderr,"Writing file:%s\n", buf);
 
@@ -350,6 +351,11 @@ int commandline_serve()
 						dirbuf = cwd();
 						dirbuf = strncat(dirbuf, "/", 2);
 						dirbuf = strncat(dirbuf, token, strlen(token));
+					}
+					else
+					{
+						dirbuf = safe_malloc(strlen(token));
+						strncpy(dirbuf, token, strlen(token));
 					}
 
 					fprintf(stdout, "Reading file: %s\n", dirbuf);
@@ -413,7 +419,7 @@ int commandline_serve()
 				char* token;
 				token = strtok(ptr->args,",");
 				char* dirbuf;
-fprintf(stdout, "Locked file: %s\n\n", token);
+
 				while(token != NULL)
 				{
 					//if the path was given with shortened current directory
@@ -423,7 +429,14 @@ fprintf(stdout, "Locked file: %s\n\n", token);
 						dirbuf = cwd();
 						dirbuf = strncat(dirbuf, "/", 2);
 						dirbuf = strncat(dirbuf, token, strlen(token));
+					}			
+					else
+					{
+						dirbuf = safe_malloc(strlen(token));
+						strncpy(dirbuf, token, strlen(token));
 					}
+
+					fprintf(stdout, "dirbuf: %s\n\n", dirbuf);
 
 					if(lockFile(dirbuf) == 0)
 					{
@@ -454,6 +467,11 @@ fprintf(stdout, "Locked file: %s\n\n", token);
 						dirbuf = cwd();
 						dirbuf = strncat(dirbuf, "/", 2);
 						dirbuf = strncat(dirbuf, token, strlen(token));
+					}
+					else
+					{
+						dirbuf = safe_malloc(strlen(token));
+						strncpy(dirbuf, token, strlen(token));
 					}
 
 					if(unlockFile(dirbuf) == 0)
@@ -488,9 +506,11 @@ fprintf(stdout, "Locked file: %s\n\n", token);
 					}
 					else
 					{
-						dirbuf = safe_malloc(81);
-						strncpy(dirbuf, "/mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/clientlist.h", 81);
+						dirbuf = safe_malloc(strlen(token));
+						strncpy(dirbuf, token, strlen(token));
 					}
+
+					fprintf(stdout, "dirbuf: %s\n\n", dirbuf);
 
 					if(removeFile(dirbuf) == 0)
 					{
@@ -528,7 +548,11 @@ fprintf(stdout, "Locked file: %s\n\n", token);
 							buf = strncat(buf, "/", 2);
 							buf = strncat(buf, token, strlen(token));
 						}
-						
+						else
+						{
+							buf = safe_malloc(strlen(token));
+							strncpy(buf, token, strlen(token));
+						}						
 						token = strtok(NULL, ",");
 						c++;
 					}
@@ -730,7 +754,7 @@ int main(int argc, char *argv[])
 				char* cur_arg = safe_malloc(sizeof(long) + 1);
 				sprintf(cur_arg, "%ld", r);
 
-				fprintf(stdout, "arg string:%s\n", cur_arg);
+				//fprintf(stdout, "arg string:%s\n", cur_arg);
 				arg_ins(5, cur_arg);
 
                 break;
@@ -747,7 +771,7 @@ int main(int argc, char *argv[])
 					printf("option %s is not a number\n", optarg);
 					return EXIT_FAILURE;
 				}
-				if(print) fprintf(stdout, "Timeout between requests set to %ld\n", sleeptime);
+				if(print) fprintf(stdout, "Timeout between requests set to %ld\n\n", sleeptime);
                 break;
             }
 			case 'l':

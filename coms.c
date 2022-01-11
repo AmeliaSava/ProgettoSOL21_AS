@@ -76,7 +76,7 @@ int WriteFilefromByte(const char* name, char* text, long size, const char* dirna
 	
 	sprintf(fullpath,"%s/%s", dirname, name);
 	fullpath[strlen(dirname) + strlen(name) + 1] = '\0';
-	fprintf(stderr, "%s", fullpath);
+	//fprintf(stderr, "%s", fullpath);
 	errno = 0;
 	if((fp1 = fopen(fullpath, "wb")) == NULL) {
 		fprintf(stderr, "errno:%d\n", errno);
@@ -284,6 +284,7 @@ int readNfiles(int N, const char* dirname)
 	readN_file->namelenght = N; //using namelenght field to store N
 	errno = 0;
 
+	readN_file->pid = getpid();
 	//fprintf(stderr, "dentro readNFile API\n");
 
 	if(writen(sockfd, readN_file, sizeof(msg)) <= 0)
@@ -646,6 +647,8 @@ int closeFile(const char* pathname)
 	close_file->filename[name_lenght] = '\0';
 	close_file->namelenght = name_lenght;
 	close_file->size = 0;
+
+	close_file->pid = getpid();
 	
 	if(writen(sockfd, close_file, sizeof(msg)) <= 0)
 	{
@@ -685,6 +688,8 @@ int removeFile(const char* pathname) {
 	int name_lenght = strlen(pathname)+1;
 	strncpy(remove_file->filename, pathname, name_lenght);
 	remove_file->filename[name_lenght] = '\0';
+
+	remove_file->pid = getpid();
 	
 	if(writen(sockfd, remove_file, sizeof(msg)) <= 0) 
 	{

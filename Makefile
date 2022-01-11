@@ -3,47 +3,39 @@ CFLAGS		+=	-std=gnu99 -Wall -Werror -g -pedantic
 INCLUDES	=	-I. -I ./include
 LDFLAGS		=	-L.
 OPTFLAGS 	=
-LIBS		=	-lpthread
+T_LIBS		=	-pthread
 
 TARGETS 	=	server		\
 			client		
 
 
-.PHONY: all clean cleanall
-.SUFFIXES: .c .h
-
-%: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) -o $@ $< $(LDFLAGS) $(LIBS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) -c -o $@ $<
+.PHONY: all clean cleanall server client test1
 
 all		: $(TARGETS)
 
 
+server: server.c libs/libhash.so libs/libcoms.so
+	$(CC) $(CFLAGS) $(INCLUDES) $(T_LIBS) server.c -o server -Wl,-rpath,./libs -L ./libs -lhash -lcoms
 
-server: server.o HashLFU.o -lpthread
-	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
+client: client.c libs/libhash.so libs/libcoms.so
+	$(CC) $(CFLAGS) $(INCLUDES) client.c -o client -Wl,-rpath,./libs -L ./libs -lhash -lcoms
 
-server.o: server.c HashLFU.h 
 
-HashLFU.o: HashLFU.c HashLFU.h 
+libs/libhash.so: HashLFU.o
+	$(CC) -shared -o libs/libhash.so $^
+HashLFU.o:
+	$(CC) $(CFLAGS) $(INCLUDES) HashLFU.c -c -fPIC -o $@
 
-testinghash: testinghash.o HashLFU.o
-	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
-
-testinghash.o: testinghash.c HashLFU.h
-
-HashLFU.o: HashLFU.c HashLFU.h
-
-client: client.o coms.o
-	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) $^ -o $@
-client.o: client.c coms.h
-
-coms.o: coms.c coms.h
+libs/libcoms.so: coms.o
+	$(CC) -shared -o libs/libcoms.so $^
+coms.o:
+	$(CC) $(CFLAGS) $(INCLUDES) coms.c -c -fPIC -o $@
 
 clean		: 
 	rm -f $(TARGETS)
 
 cleanall	: clean
-	\rm -f *.o *~ *.a ./storage_sock ./savedfiles/*.*
+	\rm -f *.o *~ *.a *.sk ./storage_sock ./log_file.txt ./valgrind-out.txt ./libs/*.* ./savedfiles/*.* ./expelled/*.*
+
+test1: all
+	./scripts/test1.sh

@@ -134,7 +134,6 @@ int report_ops(long connfd, op op_type, int ok_write)
 	{
 		LOCK(&expfiles_lock);
 		
-		fprintf(stderr,"Sending:%zu", expelled_files->size);
 		if (writen(connfd, &(expelled_files->size), sizeof(int)) <= 0)
 		{ 
 			perror("ERROR: write sending expelled files"); 
@@ -465,7 +464,7 @@ int read_n_file_svr(long connfd, msg* info) {
 		file_to_msg(current, send);
 		printf("file %d: %s\n",i,send->filename);
 
-		fprintf(stderr, "Sending: %s", send->filename);
+		fprintf(stderr, "Sending: %s\n", send->filename);
 
 		if((writen(connfd, send, sizeof(msg))) <= 0)
 		{
@@ -476,17 +475,6 @@ int read_n_file_svr(long connfd, msg* info) {
 		free(send);
 		current = current->next;
 	}
-
-	/*
-	while(send->size > 0)
-	{
-		fprintf(stderr, "Sending:");
-		msg* cur_send = safe_malloc(sizeof(msg));
-		msg_list_pop_return(send, &cur_send);
-
-		int ret = 0;
-
-	}*/
 
 	return 0;
 }
@@ -580,7 +568,7 @@ int remove_file_svr(long connfd, msg* info)
 {
 	fprintf(stderr, "Removing file %s\n", info->filename);
 	FileNode* current = NULL;
-	
+
 	LOCK(&cache_lock);
 	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL) 
 	{ 
@@ -610,9 +598,12 @@ int remove_file_svr(long connfd, msg* info)
 			fprintf(stdout, "Bytes freed: %ld\nMemory left:%ld\n", current->FileSize, MAX_MEMORY_MB);
 			Hash_Remove(&cacheMemory, info->filename);
 		}
-		//can only remove a locked file
-		UNLOCK(&cache_lock);
-		return report_ops(connfd, SRV_NOK, 0);
+		else
+		{
+			//can only remove a locked file
+			UNLOCK(&cache_lock);
+			return report_ops(connfd, SRV_NOK, 0);
+		}
 	}
 	else 
 	{
@@ -698,7 +689,6 @@ int unlock_file_srv(long connfd, msg* info)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
-//WIP
 int cmd(int connfd, msg* info) 
 {
 
@@ -825,7 +815,7 @@ void* getMSG(void* arg)
 
 			pthread_mutex_unlock(&cli_req);
 
-			fprintf(stderr, "Serving request from client: %ld\n", operation->fd_con);
+			//fprintf(stderr, "Serving request from client: %ld\n", operation->fd_con);
 
 			cmd(operation->fd_con, operation);
 
@@ -853,7 +843,7 @@ void* getMSG(void* arg)
 
 void* signalhandler(void* arg)
 {
-	fprintf(stderr, "\nSignal handler activated\n");
+	//fprintf(stderr, "\nSignal handler activated\n");
 	
 	int signal = -1;
 
