@@ -411,6 +411,7 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
+	
 	while (exp_recieve > 0)
 	{
 		msg* cur_msg = safe_malloc(sizeof(msg));
@@ -486,7 +487,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	}
 
 	print_op(response);
-	fprintf(stderr, "recieved\n");
+
 
 	if(response != SRV_OK) return -1;
 
@@ -500,7 +501,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 		return -1;
 	}
 
-	fprintf(stderr, "exp:%d\n", exp_recieve);
+	//fprintf(stderr, "exp:%d\n", exp_recieve);
 
 	while (exp_recieve > 0)
 	{

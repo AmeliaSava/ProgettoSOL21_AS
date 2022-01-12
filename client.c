@@ -97,7 +97,7 @@ int write_from_dir_find (const char* dir, long* n)
 	//enetering directory
 	if(chdir(dir) == -1) 
 	{ 
-		print_error("error entering directory %s\n", dir); 
+		//print_error("error entering directory %s\n", dir); 
 		return 0; 
 	}
 
@@ -170,8 +170,6 @@ int write_from_dir_find (const char* dir, long* n)
 						
 					}
 					//else return 1;
-
-					//*n = *n - 1;
 
 					free(buf);
 	
@@ -358,12 +356,15 @@ int commandline_serve()
 						strncpy(dirbuf, token, strlen(token));
 					}
 
-					fprintf(stdout, "Reading file: %s\n", dirbuf);
+					if(print) fprintf(stdout, "Reading file: %s\n", dirbuf);
                 	int r = readFile(dirbuf, &buf, &sz);
 
 					char* file = buf;
 
-                	if(!r) printf("Bytes read: %zu\n\n", sz);
+                	if(!r)
+					{
+						if(print) printf("Bytes read: %zu\n\n", sz);
+					}
 					else token = strtok(NULL, ",");
 
 					if(save_dir != NULL)
@@ -436,7 +437,7 @@ int commandline_serve()
 						strncpy(dirbuf, token, strlen(token));
 					}
 
-					fprintf(stdout, "dirbuf: %s\n\n", dirbuf);
+					//fprintf(stdout, "dirbuf: %s\n\n", dirbuf);
 
 					if(lockFile(dirbuf) == 0)
 					{
@@ -510,7 +511,7 @@ int commandline_serve()
 						strncpy(dirbuf, token, strlen(token));
 					}
 
-					fprintf(stdout, "dirbuf: %s\n\n", dirbuf);
+					//fprintf(stdout, "dirbuf: %s\n\n", dirbuf);
 
 					if(removeFile(dirbuf) == 0)
 					{
@@ -659,7 +660,7 @@ int commandline_check()
 		expelled_dir = safe_malloc(strlen(dirbuf1));
 		strncpy(expelled_dir, dirbuf1, strlen(dirbuf1));
 
-		fprintf(stderr,"Expelled files will be saved into:\n%s\n\n", expelled_dir);
+		if(print) fprintf(stderr,"Expelled files will be saved into:\n%s\n\n", expelled_dir);
 	}
 			
 	if(isd)
@@ -677,7 +678,7 @@ int commandline_check()
 		save_dir = safe_malloc(strlen(dirbuf2));
 		strncpy(save_dir, dirbuf2, strlen(dirbuf2));
 
-		fprintf(stderr,"Read files will be saved into:\n%s\n\n", save_dir);
+		if(print) fprintf(stderr,"Read files will be saved into:\n%s\n\n", save_dir);
 	}
 
 	return 0;

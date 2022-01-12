@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Test1:"; 
-echo -e "Number of thread workers = 1;\nMax Memory available in bytes = 128000000;\nMax number of file server can handle = 10000;\nSocket file name = storage_sock.sk;\nLog file name = log_file;" > config.txt
+echo -e "Number of thread workers = 1;\nMax Memory available in bytes = 134217728;\nMax number of file server can handle = 10000;\nSocket file name = storage_sock.sk;\nLog file name = log_file;" > config.txt
 
 valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-out.txt ./server &
 pid=$!

@@ -55,7 +55,7 @@ static inline void filecpy(FileNode* destination, FileNode* source)
 	
 
 	//destination->textFile = realloc(destination->textFile, size);
-	fprintf(stderr, "%zu\n%zu\n", source->FileSize, size);
+	//fprintf(stderr, "%zu\n%zu\n", source->FileSize, size);
 	destination->textFile = safe_malloc(size + 1);
 	memset(destination->textFile, '\0', size + 1);
 	memcpy(destination->textFile, source->textFile, size);
@@ -102,20 +102,25 @@ static inline void list_pop(FileList* list)
 	
 }
 
-//ATTENTION non aggiorni mai la testa
+//ATTENTION
+//removes and returns the last element from the list
 static inline FileNode* list_pop_return(FileList* list)
 {
+	//list is empty, return
 	if(list->head == NULL)	return NULL;
 
 	FileNode* current = list->head;
 	FileNode* toReturn = safe_malloc(sizeof(FileNode));
 
+	//list has only one element
 	if(current->next == NULL) {
-		fprintf(stderr, "current:%s\n", current->textFile);
+		
 		filecpy(toReturn, current);
-		fprintf(stderr, "toreturn:%s\n", toReturn->textFile);
+		free(current->nameFile);
+		free(current->textFile);
 		free(current);
 		list->head = NULL;
+		list->last = NULL;
 		list->size = list->size - 1;
 		return toReturn;
 	}
@@ -126,6 +131,8 @@ static inline FileNode* list_pop_return(FileList* list)
 	}
 
 	filecpy(toReturn, current->next);
+	free(current->next->nameFile);
+	free(current->next->textFile);
 	free(current->next);
 	current->next = NULL;
 	list->last = current;
@@ -144,16 +151,11 @@ static inline void list_destroy(FileList* list)
 	while (current != NULL)
 	{
 		next = current->next;
-		free(current->nameFile);
-		free(current->textFile);
+		if(current->nameFile) free(current->nameFile);
+		if(current->textFile) free(current->textFile);
 		free(current);
 		current = next;
 	}
-
-	list->head = NULL;
-	list->last = NULL;
-
-	free(list);
 
 	return;
 }
@@ -259,50 +261,67 @@ static inline void node_lock (FileNode* file, pid_t pid)
 //ATTENTION element not in list fail? return int to check errors?
 static inline void node_delete(FileList* list, char* fileName, size_t len) 
 {
-	fprintf(stderr, "dentro list remove\n");
-
+	//the list is empty
 	if(list->head == NULL) return;
-	fprintf(stderr, "%s\n", list->head->nameFile);
+
 	FileNode* current = list->head;
 	FileNode* next;
 
+	//the list has only one element
 	if(current->next == NULL) 
 	{
+		//and it is the element I need to delete
 		if(strncmp(current->nameFile, fileName, len) == 0)
 		{
 			free(current->nameFile);
-			free(current->textFile);
-			free(current->next);
+			if(current->textFile) free(current->textFile);
 			free(current);
+			//freed the element now the list head is back to NULL, decrease size
 			list->head = NULL;
+			list->size = list->size - 1;
 			return;
 		}
 	}
 
+	//search for the element
 	while (current->next->next != NULL)
 	{
+		//fount it
 		if(strncmp(current->next->nameFile, fileName, len) == 0)
 		{
+			//save the next one
 			next = current->next->next;
+
+			//free the element
 			free(current->next->nameFile);
-			free(current->next->textFile);
+			if(current->next->textFile) free(current->next->textFile);
 			free(current->next);
+
+			//update the list
 			current->next = next;
+			list->size = list->size - 1;
+
 			return;
 		} else 
 		{
+			//go on searching
 			current = current->next;
 		}
 	}
 
+	//element is the last one
 	if(strncmp(current->next->nameFile, fileName, len) == 0)
 	{
+		//ATTENTION actually just null
 		next = current->next->next;
+
 		free(current->next->nameFile);
-		free(current->next->textFile);
+		if(current->next->textFile) free(current->next->textFile);
 		free(current->next);
+
 		current->next = next;
 		list->last = current;
+		list->size = list->size - 1;
 	}
 
 	return;

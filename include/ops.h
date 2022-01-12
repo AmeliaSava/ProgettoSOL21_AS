@@ -20,7 +20,7 @@
 #define EXTRA_LEN_PRINT_ERROR   512
 #endif
 
-#define MAX_SIZE 9000
+#define MAX_SIZE 900000
 #define MAX_BUF 2048
 
 #define SYSCALL_EXIT(name, r, sc, str, ...) \

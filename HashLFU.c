@@ -81,14 +81,13 @@ FileNode* Hash_LFUremove (Table* tab)
 		
 		}
 	}
-	printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
+	//printf("Min '%s': %d\n", minFile->last->nameFile, minFile->last->frequency);
 	//printf("\n");
 	list_print(minFile->head);
 	//last delete
-	//list_pop(minFile);
-	fprintf(stderr, "prima expelled cache\n");
+	//fprintf(stderr, "prima expelled cache\n");
 	FileNode* expelled = list_pop_return(minFile);
-	//fprintf(stderr, "expf:%s\n", expelled->textFile);
+	//fprintf(stderr, "%s\n", expelled->nameFile);
 	tab->curSize--;
 
 	return expelled;
@@ -97,7 +96,7 @@ FileNode* Hash_LFUremove (Table* tab)
 //ok
 void Hash_Remove(Table* tab, char* Vfile) 
 {
-	fprintf(stderr, "dentro hash remove\n");
+	//fprintf(stderr, "dentro hash remove\n");
 	int index = Hash_Function(tab, Vfile);
 	list_print((tab->bucket[index].head));
 	node_delete(&(tab->bucket[index]), Vfile, strlen(Vfile));
@@ -146,6 +145,10 @@ void Hash_Destroy(Table* t)
 	{
 		list_destroy(&(t->bucket[i]));
 	}
+
+	free(t->bucket);
+
+	return;
 }
 
 
