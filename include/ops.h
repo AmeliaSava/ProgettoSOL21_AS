@@ -62,6 +62,9 @@
     exit(EXIT_FAILURE);			\
   }
 
+/**
+ * \brief: enum specifying all operation types and results
+ */
 typedef enum {
   //server ops
   OPEN_FILE = 0,
@@ -168,6 +171,10 @@ static inline int TRYLOCK(pthread_mutex_t* l) {
   return r; 
 }
 
+/**
+ * \brief: a function to print the results op the operations
+ * \param op_type: the operation to print
+ */
 static inline void print_op(op op_type)
 {	
 	switch(op_type)

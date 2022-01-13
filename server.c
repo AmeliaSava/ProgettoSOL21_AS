@@ -83,7 +83,9 @@ sigset_t signal_mask;
  * SERVER FUNCTIONS 
  */
 
-// returns the max index of fd
+/**
+ * \brief: returns the max index of fd
+ */
 int updateMax(fd_set set, int fdmax)
 {
     for(int i = (fdmax-1); i >= 0; i--)
@@ -92,7 +94,9 @@ int updateMax(fd_set set, int fdmax)
     	return -1;
 }
 
-//converts a file into a msg
+/**
+ * \brief: converts a file into a msg
+ */
 void file_to_msg(FileNode* file, msg* msg)
 {
 	//copying the file contenent
@@ -109,8 +113,14 @@ void file_to_msg(FileNode* file, msg* msg)
 	return;
 }
 
-//returns a response according to the result of the operation
-//if it was a successfull write we also send expelled files
+/**
+ * \brief: returns a response according to the result of the operation
+ * 			if it was a successfull write also sends expelled files
+ * \param connfd: the fd where the comunication is happening
+ * \param op_type: the response
+ * \param ok_write: used to check if the preceding operation was a successful write, so it is possible
+ * 						to send expelled files, if there are any
+ */
 int report_ops(long connfd, op op_type, int ok_write) 
 {
 
@@ -119,32 +129,39 @@ int report_ops(long connfd, op op_type, int ok_write)
 	fflush(log_file);
 	UNLOCK(&log_lock);
 
+	//send the result to the client
 	if (writen(connfd, &op_type, sizeof(op)) <= 0)
 	{ 
 		perror("ERROR: write report ops"); 
 		return -1;
 	}
 	
+	//was there a successful write operation before?
 	if(ok_write)
 	{
 		LOCK(&expfiles_lock);
-		
+
+		//send how many expelled files are there to recieve
 		if (writen(connfd, &(expelled_files->size), sizeof(int)) <= 0)
 		{ 
 			perror("ERROR: write sending expelled files"); 
 			return -1;
 		}
 		
+		//as long as there is a file to send
 		while (expelled_files->size > 0)
 		{	
+			//get the message
 			msg* cur_msg = safe_malloc(sizeof(msg));
 			msg_list_pop_return(expelled_files, &cur_msg);
 
+			//send it
 			if (writen(connfd, cur_msg, sizeof(msg)) <= 0)
 			{
 				perror("ERROR: write sending expelled files"); 
 				return -1;
 			}
+			//free it
 			free(cur_msg);
 
 		}
@@ -154,8 +171,16 @@ int report_ops(long connfd, op op_type, int ok_write)
 	return 0;
 }
 
-//Handling of API operations on server side
+/**
+ * Handling of API operations on server side
+ */
 
+/**
+ * \brief: writes a file in the memory, udating an already existing node
+ * \param connfd: the fd where the comunication is happening
+ * \param file: the file that needs to be written
+ * \param pid: the calling process pid
+ */
 int write_file_svr(long connfd, msg* file, pid_t pid)
 {
 
@@ -163,35 +188,33 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 
 	if((current = Hash_SearchNode(&cacheMemory, file->filename)) == NULL)
 	{
+		//there's no node created by the open file operation
 		return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
 	}
-	else //found the empty file created by openFile
+	else 
 	{
+		//found the empty file created by openFile
 		if(current->lock == 1 && current->lock_pid != pid)
 		{
 			//file is locked by some other process
-			
 			return report_ops(connfd, SRV_FILE_LOCKED, 0);
 		}
 
 		if(current->FileSize > 0)
 		{
 			//node exists but has content inside, can't over write
-			
 			return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0);
 		}
 
 		if(current->status == 1)
 		{
 			//node exists but is closed
-			
 			return report_ops(connfd, SRV_FILE_CLOSED, 0);
 		}
 
 		if(MAX_MEMORY_TOT < file->size)
 		{
 			//the file is bigger than the whole available memory	
-			
 			return report_ops(connfd, SRV_MEM_FULL, 0);
 		} 
 		
@@ -229,10 +252,12 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 			fflush(log_file);
 			UNLOCK(&log_lock);
 
+			//calling the function recursivly now that memory and file count have been updated
 			return write_file_svr(connfd, file, pid);
 		} 
 		else 
 		{
+			//enough space for file
 			MAX_MEMORY_MB -= file->size;
 			MAX_NUM_FILES--;
 

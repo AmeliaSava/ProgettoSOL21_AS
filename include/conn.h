@@ -59,16 +59,20 @@ static inline void msgcpy(msg* destination, msg* source)
 	destination->namelenght = source->namelenght;
 	destination->size = source->size;
 	destination->op_type = source->op_type;
+
 	memcpy(destination->filename, source->filename, strlen(source->filename));
 	memcpy(destination->filecontents, source->filecontents, source->size);
+
 	destination->pid = source->pid;
 	destination->fd_con = source->fd_con;
 	destination->flag = source->flag;
+
 	destination->next = NULL;
 }
 
 /**
- * 
+ * \brief: a function to initialize the list
+ * \param list: the list that needs to be initialized
  */
 static inline void msg_list_init(MSGlist* list) 
 {
@@ -77,32 +81,44 @@ static inline void msg_list_init(MSGlist* list)
 	list->size = 0;
 }
 
+/**
+ * \brief: pops the last element of the lists and saves it in pointer to another msg
+ * \param list: the list the element is taken from
+ * \param toReturn: the pointer to the msg where the data will be saved
+ */
 static inline void msg_list_pop_return(MSGlist* list, msg** toReturn)
 {
+	//if the list is null return
 	if(list->head == NULL)	return;
 
 	msg* current = list->head;
-	//msg* toReturn = safe_malloc(sizeof(msg));
 	
+	//the list has only one element
 	if(current->next == NULL) {
 
+		//copy the element in the return node
 		msgcpy(*toReturn, current);
-		//fprintf(stderr, "toreturn:%s\n", toReturn->filename);
+		//free the only element of the list
 		free(current);
+
+		//set the list back to null
 		list->head = NULL;
+		list->last = NULL;
 		list->size = list->size - 1;
-		//fprintf(stderr, "toreturn2:%s\n", toReturn->filename);
 		return;
 	}
 
+	//cycle the list until the second-last
 	while (current->next->next != NULL)
 	{
-		//fprintf(stderr, "current:%s\n", current->filename);
 		current = current->next;
 	}
 
+	//copying the last element
 	msgcpy(*toReturn, current->next);
+	//freeing it
 	free(current->next);
+	//updating the list
 	current->next = NULL;
 	list->last = current;
 	list->size = list->size - 1;
@@ -111,35 +127,55 @@ static inline void msg_list_pop_return(MSGlist* list, msg** toReturn)
 	
 }
 
+/**
+ * \brief: pushes a element on top of the list
+ * \param head: the node to be pushed
+ * \param list: the list where the node will be pushed
+ */
 static inline void msg_push_head(msg* head, MSGlist* list) {
 
+	//empty list
 	if(list->size == 0) 
 	{
+		//head is the only element
 		list->head = head;
 		list->last = head;
 	} 
 	else 
 	{
+		//list has at least one element
+		//attach to the new node the old list
 		head->next = list->head;
+		//now new node is the head of the list
 		list->head = head;
 	}
 
+	//increase size of list
 	list->size++;
 	return;
 }
 
+/**
+ * \brief: function that destroys the list
+ * \param list: the list to destroy
+ */
 static inline void msg_list_destroy(MSGlist* list)
 {
+
 	msg* current = list->head;
 	msg* next;
 
 	while (current != NULL)
 	{
+		//save the next
 		next = current->next;
+		//free current
 		free(current);
+		//move to next
 		current = next;
 	}
 
+	//after all the elements have been destroyed empty list
 	list->head = NULL;
 	list->last = NULL;
 

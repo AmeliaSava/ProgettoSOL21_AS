@@ -3,6 +3,17 @@
 
 #include <ops.h>
 
+/**
+ * \brief: a struct that defines the files saved on the server side
+ * \param frequency: how many times the file was utilized
+ * \param textFile: the file contenets
+ * \param nameFile: the file name
+ * \param status: == 1 if the file is closed, ==0 if the file is open
+ * \param FileSize: the size of the file
+ * \param lock: == 1 if the file is locked, == 0 if the file is unlocked
+ * \param lock_pid: the pid of the process that locked the file
+ * \param next: pointer to the next file
+ */
 typedef struct FILE_NODE
 {
 	int frequency;
@@ -16,6 +27,12 @@ typedef struct FILE_NODE
 
 } FileNode;
 
+/**
+ * \brief: struct for a list of files
+ * \param head: pointer to the head of the list
+ * \param last: pointer to the last element
+ * \param size: size of the list 
+ */
 typedef struct FILE_LIST
 {
 	FileNode* head;
@@ -24,8 +41,10 @@ typedef struct FILE_LIST
 
 } FileList;
 
-//AGGIORNARE I PUNTATORI TESTACODA
-
+/**
+ * \brief: recursive function that prints the list
+ * \param n: pointer to the head of the list
+ */
 static inline void list_print (FileNode* n) 
 {
 
@@ -37,25 +56,25 @@ static inline void list_print (FileNode* n)
 	
 	printf("Name: %s\n", n->nameFile);
 	//printf("\n");
-
 	list_print(n->next);	
 }
 
+/**
+ * \brief: a fuction that copies a file into an other
+ * \param destination: the destination file
+ * \param source: the source file
+ */
 static inline void filecpy(FileNode* destination, FileNode* source)
 {
 	destination->frequency = source->frequency;
 	destination->FileSize = source->FileSize;
 	destination->status = source->status;
-	//fprintf(stderr, "source:%s\n", source->nameFile);
-	//fprintf(stderr, "%zu\n", strlen(source->nameFile));
+
 	destination->nameFile = safe_malloc((strlen(source->nameFile) + 1));
 	strncpy(destination->nameFile, source->nameFile, (strlen(source->nameFile)) + 1);
 
 	size_t size = source->FileSize;
-	
 
-	//destination->textFile = realloc(destination->textFile, size);
-	//fprintf(stderr, "%zu\n%zu\n", source->FileSize, size);
 	destination->textFile = safe_malloc(size + 1);
 	memset(destination->textFile, '\0', size + 1);
 	memcpy(destination->textFile, source->textFile, size);
@@ -65,9 +84,10 @@ static inline void filecpy(FileNode* destination, FileNode* source)
 	destination->next = NULL;
 }
 
-//LIST functions
-
-//ok
+/**
+ * \brief: a function to initialize the list
+ * \param list: the list that needs to be initialized
+ */
 static inline void list_init(FileList* list) 
 {
 	list->head = NULL;
@@ -75,25 +95,32 @@ static inline void list_init(FileList* list)
 	list->size = 0;
 }
 
-//ok
-//ATTENZIONE
+/**
+ * \brief: a function that deletes the last element of a list
+ * \param list: the list that needs to be popped
+ */
 static inline void list_pop(FileList* list)
 {
+	//no list, return
 	if(list->head == NULL) return;
 
 	FileNode* current = list->head;
 
+	//one element list
 	if(current->next == NULL) {
 		free(current);
 		list->head = NULL;
+		list->last = NULL;
 		return;
 	}
 
+	//cycling to the last
 	while (current->next->next != NULL)
 	{
 		current = current->next;
 	}
 
+	//free the element and update the list
 	free(current->next);
 	current->next = NULL;
 	list->last = current;
@@ -102,8 +129,10 @@ static inline void list_pop(FileList* list)
 	
 }
 
-//ATTENTION
-//removes and returns the last element from the list
+/**
+ * \brief: pops the last element of the lists and returns it
+ * \param list: the list the element is taken from
+ */
 static inline FileNode* list_pop_return(FileList* list)
 {
 	//list is empty, return
@@ -142,7 +171,10 @@ static inline FileNode* list_pop_return(FileList* list)
 	
 }
 
-//ok
+/**
+ * \brief: a function to destroys the list
+ * \param list: the list that needs to be destroyed
+ */
 static inline void list_destroy(FileList* list)
 {
 	FileNode* current = list->head;
@@ -160,10 +192,16 @@ static inline void list_destroy(FileList* list)
 	return;
 }
 
-//NODE functions
-
+/**
+ * \brief: function that pushes a node without saving file's contents
+ * \param list: the list where the node will be pushed
+ * \param frq: the starting frequency
+ * \param fName: the file's name
+ * \param fStat: the initial status of the file
+ */
 static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 {
+	//allocates a node
 	FileNode* newNode = safe_malloc(sizeof(FileNode));
 
 	newNode->frequency = frq;
@@ -174,15 +212,24 @@ static inline void node_push(FileList* list, int frq, char* fName, int fStat)
 
 	newNode->FileSize = 0;
 
+	//if the list is empty insert it as head
 	if(list->size == 0) list->head = newNode;
+	//else as last
 	else list->last->next = newNode;
 	list->last = newNode;
 	list->size++;
 }
 
+/**
+ * \brief: inserts a whole node in a list
+ * \param node: pointer to list
+ * \param ins: the node that needs to be inserted
+ */
 static inline void node_insert(FileNode** node, FileNode* ins)
 {
+	//if node is empty
 	if(*node == NULL) {
+		//allcates the node and copies the values
 		*node = safe_malloc(sizeof(FileNode));
 		filecpy(*node, ins);
 		return;
@@ -190,17 +237,25 @@ static inline void node_insert(FileNode** node, FileNode* ins)
 
 	FileNode* current = *node;
 
+	//go to the last
 	while(current->next !=  NULL) {
 		current = current->next;
 	}
 
+	//save the node
 	current->next =  safe_malloc(sizeof(FileNode));
 	filecpy(current->next, ins);
 
 	return;
 }
 
-//ok
+/**
+ * \brief: updates an already existing note
+ * \param node: the node to be updated
+ * \param frq: the new frequency
+ * \param fText: the file's contents
+ * \param fSize: the size
+ */
 static inline void node_update(FileNode* node, int frq, char* fText, long fSize) 
 {
 
