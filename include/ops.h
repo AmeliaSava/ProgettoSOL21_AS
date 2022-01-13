@@ -87,10 +87,6 @@ typedef enum {
 
 } op;
 
-/**
- * \brief Procedura di utilita' per la stampa degli errori
- *
- */
 static inline void print_error(const char * str, ...) {
     const char err[]="ERROR: ";
     va_list argp;
@@ -122,6 +118,10 @@ static inline int isNumber(const char* s, long* n) {
   return 1;   // non e' un numero
 }
 
+/**
+ * \brief: a malloc that checks for errors and sets the allocated memory to 0
+ * \param size: the size that needs to be allocated
+ */
 static inline void* safe_malloc (size_t size)
 {
   void* alloc = malloc(size);
@@ -224,6 +224,7 @@ static inline void print_op(op op_type)
 			break;
 		}
 	}
+  fflush(stdout);
 }
 
 #endif /*_CHECK_H*/

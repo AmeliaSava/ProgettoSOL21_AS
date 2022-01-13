@@ -12,7 +12,16 @@
 #define MAXBACKLOG   32
 
 /** 
- * tipo del messaggio
+ * \brief: a struct that defines the messages between client and server and acts as list node
+ * \param namelenght: the lenght of the file's name
+ * \param size: the file's size
+ * \param op_type: defines the type of operation requested on the server
+ * \param filename: a string with name of the file
+ * \param filecontents: the byte array that rapresents files contents
+ * \param pid: the process id of the client that requested the operation
+ * \param fd_con: the fd where comunication with the client is happening
+ * \param flag: flag needed for certain operations
+ * \param next: pointer to the next msg
  */
 typedef struct MSG {
 	int namelenght;
@@ -26,6 +35,12 @@ typedef struct MSG {
 	struct MSG* next;
 } msg;
 
+/**
+ * \brief: struct for a list of messages
+ * \param head: pointer to the head of the list
+ * \param last: pointer to the last element
+ * \param size: size of the list 
+ */
 typedef struct MSG_LIST
 {
 	msg* head;
@@ -34,6 +49,11 @@ typedef struct MSG_LIST
 
 } MSGlist;
 
+/**
+ * \brief: a fuction that copies a message into an other
+ * \param destination: the destination message
+ * \param source: the source message
+ */
 static inline void msgcpy(msg* destination, msg* source) 
 {
 	destination->namelenght = source->namelenght;

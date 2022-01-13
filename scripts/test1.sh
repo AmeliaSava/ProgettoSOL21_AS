@@ -10,7 +10,7 @@ sleep 2s
 ./client -p -f storage_sock.sk -t 200 -W ./storage1/Images/1kb.png -w ./storage2
 ./client -p -f storage_sock.sk -t 200 -l ./storage1/Images/1kb.png -c ./storage1/Images/1kb.png -l ./storage2/append.txt -u ./storage2/append.txt
 ./client -p -f storage_sock.sk -t 200 -w ./storage1
-./client -p -f storage_sock.sk -t 200 -r ./storage2/prova.txt -R -d ./savedfiles  
+./client -p -f storage_sock.sk -t 200 -r ./storage2/prova.txt -R -d ./savedfiles
 ./client -h
 
 sleep 1s
