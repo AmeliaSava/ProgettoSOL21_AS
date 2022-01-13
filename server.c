@@ -21,7 +21,8 @@
 
 //configuration variables
 long NUM_THREAD_WORKERS;
-long MAX_MEMORY_MB; //ATTENTION da lockare?
+
+long MAX_MEMORY_MB;
 pthread_mutex_t mem_lock = PTHREAD_MUTEX_INITIALIZER;
 long MAX_MEMORY_TOT;
 pthread_mutex_t memt_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -29,6 +30,7 @@ long MAX_NUM_FILES;
 pthread_mutex_t file_lock = PTHREAD_MUTEX_INITIALIZER;
 long MAX_NUM_FILES_TOT;
 pthread_mutex_t filet_lock = PTHREAD_MUTEX_INITIALIZER;
+
 char* SOCKET_NAME = NULL;
 char* LOG_NAME = NULL;
 
@@ -186,17 +188,13 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 			return report_ops(connfd, SRV_FILE_CLOSED, 0);
 		}
 
-		//LOCK(&memt_lock);
 		if(MAX_MEMORY_TOT < file->size)
 		{
 			//the file is bigger than the whole available memory	
 			
 			return report_ops(connfd, SRV_MEM_FULL, 0);
 		} 
-		//UNLOCK(&memt_lock);
-
-		//LOCK(&file_lock);
-		//LOCK(&mem_lock);
+		
 		if((MAX_NUM_FILES == 0) || (MAX_MEMORY_MB < file->size)) 
 		{ 
 			//not enough space for new node
@@ -213,8 +211,7 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 			//updating stats
 			if(MAX_MEMORY_MB < file->size) MAX_MEMORY_MB += file->size;
 			if(MAX_NUM_FILES == 0) MAX_NUM_FILES++;
-			//UNLOCK(&file_lock);
-			//UNLOCK(&mem_lock);
+
 
 			LOCK(&exp_lock);
 			EXPELLED_COUNT++;
@@ -238,8 +235,6 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 		{
 			MAX_MEMORY_MB -= file->size;
 			MAX_NUM_FILES--;
-			//UNLOCK(&file_lock);
-			//UNLOCK(&mem_lock);
 
 			if((MAX_NUM_FILES_TOT - MAX_NUM_FILES) > MAX_FILES_MEMORIZED) 
 			{
@@ -557,11 +552,15 @@ int append_file_svr(long connfd, msg* info)
 			{	
 				MAX_MEMORY_MB -= info->size;
 
+				LOCK(&memt_lock);
+				LOCK(&max_mem_lock);
 				//updating the max memory for stats
 				if((MAX_MEMORY_TOT - MAX_MEMORY_MB) > MAX_MEMORY_EVER) 
 				{	
 					MAX_MEMORY_EVER = MAX_MEMORY_TOT - MAX_MEMORY_MB;
 				}
+				UNLOCK(&memt_lock);
+				UNLOCK(&max_mem_lock);
 
 				LOCK(&log_lock);
 				fprintf(log_file, "Append\nBytes: %ld\nMemory left:%ld\nInserting file...\n", info->size, MAX_MEMORY_MB);
@@ -782,14 +781,23 @@ int cmd(int connfd, msg* info)
 		}
 		case READ_FILE_N: 
 		{
-			return read_n_file_svr(connfd, info);
+			LOCK(&cache_lock);
+			int ret = read_n_file_svr(connfd, info);
+			UNLOCK(&cache_lock);
+			return ret;
 			break;
 		}
 		case WRITE_FILE:
 		{
 			LOCK(&cache_lock);
+			LOCK(&memt_lock);
+			LOCK(&mem_lock);
+			LOCK(&file_lock);
 			int ret =  write_file_svr(connfd, info, info->pid);
 			UNLOCK(&cache_lock);
+			UNLOCK(&memt_lock);
+			UNLOCK(&file_lock);
+			UNLOCK(&mem_lock);
 			return ret;
 			break;
 		}
