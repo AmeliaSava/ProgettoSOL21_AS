@@ -67,6 +67,9 @@ static inline void msgcpy(msg* destination, msg* source)
 	destination->next = NULL;
 }
 
+/**
+ * 
+ */
 static inline void msg_list_init(MSGlist* list) 
 {
 	list->head = NULL;

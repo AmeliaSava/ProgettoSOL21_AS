@@ -264,14 +264,12 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 {
 	FileNode* current = NULL;
 
-	LOCK(&cache_lock);
-
 	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL) // file already exists
 	{	
 		//tried to create an already present file
 		if(flag == 1) 
 		{
-			UNLOCK(&cache_lock);
+
 			return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0);
 		}
 
@@ -300,17 +298,17 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 					UNLOCK(&log_lock);
 					node_lock(current, pid);
 				} 
-				UNLOCK(&cache_lock);
+	
 			} 
 			else 
 			{
-				UNLOCK(&cache_lock);
+	
 				return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0);
 			} // file already exists and its open
 		} 
 		else
 		{
-			UNLOCK(&cache_lock);
+
 			return report_ops(connfd, SRV_FILE_LOCKED, 0);
 		} //file is locked by some other process
 			
@@ -320,7 +318,7 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 		if(!flag)
 		{
 			//tried to create a file with no O_CREATE flag set
-			UNLOCK(&cache_lock);
+
 			return report_ops(connfd, SRV_NOK, 0); 
 		} 
 		else
@@ -343,11 +341,11 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 				
 				current = Hash_SearchNode(&cacheMemory, name);
 				node_lock(current, pid);
-				UNLOCK(&cache_lock);
+	
 				return report_ops(connfd, SRV_READY_FOR_WRITE, 0); 
 			}
 
-			UNLOCK(&cache_lock);
+
 			return report_ops(connfd, SRV_READY_FOR_WRITE, 0);
 		}
 	}
@@ -729,7 +727,10 @@ int cmd(int connfd, msg* info)
 			//fprintf(stderr, "openfile cmd\n");
 			//fprintf(stderr, "Flag: %d\n", info->flag);
     		//fprintf(stderr, "Name: %s\n", info->filename);
-			return open_file_svr(connfd, info->filename, info->flag, info->pid);
+    		LOCK(&cache_lock);
+			int ret = open_file_svr(connfd, info->filename, info->flag, info->pid);
+			UNLOCK(&cache_lock);
+			return ret;
 			break;
 		}
 		case CLOSE_FILE: 
@@ -858,7 +859,7 @@ void* getMSG(void* arg)
 		msg* operation = safe_malloc(sizeof(msg));
 
 		LOCK(&cli_req);
-		pthread_cond_wait(&wait_list, &cli_req);
+		WAIT(&wait_list, &cli_req);
 
 		if(!fast_stop && client_requests->head != NULL)
 		{
@@ -1264,6 +1265,7 @@ int main (int argc, char* argv[])
 
 					//fprintf(log_file, "\nFile: %s\n", request->filename);
 					//fflush(log_file);
+					FD_CLR(fd_con, &set);
 
 					request->fd_con = fd_con;
 				
@@ -1273,7 +1275,7 @@ int main (int argc, char* argv[])
 					pthread_cond_signal(&wait_list);
 					UNLOCK(&cli_req);
  
-					FD_CLR(fd_con, &set);					
+										
 		   		}
 			}
 		}
