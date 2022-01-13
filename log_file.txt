@@ -1,323 +1,283 @@
 LOG FILE
 
 SERVER CREATED
-Max number of thread workers: 1
-Max memory available: 134217728
-Currently available memory: 134217728
-Max Number of files: 10000
+Max number of thread workers: 4
+Max memory available: 1048576
+Currently available memory: 1048576
+Max Number of files: 10
 Socket Name: storage_sock.sk
 Log file name: log_file
 
 Hash memory initialized successfully
 
-StartedThread:99026688
+StartedThread:140548684646144
+
+StartedThread:140548676192000
+
+StartedThread:140548657448704
+
+StartedThread:140548667737856
 
 Connecting to storage_sock.sk
 
-Connected to client: 6
+Connected to client: 5
 
-THREAD:99026688
-Serving request from client: 6
-Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/1kb.png
-
-CLIENT:6 Returning result: 12
-
-THREAD:99026688
-Serving request from client: 6
-WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/1kb.png
-Bytes:1049
-Memory left:134216679
-Inserting file...
-
-CLIENT:6 Returning result: 7
-
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/append.txt
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548657448704
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/append.txt
 Bytes:4
-Memory left:134216675
+Memory left:1048572
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/prova.txt
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/prova.txt
 Bytes:5
-Memory left:134216670
+Memory left:1048567
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 Closing connection
-Client: 6
-THREAD:99026688
-Serving request from client: 6
-LockFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/1kb.png
+Client: 5
+THREAD:140548657448704
+Serving request from client: 5
+ReadFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/append.txt
+Size:4
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
-Remove File
-Freed: 1049
-Memory left:134217719
+THREAD:140548667737856
+Serving request from client: 5
 
-CLIENT:6 Returning result: 7
-
-THREAD:99026688
-Serving request from client: 6
-LockFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/append.txt
-
-CLIENT:6 Returning result: 7
-
-THREAD:99026688
-Serving request from client: 6
-Unlock file: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/append.txt
-
-CLIENT:6 Returning result: 7
-
-THREAD:99026688
-Serving request from client: 6
-
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 Closing connection
-Client: 6
-THREAD:99026688
-Serving request from client: 6
+Client: 5
+THREAD:140548676192000
+Serving request from client: 5
+Append
+Bytes: 4
+Memory left:1048563
+Inserting file...
+
+CLIENT:5 Returning result: 7
+
+THREAD:140548684646144
+Serving request from client: 5
+
+CLIENT:5 Returning result: 7
+Closing connection
+Client: 5
+THREAD:140548657448704
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/clientlist.h
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/clientlist.h
 Bytes:819
-Memory left:134216900
+Memory left:1047744
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/discardedcode.c
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/discardedcode.c
 Bytes:5360
-Memory left:134211540
+Memory left:1042384
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548657448704
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Documents/00-informazionicorso.pdf
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Documents/00-informazionicorso.pdf
 Bytes:198126
-Memory left:134013414
+Memory left:844258
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/es8.tgz
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/es8.tgz
 Bytes:6750
-Memory left:134006664
+Memory left:837508
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548657448704
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/1kb.png
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/1kb.png
 Bytes:1049
-Memory left:134005615
+Memory left:836459
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/penguin.png
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/penguin.png
 Bytes:1146
-Memory left:134004469
+Memory left:835313
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548657448704
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Music/bird.wav
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Music/bird.wav
 Bytes:99306
-Memory left:133905163
+Memory left:736007
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Music/music.mp3
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Music/music.mp3
 Bytes:700151
-Memory left:133205012
+Memory left:35856
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548657448704
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/test.txt
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
+Capacity Miss
+Removed: 5360
+Memory left:35856
+Retrying write...
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/test.txt
 Bytes:17
-Memory left:133204995
+Memory left:35839
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/testinghash.c
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548684646144
+Serving request from client: 5
+Capacity Miss
+Removed: 99306
+Memory left:35839
+Retrying write...
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/testinghash.c
 Bytes:1591
-Memory left:133203404
+Memory left:34248
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548657448704
+Serving request from client: 5
 Create file /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/testinglist.c
 
-CLIENT:6 Returning result: 12
+CLIENT:5 Returning result: 12
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548667737856
+Serving request from client: 5
+Capacity Miss
+Removed: 17
+Memory left:34248
+Retrying write...
 WriteFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/testinglist.c
 Bytes:1777
-Memory left:133201627
+Memory left:32471
 Inserting file...
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 
-THREAD:99026688
-Serving request from client: 6
+THREAD:140548676192000
+Serving request from client: 5
 
-CLIENT:6 Returning result: 7
+CLIENT:5 Returning result: 7
 Closing connection
-Client: 6
-THREAD:99026688
-Serving request from client: 6
-ReadFile /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/prova.txt
-Size:5
-
-CLIENT:6 Returning result: 7
-
-THREAD:99026688
-Serving request from client: 6
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/es8.tgz
-Size:6750
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/1kb.png
-Size:1049
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/prova.txt
-Size:5
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/testinghash.c
-Size:1591
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage2/append.txt
-Size:4
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Music/music.mp3
-Size:700151
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/clientlist.h
-Size:819
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Images/penguin.png
-Size:1146
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/testinglist.c
-Size:1777
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Documents/00-informazionicorso.pdf
-Size:198126
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/test.txt
-Size:17
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/Music/bird.wav
-Size:99306
-ReadFile: /mnt/c/Users/Amelia Sava/Documents/GitHub/ProgettoSOL21_AS/storage1/discardedcode.c
-Size:5360
-
-THREAD:99026688
-Serving request from client: 6
-
-CLIENT:6 Returning result: 7
-Closing connection
-Client: 6
+Client: 5
 Recived a signal
 SIGHUP
 SIGHUP: Finished serving all requests
+SIGHUP: Finished serving all requests
+SIGHUP: Finished serving all requests
+SIGHUP: Finished serving all requests
 
-MAXFILES:13
+MAXFILES:10
 
-MAXMEM:1016101
+MAXMEM:1016105
 
-EXP:0
+EXP:3

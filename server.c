@@ -564,7 +564,7 @@ int append_file_svr(long connfd, msg* info)
 				}
 
 				LOCK(&log_lock);
-				fprintf(log_file, "Append\nBytes added: %ld\nMemory left:%ld\nInserting file...\n", info->size, MAX_MEMORY_MB);
+				fprintf(log_file, "Append\nBytes: %ld\nMemory left:%ld\nInserting file...\n", info->size, MAX_MEMORY_MB);
 				fflush(log_file);
 				UNLOCK(&log_lock);
 
@@ -694,7 +694,7 @@ int unlock_file_srv(long connfd, msg* info)
 		{
 			//file is locked by the same process
 			LOCK(&log_lock);
-			fprintf(log_file, "Unlock file: %s\n", info->filename);
+			fprintf(log_file, "UnlockFile: %s\n", info->filename);
 			fflush(log_file);
 			UNLOCK(&log_lock);
 
@@ -849,14 +849,14 @@ void* getMSG(void* arg)
 
 		msg* operation = safe_malloc(sizeof(msg));
 
-		pthread_mutex_lock(&cli_req);
+		LOCK(&cli_req);
 		pthread_cond_wait(&wait_list, &cli_req);
 
 		if(!fast_stop && client_requests->head != NULL)
 		{
 			msg_list_pop_return(client_requests, &operation);
 
-			pthread_mutex_unlock(&cli_req);
+			UNLOCK(&cli_req);
 
 			LOCK(&log_lock);
 			fprintf(log_file, "\nTHREAD:%ld\nServing request from client: %ld\n", pthread_self(), operation->fd_con);
@@ -884,7 +884,7 @@ void* getMSG(void* arg)
 			}
 		}
 		else
-			pthread_mutex_unlock(&cli_req);
+			UNLOCK(&cli_req);
 		free(operation);
 	}
 	
@@ -1260,10 +1260,10 @@ int main (int argc, char* argv[])
 					request->fd_con = fd_con;
 				
 					//fprintf(stderr, "adding request to list\n");
-					pthread_mutex_lock(&cli_req);
+					LOCK(&cli_req);
 					msg_push_head(request, client_requests);
 					pthread_cond_signal(&wait_list);
-					pthread_mutex_unlock(&cli_req);
+					UNLOCK(&cli_req);
  
 					FD_CLR(fd_con, &set);					
 		   		}
