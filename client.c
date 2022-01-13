@@ -106,7 +106,7 @@ int write_from_dir_find (const char* dir, long* n)
 	//opening directory
 	if((d = opendir(".")) == NULL) 
 	{ 
-		print_error("error entering directory %s\n", dir);
+		//print_error("error entering directory %s\n", dir);
 		return -1;
 	} 
 	else {
@@ -794,6 +794,7 @@ int main(int argc, char *argv[])
 			{
                 printf("Prints activated\n\n");
                 print = 1;
+				set_prints();
                 break;
             }
 			case 'q': 

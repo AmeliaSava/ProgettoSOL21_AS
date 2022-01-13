@@ -44,4 +44,4 @@ test2: all
 	./scripts/test2.sh
 
 test3: all
-	timeout 30s ./scripts/test3.sh
+	./scripts/test3.sh

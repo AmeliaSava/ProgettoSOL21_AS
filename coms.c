@@ -15,6 +15,7 @@
 #include <conn.h>
 
 int sockfd;
+int print_coms = 0;
 
 //EXTRA FUNCTIONS
 char* readFileBytes(const char *name, long* filelen) 
@@ -88,6 +89,12 @@ int WriteFilefromByte(const char* name, char* text, long size, const char* dirna
 	fclose(fp1);
 
 	return 0;
+}
+
+void set_prints()
+{
+	if(!print_coms) print_coms = 1;
+	else print_coms = 0;
 }
 
 /**
@@ -195,8 +202,11 @@ int openFile(const char* pathname, int flags)
 		return -1;
 	}
 
-	//fprintf(stdout,"Open File:\n");
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Open File:\n");
+		print_op(response);
+	}
 
 	if(response == SRV_READY_FOR_WRITE)	return 1;
 
@@ -245,7 +255,11 @@ int readFile(const char* pathname, void** buf, size_t* size)
 		return -1;
 	}
 
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Read File:\n");
+		print_op(response);
+	}
 
 	//if there were no errors on the server's side
 	if(response == SRV_OK) 
@@ -318,8 +332,12 @@ int readNfiles(int N, const char* dirname)
 				exit(EXIT_FAILURE);
 			}
 
-			fprintf(stderr, "Read file: %s\n", file->filename); 
-			fprintf(stderr, "%ld bytes read\n\n", file->size);
+			if(print_coms)
+			{
+				fprintf(stdout, "Read N Files:"); 
+				fprintf(stdout, "Read file: %s\n", file->filename); 
+				fprintf(stdout, "%ld bytes read\n\n", file->size);
+			}
 
 			if(dirname)
 			{
@@ -396,11 +414,16 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
-	fprintf(stderr, "Write File:\n");
-	print_op(response);
+	if(print_coms)
+	{
+		print_op(response);
+	}
 	
 	if(response != SRV_OK) return -1;
-	if(response == SRV_OK) fprintf(stdout, "%ld bytes written\n\n", file_lenght);
+	if(response == SRV_OK) 
+	{
+		if(print_coms) fprintf(stdout, "%ld bytes written\n\n", file_lenght);
+	}
 	//are there expelled files to recieve?
 	int exp_recieve = 0;
 
@@ -486,7 +509,11 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 		exit(EXIT_FAILURE);
 	}
 
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Append File:\n");
+		print_op(response);
+	}
 
 
 	if(response != SRV_OK) return -1;
@@ -577,8 +604,11 @@ int lockFile(const char* pathname)
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(stdout, "Lock file:\n");
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Lock File:\n");
+		print_op(response);
+	}
 
 	if(response == SRV_OK) return 0;
 
@@ -623,8 +653,11 @@ int unlockFile(const char* pathname)
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(stdout,"Unlock file:");
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Unlock File:\n");
+		print_op(response);
+	}
 
 	if(response == SRV_OK) return 0;
 
@@ -668,8 +701,11 @@ int closeFile(const char* pathname)
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(stdout,"Close File:\n");
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Close File:\n");
+		print_op(response);
+	}
 
 	if(response == SRV_OK) return 0;
 
@@ -709,8 +745,11 @@ int removeFile(const char* pathname) {
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(stdout, "Remove file:\n");
-	print_op(response);
+	if(print_coms)
+	{
+		fprintf(stdout,"Remove File:\n");
+		print_op(response);
+	}
 
 	if(response == SRV_OK) return 0;
 

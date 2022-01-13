@@ -228,7 +228,7 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 			removed = expelled_msg->size;
 
 			LOCK(&log_lock);
-			fprintf(log_file, "Capacity Miss\nRemoved: %ld\nMemory left:%ld\nRetrying write...\n", removed, MAX_MEMORY_MB);
+			fprintf(log_file, "Capacity Miss\nFile expelled:%s\nRemoved: %ld\nMemory left:%ld\nRetrying write...\n", expelled_msg->filename, removed, MAX_MEMORY_MB);
 			fflush(log_file);
 			UNLOCK(&log_lock);
 
