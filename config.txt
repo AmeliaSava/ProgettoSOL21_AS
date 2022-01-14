@@ -1,5 +1,5 @@
-Number of thread workers = 1;
-Max Memory available in bytes = 134217728;
-Max number of file server can handle = 10000;
+Number of thread workers = 8;
+Max Memory available in bytes = 33554432;
+Max number of file server can handle = 100;
 Socket file name = storage_sock.sk;
 Log file name = log_file;

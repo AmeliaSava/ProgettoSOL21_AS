@@ -17,7 +17,15 @@
 int sockfd;
 int print_coms = 0;
 
-//EXTRA FUNCTIONS
+/**
+ * EXTRA FUNCTIONS
+ */
+
+/**
+ * \brief: transforms a file into bytes
+ * \param name: name of the file to find in memory
+ * \param filelen: pointer where the size of the stored file will be save
+ */
 char* readFileBytes(const char *name, long* filelen) 
 {
 	//fprintf(stderr, "dentro readbyte\n");
@@ -69,7 +77,6 @@ char* readFileBytes(const char *name, long* filelen)
 	return ret;
 }
 
-//ATTENTION CORRUPT FILE
 int WriteFilefromByte(const char* name, char* text, long size, const char* dirname) 
 {
 	FILE *fp1;
@@ -118,7 +125,8 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
 	struct timespec current_time;
 	if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
-
+	
+	//if the connection failed, retry
 	while ((result = connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0 && abstime.tv_sec > current_time.tv_sec) {
 		if((result = usleep(msec*1000)) != 0) return result;
 		if((clock_gettime(CLOCK_REALTIME, &current_time)) == -1) return -1;
@@ -131,12 +139,12 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
 int closeConnection(const char* sockname) 
 {
-
 	errno = 0;
 
 	msg* close_connection = safe_malloc(sizeof(msg));
 	close_connection->op_type = 20;
 
+	//send message to server
 	if(writen(sockfd, close_connection, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -146,6 +154,7 @@ int closeConnection(const char* sockname)
 
 	op response;
 
+	//recieve response
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
@@ -153,6 +162,7 @@ int closeConnection(const char* sockname)
 		return -1;
 	}
 
+	//close connection
 	close(sockfd);
 
 	if(response == SRV_OK) return 0;
@@ -184,7 +194,8 @@ int openFile(const char* pathname, int flags)
 	//fprintf(stderr, "%d\n", getppid());
 
 	open_file->flag = flags;
-		
+	
+	//send message to server
 	if(writen(sockfd, open_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -238,6 +249,7 @@ int readFile(const char* pathname, void** buf, size_t* size)
 	//passing the process' pid
 	read_file->pid = getpid();
 
+	//sending message to server
 	if(writen(sockfd, read_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -301,6 +313,7 @@ int readNfiles(int N, const char* dirname)
 	readN_file->pid = getpid();
 	//fprintf(stderr, "dentro readNFile API\n");
 
+	//sending message to server
 	if(writen(sockfd, readN_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -310,6 +323,7 @@ int readNfiles(int N, const char* dirname)
 	
 	int result;
 
+	//recieving the result AKA number of files read
 	if (readn(sockfd, &result, sizeof(int)) <= 0) 
 	{
 		errno = -1; 
@@ -319,12 +333,15 @@ int readNfiles(int N, const char* dirname)
 
 	//fprintf(stderr, "Files Read: %d\n", result);
 
-	if(result > 0) {
+	if(result > 0) 
+	{ 
+		//there are files to recieve
 		for(int i = 0; i < result; i++)
 		{		
 			msg* file = safe_malloc(sizeof(msg));
 			int ret = 0;
 
+			//recieve file
 			if((ret = readn(sockfd, file, sizeof(msg))) <= 0) 
 			{
 				errno = -1;
@@ -339,9 +356,9 @@ int readNfiles(int N, const char* dirname)
 				fprintf(stdout, "%ld bytes read\n\n", file->size);
 			}
 
+			//if the directory for the saved files is specified, save them
 			if(dirname)
 			{
-				//questa parte funziona
 				char* p;
 				p = strrchr(file->filename, '/'); //ATTENTION306
 				++p;
@@ -352,7 +369,6 @@ int readNfiles(int N, const char* dirname)
 					perror("ERROR: writefb");
 					return -1;
 				}
-				//fine parte che funziona
 			}
 		}	
 	} else return -1;
@@ -380,6 +396,8 @@ int writeFile(const char* pathname, const char* dirname)
 	//reading file
 	long file_lenght;
 	char* buf;
+
+	//reading the file that needs to be written
 	if((buf = readFileBytes(pathname, &file_lenght)) == NULL) 
 	{ 
 		errno = -1;
@@ -395,8 +413,7 @@ int writeFile(const char* pathname, const char* dirname)
 	//fprintf(stderr, "%d\n", write_file->pid);
 	//fprintf(stderr, "%d\n", getppid());
 
-	//fprintf(stderr, "sending\n");
-	//sending
+	//sending message to server
 	if(writen(sockfd, write_file, sizeof(msg)) <= 0) 
 	{
 		errno = -1;
@@ -424,9 +441,10 @@ int writeFile(const char* pathname, const char* dirname)
 	{
 		if(print_coms) fprintf(stdout, "%ld bytes written\n\n", file_lenght);
 	}
+
 	//are there expelled files to recieve?
 	int exp_recieve = 0;
-
+	//how many?
 	if (readn(sockfd, &exp_recieve, sizeof(int)) <= 0) 
 	{
 		errno = -1; 
@@ -434,7 +452,7 @@ int writeFile(const char* pathname, const char* dirname)
 		return -1;
 	}
 
-	
+	//recieve expelled files
 	while (exp_recieve > 0)
 	{
 		msg* cur_msg = safe_malloc(sizeof(msg));
@@ -446,14 +464,14 @@ int writeFile(const char* pathname, const char* dirname)
 			return -1;
 		}
 
-		
+		//if the directory for expelled files was specified
 		if(dirname[0] != 0)
 		{
 			//getting only the file name
 			char* p;
-			p = strrchr(cur_msg->filename, '/'); //ATTENTION306
+			p = strrchr(cur_msg->filename, '/');
 			++p;
-			//wrting the file
+			//writing the file
 			if((WriteFilefromByte(p, cur_msg->filecontents, cur_msg->size, dirname)) == -1) 
 			{
 				errno = -1;
@@ -493,6 +511,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	//passing the process' pid
 	append_file->pid = getpid();
 
+	//send message to server
 	if(writen(sockfd, append_file, sizeof(msg)) <= 0) 
 	{
 		errno = -1;
@@ -502,6 +521,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 	
 	op response;
 
+	//recieving response
 	if (readn(sockfd, &response, sizeof(op)) <= 0) 
 	{
 		errno = -1; 
@@ -530,6 +550,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 
 	//fprintf(stderr, "exp:%d\n", exp_recieve);
 
+	//recieve the expelled files
 	while (exp_recieve > 0)
 	{
 		msg* cur_msg = safe_malloc(sizeof(msg));
@@ -541,7 +562,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 			return -1;
 		}
 
-
+		//save the if the directory was specified
 		if(dirname)
 		{
 			//fprintf(stderr, "filename:%s\n", cur_msg->filename);
@@ -635,6 +656,7 @@ int unlockFile(const char* pathname)
 	
 	unlock_file->pid = getpid();
 
+	//sendign message to server
 	if(writen(sockfd, unlock_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -684,6 +706,7 @@ int closeFile(const char* pathname)
 
 	close_file->pid = getpid();
 	
+	//sending message to server
 	if(writen(sockfd, close_file, sizeof(msg)) <= 0)
 	{
 		errno = -1;
@@ -728,6 +751,7 @@ int removeFile(const char* pathname) {
 
 	remove_file->pid = getpid();
 	
+	//sending message to server
 	if(writen(sockfd, remove_file, sizeof(msg)) <= 0) 
 	{
 		errno = -1; 

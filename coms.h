@@ -11,8 +11,14 @@
 
 #include <ops.h>
 
+/**
+ * Funzione aggiuntiva per scrivere un file nella memoria secondaria
+ */
 int WriteFilefromByte(const char* name, char* text, long size, const char* dirname);
 
+/**
+ * Setta le stampe anche nelle API
+ */
 void set_prints();
 
 /*
@@ -23,17 +29,18 @@ void set_prints();
 int openConnection(const char* sockname, int msec, const struct timespec abstime);
 
 /*
- * chiude la connessione AF_UNIX associata al socket file sockname. Ritorna 0 in caso di successo, -1 in caso di fallimento, 
+ * Chiude la connessione AF_UNIX associata al socket file sockname. Ritorna 0 in caso di successo, -1 in caso di fallimento, 
  * errno viene settato opportunamente.
  */
 int closeConnection(const char* sockname);
 
 /*
  * Richiede di apertura o di creazione di un file. 
- * Se viene passato il flag O_CREATE ed il file già esiste memorizzato nel server, oppure il file non esiste ed il flag 
- */
-/*
- * Richiede di apertura o di creazione di un file. 
+ * Se viene passato il flag O_CREATE ed il file già esiste memorizzato nel server, oppure il file non esiste ed il flag
+ *  O_CREATE non è stato specificato, viene ritornato un errore. 
+ * In caso di successo, il file viene sempre aperto in lettura e scrittura, se viene passato il flag O_LOCK il file viene
+ * aperto e/o creato in modalità locked.
+ * Ritorna 0 in caso di successo, -1 in caso di fallimento, errno viene settato opportunamente.
  * I flag possono essere 0 = NONE, 1 = O_CREATE, 2 = O_LOCK, 3 = O_CREATE && O_LOCK
  */
 int openFile(const char* pathname, int flags);
@@ -50,8 +57,8 @@ int readFile(const char* pathname, void** buf, size_t* size);
  * Se il server ha meno di ‘N’ file disponibili, li invia tutti. Se N <= 0 la richiesta al server è quella di
  * leggere tutti i file memorizzati al suo interno. Ritorna un valore maggiore o uguale a 0 in caso di
  * successo (cioè ritorna il n. di file effettivamente letti), -1 in caso di fallimento, errno viene settato opportunamente.
+ * Se dirname non e' specificato non salva i file
  */
-//Se dirname non e' specificato non salva i file
 int readNfiles(int N, const char* dirname);
 
 /*

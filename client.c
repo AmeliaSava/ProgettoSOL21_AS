@@ -155,15 +155,10 @@ int write_from_dir_find (const char* dir, long* n)
 				if(!isdot(file->d_name)) {
 					//...call recursively
 					if(write_from_dir_find(file->d_name, n) != 0) {
-						// quando ho finito risalgo nella directory precedente
-						// WARNING: dato che stat segue i link simbolici ritornando gli attributi
-						// del file puntato (e non del link) se un link simbolico punta ad una
-						// directory entrero' in quella directory pero' poi salire di livello
-						// con .. non va bene perche' non ritornero' nella parent directory.
-						// per diminuire la complessità dell'esercizio non si controlla questa cosa    
+						// when I'm finished, go back to previous directory
 						if (chdir("..") == -1) 
 						{
-							print_error("Impossibile risalire alla directory padre.\n");
+							print_error("Impossible to got back to parent directory\n");
 							return -1;
 						}
 					}
@@ -179,24 +174,23 @@ int write_from_dir_find (const char* dir, long* n)
 					//printf("n: %ld", *n);
 					if(print) fprintf(stderr,"Writing file:%s\n", buf);
 
-					
+					//open the file, if success		
 					if((openFile(buf, 1)) == 1) 
 					{ 
+						//write the file
 						//fprintf(stderr,"after open:%s\n", buf);
 						if((writeFile(buf, expelled_dir)) == 0) 
 						{
 							*n = *n - 1;
 						} 
 						//else return 1;
-						
 					}
 					//else return 1;
 
 					free(buf);
-	
 			}
 		}
-		// c'è stato un errore e stampo
+		// error, print
 		if (errno != 0) perror("readdir");
 		closedir(d);
 	}
@@ -204,6 +198,11 @@ int write_from_dir_find (const char* dir, long* n)
 	return 1;
 }
 
+/**
+ * \brief: inserts the argument at the end of the list
+ * \param opt: the option taken from command line
+ * \param args: the arguments string
+ */
 void arg_ins(int opt, char* args)
 {
 	//fprintf(stderr,"inserito1\n");
@@ -227,8 +226,8 @@ void arg_ins(int opt, char* args)
 	return;
 }
 
-/*
-Returns 0 on success, -1 otherwise
+/**
+ * \brief: executes the requests in the list, returns 0 on success, -1 otherwise
 */
 
 int commandline_serve()
@@ -257,10 +256,12 @@ int commandline_serve()
 				char* token;
 				token = strtok(ptr->args,",");
 				
+				
 				while(token != NULL) 
 				{
 					//fprintf(stderr,"tok:%s\n", token);
 
+					//gets the dirname
 					if(i==0) 
 					{
 						dirname = safe_malloc(strlen(token));
@@ -269,6 +270,7 @@ int commandline_serve()
 						i++;
 					}
 
+					//if there is a number saves it in n
 					if(i==1) isNumber(token, &n);
 
 					token = strtok(NULL, ",");
@@ -319,7 +321,7 @@ int commandline_serve()
 					if(print) fprintf(stderr,"Writing file:%s\n", buf);
 
 					int ret;
-            		if((ret = openFile(buf, 1)) == 1) //ATTENTION errori?
+            		if((ret = openFile(buf, 1)) == 1)
 					{
 						//if expelled_dir was earlier defined it is used, otherwise it remains NULL
 						if((ret = writeFile(buf, expelled_dir)) != 0)
@@ -388,6 +390,7 @@ int commandline_serve()
 					}
 					else token = strtok(NULL, ",");
 
+					//if -d was used save the file
 					if(save_dir != NULL)
 					{
 						char* p;
@@ -413,6 +416,7 @@ int commandline_serve()
 				long n = strtol(ptr->args, NULL, 10);
 				//fprintf(stdout, "n:%ld\n", n);
 				long ret;
+
 				//is save_dir was not specified before NULL wil be passed
 				if((ret = readNfiles(n, save_dir)) > 0)
 				{
@@ -554,6 +558,7 @@ int commandline_serve()
 				char* buf;
 				char* append_buf;
 
+				//to know if it's the directory or append string
 				int c = 0;
 
 				token = strtok(ptr->args,",");
@@ -580,6 +585,7 @@ int commandline_serve()
 					}
 					else
 					{
+						//the string that will be attached
 						append_buf = safe_malloc(strlen(token));
 						strncpy(append_buf, token, strlen(token));
 
@@ -616,6 +622,10 @@ int commandline_serve()
 	return 0;
 }
 
+/**
+ * \brief: checks the command line options, blocks execution if an illegal combination was given
+ * 			\\saves the name of the expelled files and saved files directories
+ */
 int commandline_check()
 {
 	int isW = 0;
@@ -629,21 +639,25 @@ int commandline_check()
 
 	while(ptr != NULL) 
 	{
+		//-w, -W or -a
 		if(ptr->opt == 1 || ptr->opt == 2 || ptr->opt == 10)
 			isW = 1;
-
+		//-r or -R
 		if(ptr->opt == 4 || ptr->opt == 5)
 			isR = 1;
-
+		//-D
 		if(ptr->opt == 3)
 		{
+			//save the directory
 			isD = 1;
 			dir1 = safe_malloc(strlen(ptr->args));
 			strncpy(dir1, ptr->args, strlen(ptr->args));
 		}
 
+		//-d
 		if(ptr->opt == 6)
 		{
+			//save the directory
 			isd = 1;
 			dir2 = safe_malloc(strlen(ptr->args));
 			strncpy(dir2, ptr->args, strlen(ptr->args));
@@ -655,14 +669,16 @@ int commandline_check()
 	if(!isW && isD)
 	{
 		fprintf(stderr,"-D option must be used with -w or -W\n\n");
-		//resetting string if it was set without the other options
+		free(dir1);
+		free(dir2);
 		return -1;
 	}
 
 	if(!isR && isd)
 	{
 		fprintf(stderr,"-d option must be used with -r or -R\n\n");
-		//resetting string if it was set without the other options
+		free(dir1);
+		free(dir2);
 		return -1;
 	}
 
@@ -723,11 +739,28 @@ int main(int argc, char *argv[])
             }
             case 'f': 
 			{
-				if(add_current_folder(&SOCKNAME, optarg) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
-				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) {errno = -1; perror("ERROR: -f"); exit(EXIT_FAILURE);}
+				//the socket must be in the current folder
+				if(add_current_folder(&SOCKNAME, optarg) == -1) 
+				{
+					errno = -1; 
+					perror("ERROR: -f"); 
+					exit(EXIT_FAILURE);
+				}
+				//preparing for connection timeout
+				if((clock_gettime(CLOCK_REALTIME, &abstime)) == -1) 
+				{
+					errno = -1;
+					perror("ERROR: -f");
+					exit(EXIT_FAILURE);
+				}
 				abstime.tv_sec += 2;
 				if(print) fprintf(stdout, "Opening connection to: %s\n", SOCKNAME);
-            	if((openConnection(SOCKNAME, 1000, abstime)) == -1){errno = ECONNREFUSED; perror("openConnection"); exit(EXIT_FAILURE);}
+            	if((openConnection(SOCKNAME, 1000, abstime)) == -1)
+				{
+					errno = ECONNREFUSED; 
+					perror("openConnection"); 
+					exit(EXIT_FAILURE);
+				}
             	else if(print) fprintf(stdout, "Connected successfully to socket\n\n");
             	break;
             }
@@ -845,7 +878,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
-	//if there was a severe error and not memory expected one
+	//if there was a severe error and not normal API error
 	if(commandline_serve() == -1 && errno != 0)
 	{
 		errno = -1;
