@@ -793,7 +793,7 @@ int unlock_file_srv(long connfd, msg* info)
  * \param connfd: the fd where the comunication is happening
  * \param info: the msg containing all information needed to perform the operation
  */
-int cmd(int connfd, msg* info) 
+	int cmd(int connfd, msg* info) 
 {
 
 	//fprintf(stderr, "dentro cmd: %d\n", info.op_type);
