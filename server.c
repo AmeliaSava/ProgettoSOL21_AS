@@ -285,6 +285,13 @@ int write_file_svr(long connfd, msg* file, pid_t pid)
 	return report_ops(connfd, SRV_OK, 1);
 }
 
+/**
+ * \brief: opens an existing file, or creates an empty node to be writte, can also lock files
+ * \param connfd: the fd where the comunication is happening
+ * \param name: the name of the file to open
+ * \param flag: the flag of the open operation
+ * \param pid: the calling process pid
+ */
 int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 {
 	FileNode* current = NULL;
@@ -294,7 +301,6 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 		//tried to create an already present file
 		if(flag == 1) 
 		{
-
 			return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0);
 		}
 
@@ -304,6 +310,7 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 			// if the file is closed, open file
 			if(current->status == 1)
 			{ 
+				//increase frequency
 				Hash_Inc(&cacheMemory, current);
 				
 				current->status = 0; //opening file
@@ -327,23 +334,19 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 			} 
 			else 
 			{
-	
 				return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0);
 			} // file already exists and its open
 		} 
 		else
 		{
-
 			return report_ops(connfd, SRV_FILE_LOCKED, 0);
-		} //file is locked by some other process
-			
+		} //file is locked by some other process		
 	}
 	else
 	{
 		if(!flag)
 		{
 			//tried to create a file with no O_CREATE flag set
-
 			return report_ops(connfd, SRV_NOK, 0); 
 		} 
 		else
@@ -369,22 +372,24 @@ int open_file_svr(long connfd, char* name, int flag, pid_t pid)
 	
 				return report_ops(connfd, SRV_READY_FOR_WRITE, 0); 
 			}
-
-
 			return report_ops(connfd, SRV_READY_FOR_WRITE, 0);
 		}
 	}
-
 	return report_ops(connfd, SRV_OK, 0);
 }
 
-int close_file_svr(long connfd, msg* info, char* name)
+/**
+ * \brief: closes a file
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
+int close_file_svr(long connfd, msg* info)
 {
 	FileNode* current = NULL;
 
 	LOCK(&cache_lock);
 	// if the file exists
-	if((current = Hash_SearchNode(&cacheMemory, name)) != NULL)
+	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL)
 	{ 
 		if(current->lock == 1 && current->lock_pid != info->pid)
 		{	//file is locked by some other process
@@ -393,10 +398,10 @@ int close_file_svr(long connfd, msg* info, char* name)
 		}
 			
 		if(current->status == 0)
-		{ // is open
-
+		{ 
+			// the file is open
 			LOCK(&log_lock);
-			fprintf(log_file, "Close file %s\n", name);
+			fprintf(log_file, "Close file %s\n", info->filename);
 			fflush(log_file);
 			UNLOCK(&log_lock);
 			
@@ -409,7 +414,10 @@ int close_file_svr(long connfd, msg* info, char* name)
 			UNLOCK(&cache_lock);
 			return report_ops(connfd, SRV_FILE_ALREADY_PRESENT, 0); 
 		}
-	} else{ //file not found
+	} 
+	else
+	{ 
+		//file not found
 		UNLOCK(&cache_lock);
 		return report_ops(connfd, SRV_FILE_NOT_FOUND, 0);
 	}
@@ -417,6 +425,13 @@ int close_file_svr(long connfd, msg* info, char* name)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
+/**
+ * \brief: reads a file from the memory
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ * \param tmp: a pointer to a string where the file contents will be saved to return to the client
+ * \param size: a pointer to a size_t where the file size will be saved to return to the client
+ */
 int read_file_svr(long connfd, msg* info, char** tmp, size_t* size) 
 {
 	
@@ -424,11 +439,11 @@ int read_file_svr(long connfd, msg* info, char** tmp, size_t* size)
 
 	LOCK(&cache_lock);
 	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL) 
-	{	// file found
-
+	{	
+		// file found
 		if(current->lock == 1 && current->lock_pid != info->pid)
 		{
-			//file is locked by some other process
+			// file is locked by some other process
 			UNLOCK(&cache_lock);
 			return report_ops(connfd, SRV_FILE_LOCKED, 0);
 		} 
@@ -463,25 +478,34 @@ int read_file_svr(long connfd, msg* info, char** tmp, size_t* size)
 	return 9; //file not found
 }
 
+/**
+ * \brief: reads n files from the memory, or all the files
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
 int read_n_file_svr(long connfd, msg* info) {
 
 	FileNode* to_send = NULL;
 	int tot = 0;
 
+	//hash function that reads n files and adds them to a list
 	Hash_Read(&cacheMemory, info->namelenght, &to_send, &tot);
 
 	//fprintf(stderr, "tot:%d\n", tot);
 
 	FileNode* current = to_send;
 	
+	//sending how many files have been actually read
 	if(writen(connfd, &tot, sizeof(int)) <= 0) 
 	{
 		perror("ERROR: write read file len");
 		return -1;
 	}
 
+	//sending the files
 	for(int i = 0; i < tot; i++)
 	{
+		//converting the file to a msg
 		msg* send = safe_malloc(sizeof(msg));
 		file_to_msg(current, send);
 
@@ -489,17 +513,19 @@ int read_n_file_svr(long connfd, msg* info) {
 		fprintf(log_file, "ReadFile: %s\nSize:%ld\n", send->filename, send->size);
 		fflush(log_file);
 		UNLOCK(&log_lock);
-
+		
+		//sending the msg
 		if((writen(connfd, send, sizeof(msg))) <= 0)
 		{
 			perror("ERROR: write read file");
 			exit(EXIT_FAILURE);
 		}
-
+		//deleting msg, sending the next
 		free(send);
 		current = current->next;
 	}
 
+	//cleaning the list of files to send
 	FileNode* delete = to_send;
 	FileNode* next;
 
@@ -512,10 +538,14 @@ int read_n_file_svr(long connfd, msg* info) {
 		delete = next;
 	}
 	
-
 	return 0;
 }
 
+/**
+ * \brief: appends something to a file
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
 int append_file_svr(long connfd, msg* info) 
 {
 	FileNode* current = NULL;
@@ -542,7 +572,7 @@ int append_file_svr(long connfd, msg* info)
 			if(MAX_MEMORY_MB < info->size) 
 			{
 
-				long removed = 0; //ATTENTION
+				long removed = 0;
 
 				FileNode* expelled = Hash_LFUremove(&cacheMemory);
 
@@ -590,7 +620,8 @@ int append_file_svr(long connfd, msg* info)
 				fflush(log_file);
 				UNLOCK(&log_lock);
 
-				node_append(current, current->frequency + 1, info->filecontents, (current->FileSize + info->size)); //file is open, enough memory, make append
+				//file is open, enough memory, make append
+				node_append(current, current->frequency + 1, info->filecontents, (current->FileSize + info->size)); 
 				Hash_Inc(&cacheMemory, current);
 			}
 			UNLOCK(&mem_lock);
@@ -605,6 +636,11 @@ int append_file_svr(long connfd, msg* info)
 	return report_ops(connfd, SRV_OK, 1);
 }
 
+/**
+ * \brief: removes a file, only if it's locked
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
 int remove_file_svr(long connfd, msg* info) 
 {
 	FileNode* current = NULL;
@@ -659,13 +695,19 @@ int remove_file_svr(long connfd, msg* info)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
+/**
+ * \brief: locks a file
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
 int lock_file_srv(long connfd, msg* info)
 {
 	FileNode* current = NULL;
 	
 	LOCK(&cache_lock);
 	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL)
-	{ // file already exists
+	{ 
+		// file already exists
 		if(current->lock == 1 && current->lock_pid != info->pid)
 		{
 			//file is locked by some other process
@@ -700,12 +742,18 @@ int lock_file_srv(long connfd, msg* info)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
+/**
+ * \brief: unlocks a file
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
 int unlock_file_srv(long connfd, msg* info)
 {
 	FileNode* current = NULL;
 	LOCK(&cache_lock);
 	if((current = Hash_SearchNode(&cacheMemory, info->filename)) != NULL)
-	{ // file already exists
+	{ 
+		// file already exists
 		if(current->lock == 1 && current->lock_pid != info->pid)
 		{		
 			//file is locked by some other process
@@ -740,6 +788,11 @@ int unlock_file_srv(long connfd, msg* info)
 	return report_ops(connfd, SRV_OK, 0);
 }
 
+/**
+ * \brief: switched between possible required operations
+ * \param connfd: the fd where the comunication is happening
+ * \param info: the msg containing all information needed to perform the operation
+ */
 int cmd(int connfd, msg* info) 
 {
 
@@ -749,7 +802,6 @@ int cmd(int connfd, msg* info)
 	{
 		case OPEN_FILE: 
 		{
-			//fprintf(stderr, "openfile cmd\n");
 			//fprintf(stderr, "Flag: %d\n", info->flag);
     		//fprintf(stderr, "Name: %s\n", info->filename);
     		LOCK(&cache_lock);
@@ -760,16 +812,13 @@ int cmd(int connfd, msg* info)
 		}
 		case CLOSE_FILE: 
 		{
-			//fprintf(stderr, "closefile cmd\n");
 			//fprintf(stderr, "Name: %s\n", info->filename);
-			return close_file_svr(connfd, info, info->filename);
+			return close_file_svr(connfd, info);
 			break;
 		}
 		case READ_FILE:	
 		{
-			//fprintf(stderr, "dentro cmd read\n");
-			//fprintf(stderr, "Name: %s\n", info->filename);
-		
+			//data that needs to be sent to the client
 			char* tmp_buf;
 			size_t tmp_size = 0;
 			int ret = read_file_svr(connfd, info, &tmp_buf, &tmp_size);
@@ -779,16 +828,20 @@ int cmd(int connfd, msg* info)
 			//fprintf(stderr, "Size: %ld\n", tmp_size);
 			//fprintf(stderr, "Result Return: %d\n", ret);
 
+			//if the operation completed with success
 			if(ret == 0) 
 			{
+				//send ok to the client
 			    if(report_ops(connfd, SRV_OK, 0) == -1) return -1;
-
+				
+				//send the size
 			    if(writen(connfd, &tmp_size, sizeof(long)) <= 0) 
 				{
 					perror("ERROR: write read file len");
 					return -1;
 				}
 
+				//send buffer with data
 				if(writen(connfd, tmp_buf, tmp_size) <= 0)
 				{
 					perror("ERROR: write read file");
@@ -799,7 +852,9 @@ int cmd(int connfd, msg* info)
 			}
 			else
 			{
+				//something went wrong the buffer is not needed
 				free(tmp_buf);
+				//report the result
 				return report_ops(connfd, ret, 0);
 			}
 				
@@ -862,7 +917,9 @@ int cmd(int connfd, msg* info)
 	return 0;
 }
 
-
+/**
+ * \brief: the thread worker that takes an element from the requests list
+ */
 void* getMSG(void* arg)
 {
 	LOCK(&log_lock);
@@ -870,8 +927,10 @@ void* getMSG(void* arg)
 	fflush(log_file);
 	UNLOCK(&log_lock);
 
+	//not signal to interrupt immediatly sent
 	while(!fast_stop)
 	{
+		//a slow stop signal was recieved and all the remaining requests were served, break
 		if(slow_stop && client_requests->head == NULL) 
 		{
 			LOCK(&log_lock);
@@ -883,11 +942,14 @@ void* getMSG(void* arg)
 
 		msg* operation = safe_malloc(sizeof(msg));
 
+		//waits for a request to enter the list
 		LOCK(&cli_req);
 		WAIT(&wait_list, &cli_req);
 
+		//was the wroker interrupted? are there any requests to process?
 		if(!fast_stop && client_requests->head != NULL)
 		{
+			//get the request
 			msg_list_pop_return(client_requests, &operation);
 
 			UNLOCK(&cli_req);
@@ -897,8 +959,10 @@ void* getMSG(void* arg)
 			fflush(log_file);
 			UNLOCK(&log_lock);
 
+			//execute it
 			cmd(operation->fd_con, operation);
 
+			//if the client didn't request to close the connection, reinsert the client in the fdset
 			if(operation->op_type != 20)
 			{
 				LOCK(&set_lock);
@@ -912,13 +976,16 @@ void* getMSG(void* arg)
 				fprintf(log_file, "Closing connection\nClient: %ld", operation->fd_con);
 				fflush(log_file);
 				UNLOCK(&log_lock);
-
+				//close connection to client
 				close(operation->fd_con);
+				//get the new max fd
 				if (operation->fd_con == fd_max) fd_max = updateMax(set, fd_max);
 			}
 		}
 		else
+		{
 			UNLOCK(&cli_req);
+		}		
 		free(operation);
 	}
 	
@@ -926,16 +993,21 @@ void* getMSG(void* arg)
 	pthread_exit(NULL);
 }
 
+/**
+ * \brief: signal handler thread
+ */
 void* signalhandler(void* arg)
 {
 	//fprintf(stderr, "\nSignal handler activated\n");
 	
 	int signal = -1;
 
+	//the signal handler will stop if a signal was already recived
 	while(!signal_stop)
 	{
-		
+		//wait for signal
 		sigwait(&signal_mask, &signal);
+
 		LOCK(&log_lock);
 		fprintf(log_file, "\nRecived a signal\n");
 		fflush(log_file);
@@ -944,6 +1016,7 @@ void* signalhandler(void* arg)
 		//I've recived a signal
 		signal_stop = 1;
 
+		//fast stop
 		if (signal == SIGINT || signal == SIGQUIT)
         {
 			LOCK(&log_lock);
@@ -951,11 +1024,12 @@ void* signalhandler(void* arg)
 			fflush(log_file);
 			UNLOCK(&log_lock);
 
-			//blocco i worker e l'accettazione di nuove connesioni
+			//blocking the workers and no new connections will be accepted
 			fast_stop = 1;
+			//unblocks list
 			pthread_cond_broadcast(&wait_list);
 
-			//chiudo tutte le connesioni e svuoto la lista richieste
+			//closing all connections and emptying request list
 			msg* current = client_requests->head;
 			msg* next;
 
@@ -967,14 +1041,14 @@ void* signalhandler(void* arg)
 				current = next;
 			}
 
+			//close all threads
 			for (int i=0; i<NUM_THREAD_WORKERS; i++)
 			{
 				pthread_join(thread_ids[i], NULL);
 			}
-
-			//fprintf(stderr, "Spaccati di botte i thread\n");
 		}
 
+		//slow stop
 		if(signal == SIGHUP) 
 		{
 			LOCK(&log_lock);
@@ -991,14 +1065,15 @@ void* signalhandler(void* arg)
 			{
 				pthread_join(thread_ids[i], NULL);
 			}
-			//fprintf(stderr, "cortesemente interrotti i thread\n");
 		}
 	}
 	//fprintf(stderr, "Exit sighan\n");
 	pthread_exit(NULL);
 }
 
-//ok, better clean up
+/**
+ * \brief: parses the config file
+ */
 void configParsing() 
 {
 	FILE *config_input = NULL;
@@ -1083,6 +1158,9 @@ void configParsing()
 	
 }
 
+/**
+ * \brief: creates the log file
+ */
 void log_create()
 {
 	
@@ -1102,6 +1180,9 @@ void log_create()
 	return;
 }
 
+/**
+ * \brief: prints the stats of the server session
+ */
 void print_stat()
 {
 	printf("\n");
@@ -1136,7 +1217,6 @@ void print_stat()
 
 int main (int argc, char* argv[]) 
 {
-
 	//fprintf(stderr, "Main PID: %ld\n", (long)getpid());
 
 	//signal masking
@@ -1154,13 +1234,14 @@ int main (int argc, char* argv[])
     //activating signal handling thread
     SYSCALL_EXIT("pthread_create", err, pthread_create(&signal_handler, NULL, &signalhandler, NULL), "ERROR: pthread_create", "");  
 
-	//allocating the global socket name
+	// allocating the global socket and log names
 	SOCKET_NAME = safe_malloc(MAX_BUF);
 	LOG_NAME = safe_malloc(MAX_BUF);
 
 	// parsing the config file
 	configParsing();
 
+	// creating the log file
 	log_create(LOG_NAME);
 
 	fprintf(log_file, "\nSERVER CREATED\nMax number of thread workers: %ld\nMax memory available: %ld\nCurrently available memory: %ld\nMax Number of files: %ld\nSocket Name: %s\nLog file name: %s\n\n", 
@@ -1189,7 +1270,7 @@ int main (int argc, char* argv[])
 
 	fd_set rdset; //set of fd wating for reading
 
-	//creating threads
+	// creating  and activating threads
 
 	CHECK_EQ_EXIT((thread_ids = (pthread_t*) calloc(NUM_THREAD_WORKERS, sizeof(pthread_t))), NULL, "ERROR: calloc threads");
 
@@ -1247,25 +1328,25 @@ int main (int argc, char* argv[])
 		else { 
 			//select ok
 			//fprintf(stderr, "select ok\n");
-			//fprintf(stderr, "max bef for: %d\n", fd_max);
 
 			for(fd_sel = 0; fd_sel <= fd_max; fd_sel++)
 			{
 				//accepting new connections
 				//fprintf(stderr, "accepting connections\n");
 			    if (FD_ISSET(fd_sel, &rdset))
-				{ //is it ready?
+				{ 
+					//is it ready?
 			    	//fprintf(stderr, "ready?\n");
 
 					if (fd_sel == fd_skt)
-					{ // sock connect ready
+					{ 
+						// sock connect ready
 						//fprintf(stderr, "sock ready\n");
 						SYSCALL_EXIT("accept", fd_con, accept(fd_skt, (struct sockaddr*)NULL, NULL), "ERROR: accept", "");
 						FD_SET(fd_con, &set);  // adding fd to starting set
 						
 						// updating max
 						if(fd_con > fd_max) fd_max = fd_con;  
-						//fprintf(stderr, "max after connection:%d\n", fd_max);
 						if(print_count == 0)
 						{
 							fprintf(log_file, "\nConnected to client: %d\n", fd_con);
@@ -1283,18 +1364,22 @@ int main (int argc, char* argv[])
 					msg* request = safe_malloc(sizeof(msg));
 	
 					if (readn(fd_con, request, sizeof(msg))<=0) 
-					{	//ATTENTION dividere -1 e 0?
+					{
 						perror("ERROR: reading msg");
 						return EXIT_FAILURE;
 					}
 
 					//fprintf(log_file, "\nFile: %s\n", request->filename);
 					//fflush(log_file);
+
+					//take out the client file descriptor to avoid recieving unwanted messages
+					//if needed it will be readded later on
 					FD_CLR(fd_con, &set);
 
 					request->fd_con = fd_con;
 				
 					//fprintf(stderr, "adding request to list\n");
+					//adding request to the list and signal that is not empty anymore
 					LOCK(&cli_req);
 					msg_push_head(request, client_requests);
 					pthread_cond_signal(&wait_list);
@@ -1335,5 +1420,4 @@ int main (int argc, char* argv[])
 	Hash_Destroy(&cacheMemory);
 
 	pthread_exit(NULL);
-	//return EXIT_SUCCESS;
 }

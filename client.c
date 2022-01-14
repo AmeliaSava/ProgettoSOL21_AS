@@ -12,7 +12,12 @@
 #include <dirent.h>
 
 #define SOCK_NAME "./storage_sock"
-
+/**
+ * \brief: struct that contains command line argument information
+ * \param next: the next arguments to process
+ * \param opt: the opt type
+ * \param args: the argument string
+ */
 typedef struct ARGS 
 {
 	struct ARGS* next;
@@ -20,15 +25,21 @@ typedef struct ARGS
 	char* args;
 } cmd_args;
 
+//global settings
 int print = 0;
 char* SOCKNAME = NULL;
 long sleeptime = 0;
 
+//where the command line options are saved
 cmd_args* opt_args = NULL;
 
+//directories
 char* expelled_dir;
 char* save_dir;
 
+/**
+ * \brief: prints help information, used for -h option
+ */
 void print_h()
 {
 	printf("usage: ./client [option]\n");
@@ -52,7 +63,9 @@ void print_h()
 	printf("-p -> enables prints throughout the code\n");
 }
 
-// adds "./" to a file name
+/**
+ * \brief: adds "./" to a file name
+ */ 
 int add_current_folder(char** pathname, char* name)
 {
 	char* folder = safe_malloc(strlen(name) + 1);
@@ -65,6 +78,9 @@ int add_current_folder(char** pathname, char* name)
 	return 0;
 }
 
+/**
+ * \brief: checks if the directory is the current one or the parent one
+ */ 
 int isdot (const char dir[])
 {
 	int l = strlen(dir);
@@ -72,7 +88,9 @@ int isdot (const char dir[])
 	return 0;
 }
 
-// function to obtain absolute pathname of a file
+/**
+ * \brief: function to obtain absolute pathname of a file
+ */ 
 char* cwd() 
 {
 	char* buf = safe_malloc(MAX_SIZE*sizeof(char));
@@ -87,17 +105,20 @@ char* cwd()
 	return buf;
 }
 
-// function that reads n or all files in a given directory
-// returns 0 if it was not able to enter the directory
-// -1 error
-// 1 success
+/**
+ * \brief: function that reads n or all files in a given directory and all sub directories
+ * \param dir: the directory to explore
+ * \param n: pointer to the number of files to read
+ * \return: 0 if it was not able to enter the directory
+ * \return: -1 error
+ * \return: 1 success
+ */
 int write_from_dir_find (const char* dir, long* n) 
 {
-
 	//enetering directory
 	if(chdir(dir) == -1) 
 	{ 
-		//print_error("error entering directory %s\n", dir); 
+		//error while entering directory, finished reading all directories 
 		return 0; 
 	}
 
@@ -106,7 +127,7 @@ int write_from_dir_find (const char* dir, long* n)
 	//opening directory
 	if((d = opendir(".")) == NULL) 
 	{ 
-		//print_error("error entering directory %s\n", dir);
+		//error while entering directory, finished reading all directories
 		return -1;
 	} 
 	else {
@@ -114,9 +135,9 @@ int write_from_dir_find (const char* dir, long* n)
 		struct dirent *file;
 
 		// reading all files
-		// setto errno prima di chiamare readdir, per discriminare i due casi in cui ritorna NULL
-		// 1. se c'è un errore, e in quel caso setta errno
-		// 2. se è arrivato alla fine della dir e non c'è più niente da leggere
+		// setting errno before readdir, to distinguish between two case in which it returns NULL
+		// 1. an error occurred, set errno
+		// 2. end of directory, no more files to read
 		while((errno = 0, file = readdir(d)) != NULL) {
 
 			struct stat statb;
@@ -130,9 +151,9 @@ int write_from_dir_find (const char* dir, long* n)
 
 			//if a directory is found...
 			if(S_ISDIR(statb.st_mode)) {
-				//...ed ho escluso il caso che sia la stessa directory in cui sono adesso o la directory padre...
+				//...and it's not the same directory or parent directory...
 				if(!isdot(file->d_name)) {
-					//...chiamo la funzione ricorsivamente
+					//...call recursively
 					if(write_from_dir_find(file->d_name, n) != 0) {
 						// quando ho finito risalgo nella directory precedente
 						// WARNING: dato che stat segue i link simbolici ritornando gli attributi
